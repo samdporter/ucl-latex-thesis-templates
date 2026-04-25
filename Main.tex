@@ -53,7 +53,34 @@
 %  mphil
 %\documentclass[12pt,phd,draft,a4paper,oneside]{ucl_thesis}
 \documentclass[12pt,phd,a4paper,oneside]{ucl_thesis}
+\usepackage{amsmath, amssymb, amsfonts,amsthm}
+\usepackage{bm} % For bold math symbols
+\usepackage{subcaption}
+\usepackage{isotope}
+\usepackage{siunitx}
+\usepackage[backend=biber,style=numeric,sorting=none]{biblatex}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+\usepackage[nameinlink,noabbrev]{cleveref}
+\usepackage{mathtools}
+\usepackage{comment}
 
+\theoremstyle{plain} % italic body
+\newtheorem{theorem}{Theorem}[subsection]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition} % upright body
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+
+\theoremstyle{remark} % upright body, usually smaller
+\newtheorem{remark}[theorem]{Remark}
+\newcommand{\cmmnt}[1]{\ignorespaces}
+\DeclareMathOperator{\wtnv}{w\text{-}TNV}
+\DeclareMathOperator{\wdtnv}{w\text{-}dTNV}
+\DeclareMathOperator{\dtv}{dTV}
 
 % Package configuration:
 %  LaTeX uses "packages" to add extra commands and features.
@@ -76,10 +103,30 @@
 \setcounter{secnumdepth}{3}
 \setcounter{tocdepth}{3}
 
+\DeclareMathOperator{\tr}{Tr}
+\DeclareMathOperator{\diag}{Diag}
+\DeclareMathOperator{\mvec}{vec}
+\DeclareMathOperator{\Sym}{Sym}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\divg}{div}
+
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{bm}
+\usepackage[toc,acronym]{glossaries}
+\makeglossaries
+%\newglossary[sym]{symbols}{syi}{syg}{Notation}
+
+\input{acronyms_symbols} % <-- add this
+
+\newcommand{\Charb}[1]{\sqrt{#1^2+\epsilon^2}}
+\newcommand{\bx}{\mathbf{x}}
+\newcommand{\bJ}{\mathbf{J}}
+\newcommand{\bD}{\mathcal{D}}
+
+\addbibresource{references.bib}
 
 \begin{document}
-
-\nobibliography*
 % ^-- This is a dumb trick that works with the bibentry package to let
 %  you put bibliography entries whereever you like.
 % I used this to put references to papers a chapter's work was 
@@ -95,17 +142,22 @@
 % At last, content! Remember filenames are case-sensitive and 
 %  *must not* include spaces.
 \include{Preamble}
-\include{Introduction}
+
+\include{Chapter0}
+\include{Chapter1}
 \include{Chapter2}
 \include{Chapter3}
-\include{Conclusions}
+\include{Chapter4}
+\include{Chapter5}
+\include{Chapter6}
+\include{Chapter7}
 \include{Appendices} 
 % You could separate these out into different files if you have
 %  particularly large appendices.
 
 % Actually generates your bibliography. The fact that \include is 
 % the last thing before this ensures that it is on a clear page.
-\bibliography{example}
+%\bibliography{example}
 
 % All done. \o/
 \end{document}

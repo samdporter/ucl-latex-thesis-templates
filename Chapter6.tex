@@ -1,0 +1,455 @@
+\chapter{Weighted Directional Total Nuclear Variation for Joint $^{90}$Y PET/SPECT Reconstruction}
+\label{chapter:paper}
+
+\begin{refsection}
+
+This chapter applies the weighted directional Total Nuclear Variation ($w$-$d$TNV) prior developed in Chapter~\ref{chapter:wdtnv} to the clinically relevant problem of post-treatment $^{90}$Y activity imaging after selective internal radiation therapy (SIRT). We consider joint reconstruction of low-count $^{90}$Y PET and bremsstrahlung SPECT, using CT attenuation-correction (CTAC) information directionally (via the CTAC-derived attenuation map $\mu$) to stabilise edge geometry without enforcing intensity correlation.
+
+Relative to Chapter~\ref{chapter:wdtnv}, the focus here is validation and comparison with other methods: we specify modality-dependent forward models, co-registration operators, practical normalisation for heterogeneous PET/SPECT scales, and a reproducible evaluation protocol on a NEMA IEC phantom with PET bootstrapping and on a post-SIRT patient cohort.
+
+\section{Motivation and clinical context}
+\label{sec:90y_motivation}
+
+Quantitative post-treatment imaging is required for personalised dosimetry following $^{90}$Y SIRT \cite{levillain_international_2021}. Pre-treatment planning based on $^{99\mathrm{m}}$Tc-MAA often mis-predicts microsphere deposition, motivating post-treatment verification of delivered activity distributions \cite{haste_correlation_2017}.
+
+Two $^{90}$Y modalities are clinically available:
+\begin{itemize}
+    \item \textbf{$^{90}$Y PET}: detects the rare internal pair-production branch, providing comparatively high spatial resolution but extremely low count statistics \cite{selwyn_new_2007}.
+    \item \textbf{Bremsstrahlung SPECT}: has substantially higher counts but suffers from severe blur, septal penetration, and scatter due to the continuous emission spectrum \cite{rong_development_2012, minarik_evaluation_2008}.
+\end{itemize}
+Since both modalities image the same underlying microsphere distribution, independent reconstruction discards a strong physical coupling. This motivates a joint MAP formulation with a coupled regulariser that promotes shared geometry while allowing modality-specific contrast.
+
+\section{Joint MAP formulation for PET/SPECT}
+\label{sec:90y_joint_map}
+
+We use the joint MAP framework introduced in Section~\ref{subsec:synergistic_recon}. For the present application we set $M=2$ modalities, with $m=1$ denoting PET and $m=2$ denoting SPECT. Let $x_m\in\mathbb{R}_+^{J_m}$ denote the activity image in the native grid of modality $m$, and let $y_m\in\mathbb{N}^{I_m}$ denote the corresponding projection data.
+
+For each modality we use the standard affine Poisson model outlined in Chapter~\ref{chapter:reconstruction}
+\begin{equation}
+\bar y_m(x_m) = A_m x_m + b_m,
+\end{equation}
+where $A_m$ is the system matrix and $b_m$ collects additive corrections. For example, randoms and scatter for PET and simulated scatter/penetration terms for SPECT (see Sections~\ref{sec:pet_model, sec:spect_model}).
+
+The coupled reconstruction is posed on a shared grid via registered images $\bm{z}=\{z_m\}_{m=1}^2$ as defined in Chapter~\ref{chapterlabel4}:
+\begin{equation}
+z_m := W_m x_m \in \mathbb{R}_+^{N},
+\end{equation}
+where $W_m:\mathbb{R}_+^{J_m}\to\mathbb{R}_+^{N}$ are warp/resampling operators into the shared space. In this work, joint regularisation is applied in PET space, so $W_1$ is (typically) the identity on the PET grid and $W_2$ maps SPECT into PET space.
+
+The joint objective is
+\begin{equation}
+\hat{\bm{x}}
+=
+\arg\min_{\bm{x}\ge 0}
+\left\{
+\sum_{m=1}^{2}\mathcal{D}_m\!\left(y_m \mid A_m x_m + b_m\right)
++
+\lambda\,\mathcal{R}(\bm{z})
+\right\},
+\label{eq:90y_joint_obj}
+\end{equation}
+where $\mathcal{D}_m$ is the Poisson negative log-likelihood (up to an additive constant),
+\begin{equation}
+\mathcal{D}_m(y_m\mid \bar y_m)=\sum_{i=1}^{I_m}\left((\bar y_m)_i - (y_m)_i\log (\bar y_m)_i\right),
+\end{equation}
+and $\mathcal{R}$ is the coupled prior. In this chapter, $\mathcal{R}$ is the smoothed $w$-$d$TNV prior $\tilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}$ defined in Section~\ref{sec:wdjtnv} (Chapter~\ref{chapterlabel4}), specialised to PET/SPECT with CTAC guidance and practical global modality normalisation.
+
+\section{$w$-$d$TNV instantiated for $^{90}$Y PET/SPECT with CTAC guidance}
+\label{sec:90y_wdtnv}
+
+\subsection{Directional guidance from the CTAC-derived $\mu$-map}
+\label{subsec:90y_mu_guidance}
+
+As in Section~\ref{subsec:directional_from_guidance}, we use CT information directionally rather than appending CT as a third coupled channel. Here the guidance image is the CTAC-derived attenuation map $\mu$ (resampled to the PET grid). We compute a stabilised unit direction field in the discrete gradient space,
+\begin{equation}
+\xi_n
+=
+\frac{(D\mu)_n}{\|(D\mu)_n\|_2 + \eta},
+\qquad
+\eta = 0.05\cdot \max_{n}\|(D\mu)_n\|_2,
+\label{eq:90y_xi_def}
+\end{equation}
+where $D$ is the chosen directional finite-difference operator (specified in Section~\ref{subsec:90y_directional_stencil}). The stabiliser $\eta$ prevents amplification of small-magnitude $\mu$ differences in homogeneous regions.
+
+We can then form the modality-wise directional operators $\Pi_{n,m}\in\mathbb{R}^{d\times d}$ using the construction already adopted in Chapter~\ref{chapterlabel4}:
+\begin{equation}
+\Pi_{n,m}
+=
+I_d - \gamma_m\,\xi_n\xi_n^\top,
+\qquad
+\gamma_m\in[0,1].
+\label{eq:90y_Pi_def}
+\end{equation}
+Unless stated otherwise, we set $\gamma_1=\gamma_2=1$, i.e.\ maximal shrinkage along the $\mu$-edge normal direction.
+
+\subsection{Global modality normalisation as a constant diagonal weighting}
+\label{subsec:90y_global_weights}
+
+Chapter~\ref{chapterlabel4} introduced a general voxel-wise diagonal modality weighting $B_n=\mathrm{diag}(b_{n,1},\ldots,b_{n,M})$. In the present study we use a spatially uniform normalisation to mitigate the dominant scale disparity between $^{90}$Y PET and bremsstrahlung SPECT:
+\begin{equation}
+B_n \equiv B := \mathrm{diag}(b_1,b_2),
+\qquad b_1,b_2>0.
+\end{equation}
+Weights are computed from early-stopped unregularised reconstructions $x_m^{\mathrm{init}}$ via robust dynamic-range (percentile) scaling over a CTAC-derived foreground mask $\Omega'$:
+\begin{equation}
+b_m
+=
+\frac{\beta_m}{q_{0.99}\!\bigl(x_m^{\mathrm{init}}|_{\Omega'}\bigr)-q_{0.01}\!\bigl(x_m^{\mathrm{init}}|_{\Omega'}\bigr)},
+\qquad m\in\{1,2\},
+\label{eq:90y_bm_def}
+\end{equation}
+where $q_p(\cdot|_{\Omega'})$ denotes the $p$th percentile over voxels in $\Omega'$, and $\beta_m$ are user-controlled regularisation weights used for operating-point selection (Section~\ref{subsec:90y_hyperparams}). This matches the intent of Section~\ref{subsec:voxelwise_weighting} while avoiding an additional spatially varying weight for this investigation \cite{tsai_benefits_2020}.
+
+\subsection{Directional finite-difference operator for PET/SPECT coupling}
+\label{subsec:90y_directional_stencil}
+
+We use the generic finite-difference definition from Chapter~\ref{chapterlabel4} (Section~\ref{sec:tv_to_tnv}) but specify the set of offsets to better accommodate SPECT blur and modest registration error. Let $\Delta=(\Delta_x,\Delta_y,\Delta_z)$ denote the voxel sizes in SI units. For a set of offsets $\mathcal{E}=\{e_\ell\}_{\ell=1}^{d}$, define the $d$-directional forward difference operator $D$ by
+\begin{equation}
+\big((D z)_n\big)^{(\ell)} :=
+\frac{z_{n+e_\ell}-z_n}{\|e_\ell\|_\Delta},
+\qquad
+\|e\|_\Delta := \sqrt{(e_x\Delta_x)^2+(e_y\Delta_y)^2+(e_z\Delta_z)^2},
+\label{eq:90y_directional_D}
+\end{equation}
+with Neumann boundary conditions.
+
+We take $d=18$ directions by combining:
+\begin{itemize}
+    \item the three axial face directions (one-voxel steps),
+    \item the six edge directions with one negative component (excluding corners),
+    \item step lengths of one and two voxels.
+\end{itemize}
+This follows the ``extended Jacobian'' motivation for TNV-type coupling \cite{holt_total_2014} and empirically improved stability in the present PET/SPECT setting.
+
+\textbf{Add my experiment here?}
+
+\subsection{The $w$-$d$TNV Jacobian and regulariser (two modalities)}
+\label{subsec:90y_wdtnv_def}
+
+Using the notation of Chapter~\ref{chapterlabel4}, we form the guided gradients $\Pi_{n,m}(D z_m)_n\in\mathbb{R}^d$ and define the weighted directional Jacobian
+\begin{equation}
+Y_n := Y^{\mathrm{w\text{-}dTNV}}_n(\bm{z})
+=
+\left[\Pi_{n,1}(D z_1)_n \;\Big|\; \Pi_{n,2}(D z_2)_n\right]\,B
+\in\mathbb{R}^{d\times 2}.
+\label{eq:90y_Yn_def}
+\end{equation}
+The regulariser is the smoothed spectral potential introduced in Chapter~\ref{chapterlabel4},
+\begin{equation}
+\tilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}(\bm{z})
+=
+\sum_{n=1}^{N}\phi(Y_n),
+\qquad
+\phi(Y)=\sum_{\ell=1}^{2} g(\sigma_\ell(Y)),
+\label{eq:90y_R_def}
+\end{equation}
+where $g$ is the Charbonnier smoothing (Equation~\ref{eq:charbonnier_g}) and $\sigma_\ell(Y)$ are singular values. We set the smoothing parameter $\epsilon$ relative to initial joint-gradient magnitudes:
+\begin{equation}
+\epsilon
+=
+0.05\cdot \mathrm{median}_{n\in\Omega'}\,\sigma_1\!\left(Y_n^{\mathrm{init}}\right),
+\qquad
+Y_n^{\mathrm{init}}:=Y^{\mathrm{w\text{-}dTNV}}_n(\bm{z}^{\mathrm{init}}),
+\label{eq:90y_epsilon_def}
+\end{equation}
+with $\bm{z}^{\mathrm{init}}=(W_1 x_1^{\mathrm{init}},W_2 x_2^{\mathrm{init}})$.
+
+If $\Pi_{n,2}(D z_2)_n\approx 0$ at some voxel (e.g.\ SPECT locally uniform after guidance), then $Y_n$ has an effectively single nonzero column and $\phi(Y_n)$ reduces to a TV-type penalty on the remaining modality column. This is the same ``no forced edges'' behaviour discussed in Chapter~\ref{chapterlabel4}.
+
+\section{Optimisation and implementation}
+\label{sec:90y_optimisation}
+
+We minimise the joint objective \eqref{eq:90y_joint_obj} using a subset stochastic variance-reduced gradient (SVRG) method \cite{johnson_accelerating_2013}, consistent with the stochastic framework studied in Chapter~\ref{chapterlabel4}. We decompose the objective into $S$ subset terms,
+\begin{equation}
+\mathcal{O}(\bm{z})
+=
+\sum_{s=1}^{S}\mathcal{D}_s(\bm{z})
++
+\sum_{s=1}^{S}\frac{1}{S}\lambda\,\tilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}(\bm{z}),
+\end{equation}
+so that each subset gradient includes a consistent $(\lambda/S)\nabla \tilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}$ contribution.
+
+At iteration $k$, with anchor point $\tilde{\bm{z}}$ refreshed once per epoch, we use the SVRG estimator
+\begin{equation}
+g^{(k)}
+=
+\nabla \mathcal{O}(\tilde{\bm{z}})
++
+S\left[\nabla \mathcal{O}_{s_k}(\bm{z}^{(k)})-\nabla \mathcal{O}_{s_k}(\tilde{\bm{z}})\right],
+\qquad
+s_k\sim\mathrm{Unif}\{1,\dots,S\},
+\end{equation}
+and apply a projected diagonally preconditioned update
+\begin{equation}
+\bm{z}^{(k+1)}
+=
+\left\{
+\bm{z}^{(k)} - \varsigma^{(k)} P^{(k)} g^{(k)}
+\right\}_{\ge 0},
+\label{eq:90y_update}
+\end{equation}
+with a decaying step size
+\begin{equation}
+\varsigma^{(k)} = \frac{\varsigma^{(0)}}{1+\delta k},
+\qquad
+\varsigma^{(0)}=1,
+\qquad
+\delta=0.005.
+\end{equation}
+
+\subsection{Diagonal preconditioning}
+\label{subsec:90y_precond}
+
+We use a product-type diagonal preconditioner combining:
+\begin{itemize}
+    \item an EM-type data scaling \cite{de_pierro_fast_2001, ahn_globally_2002},
+    \begin{equation}
+    P_{\mathrm{data},m} = x_m \oslash (A_m^\top \mathbf{1}),
+    \label{eq:90y_Pdata}
+    \end{equation}
+    applied per modality, and
+    \item a diagonal curvature proxy for $\tilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}$ based on the diagonal surrogates developed in Chapter~\ref{chapterlabel4} (Section~\ref{subsec:preconditioning}).
+\end{itemize}
+
+In practice, $P_{\mathcal{R}}$ is updated once per epoch (and held fixed within the epoch) to limit overhead. Since $M=2$, the per-voxel spectral quantities required by both the $w$-$d$TNV gradient and the diagonal surrogates can be evaluated efficiently using the $2\times 2$ Gram-matrix structure (Equation~\ref{eq:inv_sqrt_2x2} and the discussion around Equation~\ref{eq:2x2_gram}).
+
+Inspired by \cite{ehrhardt_fast_2025}, we combine $P_{\mathrm{data}}$ and $P_{\mathcal{R}}$ via a clamped Lehmer mean of order $0.1$ to avoid degeneracy when one constituent contains (near-)zero entries.
+
+\subsection{Comparator: sequential hybrid kernel EM}
+\label{subsec:90y_shkem}
+
+We compare against the sequential hybrid kernel expectation--maximisation (SHKEM) method of Deidda \textit{et al.} \cite{deidda_triple_2023}. SHKEM reconstructs modalities sequentially using a kernelised image representation whose features depend on a previously reconstructed image and the current iterate \cite{deidda_hybrid_2022}. To reduce noise amplification we use frozen kernels, halting kernel updates after 27 PET subiterations and 72 SPECT subiterations, matching the comparator configuration in \cite{deidda_triple_2023}.
+
+\section{Forward models, corrections, and co-registration}
+\label{sec:90y_forward_models}
+
+\subsection{PET forward model}
+\label{subsec:90y_pet_forward}
+
+PET list-mode data were processed to generate normalisation, attenuation, and additive corrections (randoms and scatter), which were held fixed during reconstruction \cite{stearns_random_2003, iatrou_3d_2006}. Patient PET data were acquired across two bed positions; we reconstruct on the combined-bed image space and apply forward- and back-projections separately per bed position, with an overlap of 11 voxels. Phantom PET data were reconstructed using a single bed position. Projection data are partitioned into staggered (view-interleaved) subsets, with $S=18$ for SVRG-based reconstructions and $S=9$ for SHKEM (following \cite{deidda_triple_2023}).
+
+\subsection{SPECT forward model}
+\label{subsec:90y_spect_forward}
+
+For bremsstrahlung SPECT we use a geometric projector with an analytic collimator--detector response and a simulated additive correction term. The collimator response is modelled as a depth-dependent Gaussian with linearly varying width, obtained by fitting an analytic collimator model \cite{anger_sensitivity_1966}. Bremsstrahlung blur is modelled as an isotropic Gaussian with parameters fitted to $^{90}$Y range simulations \cite{rault_fast_2010}. Scatter and septal penetration are incorporated via an additive term estimated by an outer reconstruct--simulate loop using SIMIND \cite{ljungberg_simind_2015, rong_development_2012}, then fixed during reconstruction.
+
+SPECT projection data are partitioned into staggered subsets, with $S=24$ for SVRG-based reconstructions and $S=12$ for SHKEM.
+
+\subsection{Co-registration and warp operators}
+\label{subsubsec:90y_warps}
+
+CTAC provides the anatomical reference for co-registration and for guidance via the $\mu$-map. Joint regularisation is applied in PET space: SPECT images are mapped into PET space through a non-rigid registration between CTAC volumes, defining $W_2$; all coupled-prior operations are evaluated on the PET reconstruction grid.
+
+\section{Data and evaluation protocol}
+\label{sec:90y_data_eval}
+
+\subsection{Phantom data}
+\label{subsec:90y_phantom}
+
+A NEMA IEC Body Phantom (sphere-to-background ratio 10) was scanned with a Siemens Biograph mCT PET/CT system and a GE Discovery 670 SPECT/CT system. PET was acquired over \SI{15}{\hour} and SPECT over \SI{15}{\minute}. From the \SI{15}{\hour} PET acquisition, $B=20$ statistically independent PET datasets equivalent to \SI{15}{\minute} were generated by sinogram bootstrapping \cite{markiewicz_assessment_2014}.
+
+We quantify PET reproducibility across bootstraps via voxel-wise coefficient of variation (CoV), and PET quantification via recovery coefficients (RC) for spheres of diameters \SI{10}{mm}, \SI{13}{mm}, \SI{22}{mm}, \SI{28}{mm}, and \SI{37}{mm}. VOIs follow the definitions in the associated experimental setup: warm background (BG), high count (HC) spheres, and the cold lung insert (LI).
+
+Let $x^{(r)}_{b,j}$ be the reconstructed PET intensity at voxel $j$ for method $r$ in bootstrap realisation $b\in\{1,\dots,B\}$. Define the inter-bootstrap mean and standard deviation
+\begin{equation}
+\mu^{(r)}_j := \frac{1}{B}\sum_{b=1}^{B} x^{(r)}_{b,j},
+\qquad
+s^{(r)}_j := \sqrt{\frac{\sum_{b=1}^{B}\left(x^{(r)}_{b,j}-\mu^{(r)}_j\right)^2}{B-1}},
+\end{equation}
+and voxel-wise
+\begin{equation}
+\mathrm{CoV}^{(r)}_j = \frac{s^{(r)}_j}{\mu^{(r)}_j}.
+\end{equation}
+For a VOI $\mathcal{V}$ we report the VOI-averaged statistic
+\begin{equation}
+T^{(r)}_{\mathcal{V}}=\frac{1}{|\mathcal{V}|}\sum_{j\in \mathcal{V}} \mathrm{CoV}^{(r)}_{j}.
+\end{equation}
+
+For sphere $s$, let $\bar{C}^{(r)}_{b,s}$ denote the mean reconstructed intensity within the sphere and $\bar{C}^{(r)}_{b,\mathrm{bkg}}$ the mean within BG for the same $(r,b)$. With true ratio $R_{\mathrm{true}}=8$, define
+\begin{equation}
+\mathrm{RC}^{(r)}_{b,s} = \frac{\bar{C}^{(r)}_{b,s}}{\bar{C}^{(r)}_{b,\mathrm{bkg}}\,R_{\mathrm{true}}}.
+\end{equation}
+
+Inference for RC uses a linear mixed model on $y_{b,r,s}=\log(\mathrm{RC}^{(r)}_{b,s})$ with a random intercept for bootstrap replicate and fixed effects for method, sphere, and their interaction; many-to-one contrasts compare each method to the reference $r_0=\wdtnv$, with Benjamini--Hochberg adjustment across planned comparisons within each sphere.
+
+\subsection{Clinical data}
+\label{subsec:90y_clinical}
+
+Clinical data were acquired at Oxford University Hospitals from 10 patients undergoing $^{90}$Y SIRT (1 patient used for hyperparameter selection; 9 for testing), with PET on a GE Discovery 710 PET/CT system and SPECT on a GE Discovery NM/CT 670 system. PET was acquired with two bed positions (\SI{15}{\minute} each) and SPECT with \SI{15}{\minute}.
+
+Tumour VOIs were delineated once per patient on the vendor PET reconstruction using an automatic gradient-based method \cite{mikell_impact_2018} and propagated unchanged across reconstructions. A homogeneous liver background VOI was drawn manually.
+
+For patient $p$, lesion $l$, and method $r$, define tumour-to-background ratio
+\begin{equation}
+\mathrm{TBR}_{p,l,r}=\frac{\bar{C}_{p,l,r}}{\bar{C}_{p,\mathrm{bkg},r}},
+\end{equation}
+and background noise (percentage CoV)
+\begin{equation}
+\mathrm{CoV}_{p,r}(\%) = 100\,\frac{s_{p,r}}{\bar{C}_{p,\mathrm{bkg},r}},
+\end{equation}
+where $s_{p,r}$ is the within-background-VOI standard deviation.
+
+We analyse $\log(\mathrm{TBR})$ using a linear mixed-effects model with fixed method effects and random intercepts for patient and lesion-within-patient, and analyse $\log(\mathrm{CoV}(\%))$ with a patient-level random intercept. Planned many-to-one contrasts compare \dtv, \wtnv, and SHKEM to \wdtnv, with Benjamini--Hochberg adjustment across the three comparisons within each endpoint.
+
+\section{Results}
+\label{sec:90y_results}
+
+\subsection{Hyperparameter selection}
+\label{subsec:90y_hyperparams}
+
+Regularisation weights $\beta_{\mathrm{PET}}$ and $\beta_{\mathrm{SPECT}}$ in \eqref{eq:90y_bm_def} were tuned on a single training patient by sweeping the TBR--$\mathrm{CoV}_{\mathrm{bkg}}$ trade-off and selecting an operating point on the Pareto frontier \cite{pareto_new_1897} with background CoV approximately matched to the vendor reconstruction. The selected weights were then fixed for all phantom and clinical experiments:
+\begin{table}[htbp]
+\centering
+\caption{Selected regularisation weights (tuned on a single training patient) used for all phantom and clinical experiments.}
+\label{tab:90y_hyperparams}
+\small
+\begin{tabular}{lcc}
+\toprule
+\textbf{Method} & $\boldsymbol{\beta_{\mathrm{PET}}}$ & $\boldsymbol{\beta_{\mathrm{SPECT}}}$ \\
+\midrule
+\wdtnv & 0.01   & 0.02 \\
+\wtnv  & 0.0075 & 0.02 \\
+\dtv   & 0.02   & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Phantom results}
+\label{subsec:90y_phantom_results}
+
+A representative reconstruction from a single bootstrapped PET realisation is shown in Figure~\ref{fig:90y_phantom_recon_comparison} (PET and corresponding SPECT; for SHKEM, SPECT is the separately reconstructed guidance image; \dtv does not reconstruct SPECT).
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.99\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{LaTeX/figures/phantoms/manc_nema/bootstrap_random_pet.png}
+    \end{subfigure}
+    \vspace{-0.5cm}
+    \begin{subfigure}[b]{0.99\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{LaTeX/figures/phantoms/manc_nema/bootstrap_random_spect.png}
+    \end{subfigure}
+    \caption{Visual comparison of NEMA phantom reconstructions for a randomly chosen bootstrap. From left to right: \wdtnv, \dtv, \wtnv, SHKEM (subiteration 27). PET reconstructions are shown on the top row and SPECT on the bottom row (SPECT guidance for SHKEM).}
+    \label{fig:90y_phantom_recon_comparison}
+\end{figure}
+
+Figure~\ref{fig:90y_rc_spheres_comparison} and Table~\ref{tab:90y_effect_ratio_rc} summarise sphere recovery. \wdtnv achieves improved recovery relative to \dtv and \wtnv across sphere sizes, and improves upon SHKEM for the smallest spheres at the matched operating point.
+\begin{figure*}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{LaTeX/figures/phantoms/manc_nema/bootstrap_rc.png}
+    \caption{Recovery coefficient (RC) for NEMA phantom spheres for \wdtnv, \dtv, \wtnv and SHKEM (subiteration 27). The grey line indicates perfect recovery. Statistical significance is reported for paired comparisons versus \wdtnv (Benjamini--Hochberg adjusted): $^*$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$.}
+    \label{fig:90y_rc_spheres_comparison}
+\end{figure*}
+
+\begin{table}[htbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{l l c l l}
+\toprule
+Method & $s$ & $\exp(\Delta_{r,s})$ & 95\% CI & $p_{\mathrm{BH}}$ \\
+\midrule
+\dtv & 37\,mm & 0.9113 & [0.8001,\,1.0380] & 0.2472 \\
+     & 28\,mm & 0.8543 & [0.7500,\,0.9730] & 0.0267 \\
+     & 22\,mm & 0.8165 & [0.7168,\,0.9300] & 0.0034 \\
+     & 13\,mm & 0.7819 & [0.6865,\,0.8906] & 0.00043\\
+     & 10\,mm & 0.7706 & [0.6766,\,0.8777] & $<10^{-4}$ \\
+\addlinespace
+\wtnv & 37\,mm & 0.9108 & [0.7997,\,1.0374] & 0.2472 \\
+      & 28\,mm & 0.8544 & [0.7502,\,0.9732] & 0.0267 \\
+      & 22\,mm & 0.8090 & [0.7103,\,0.9215] & 0.0034 \\
+      & 13\,mm & 0.7598 & [0.6671,\,0.8654] & 0.0001 \\
+      & 10\,mm & 0.7384 & [0.6483,\,0.8410] & $<10^{-4}$ \\
+\addlinespace
+SHKEM (27) & 37\,mm & 0.9931 & [0.8720,\,1.1312] & 0.9175 \\
+           & 28\,mm & 0.9739 & [0.8551,\,1.1093] & 0.6906 \\
+           & 22\,mm & 0.9616 & [0.8443,\,1.0953] & 0.5559 \\
+           & 13\,mm & 0.8723 & [0.7659,\,0.9936] & 0.0397 \\
+           & 10\,mm & 0.7381 & [0.6480,\,0.8407] & $<10^{-4}$ \\
+\bottomrule
+\end{tabular}
+\caption{Effect ratios $\exp(\Delta_{r,s})$ (comparator vs.\ baseline \wdtnv) with 95\% confidence intervals and BH-adjusted $p$-values, reported by sphere diameter $s$.}
+\label{tab:90y_effect_ratio_rc}
+\end{table}
+
+Figure~\ref{fig:90y_phantom_cov} summarises voxel-wise reproducibility across bootstraps. At the matched operating point, \dtv and \wtnv yield lower voxel-wise CoV than \wdtnv in the evaluated VOIs, while SHKEM exhibits higher variability in background and high-count regions but improved stability in the cold lung insert.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{LaTeX/figures/phantoms/manc_nema/bootstrap_voxelwise_cov.png}
+    \caption{Mean voxel-wise coefficient of variation (CoV) across 20 bootstrapped PET realisations within each VOI. Statistical significance is reported for paired comparisons versus \wdtnv (BH-adjusted): $^*$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$.}
+    \label{fig:90y_phantom_cov}
+\end{figure}
+
+\subsection{Clinical results}
+\label{subsec:90y_clinical_results}
+
+Across the test cohort, \wdtnv yields higher lesion TBR than \dtv, \wtnv, and SHKEM at the matched operating point, while background CoV differences are smaller and method-dependent:
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{LaTeX/figures/patients/all_lesions_tbr_mean.png}
+    \end{subfigure}%
+    \hfill
+    \begin{subfigure}[b]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{LaTeX/figures/patients/all_lesions_bg_cov.png}
+    \end{subfigure}%
+    \caption{Clinical cohort summary: lesion-wise mean TBR (left) and patient-wise background CoV (right). Statistical significance is reported for comparisons versus \wdtnv (BH-adjusted): $^*$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$.}
+    \label{fig:90y_patient_summary}
+\end{figure}
+
+\begin{table}[htbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{l c l l}
+\toprule
+Method & $\exp(\Delta)$ & 95\% CI & $p_{\mathrm{BH}}$ \\
+\midrule
+\dtv        & 0.802 & [0.758,\,0.849] & $<10^{-4}$ \\
+\wtnv       & 0.915 & [0.915,\,0.968] & 0.004 \\
+SHKEM (27)  & 0.935 & [0.884,\,0.990] & 0.020 \\
+\bottomrule
+\end{tabular}
+\caption{Effect ratios $\exp(\Delta)$ with 95\% confidence intervals and BH-adjusted $p$-values for mean tumour-to-background ratio (TBR), comparing each method to \wdtnv.}
+\label{tab:90y_effect_ratio_tb}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{l c l l}
+\toprule
+Method & $\exp(\Delta)$ & 95\% CI & $p_{\mathrm{BH}}$ \\
+\midrule
+\dtv        & 1.183 & [0.903,\,1.549] & 0.35 \\
+\wtnv       & 1.007 & [0.833,\,1.167] & 0.984 \\
+SHKEM (27)  & 1.339 & [0.933,\,1.913] & 0.093 \\
+\bottomrule
+\end{tabular}
+\caption{Effect ratios $\exp(\Delta)$ with 95\% confidence intervals and BH-adjusted $p$-values for background CoV, comparing each method to \wdtnv.}
+\label{tab:90y_effect_ratio_cov}
+\end{table}
+
+\section{Discussion}
+\label{sec:90y_discussion}
+
+The phantom results indicate that functional coupling alone (\wtnv) is insufficient to recover small-sphere boundaries at the matched operating point, and that anatomical guidance (explicit in \wdtnv, implicit in SHKEM through CT-informed kernel features) is beneficial for boundary localisation. The recovery gain for \wdtnv relative to \wtnv and \dtv is most pronounced for the smallest spheres, consistent with guidance stabilising edge geometry when PET statistics are poor and SPECT resolution is limited.
+
+The reproducibility analysis highlights a trade-off: \dtv and \wtnv provide lower voxel-wise CoV than \wdtnv at the selected operating point, consistent with stronger effective smoothing, while SHKEM exhibits higher variability in warm-background and high-count regions yet improved stability in the cold lung insert. A plausible mechanism is that SHKEM kernel weights in near-zero regions favour local averaging among consistently low voxels, so ``zeros reinforce zeros'' under positivity constraints, improving cold-region stability while not necessarily improving reproducibility elsewhere.
+
+Clinically, lesion responses to synergy and directional guidance are heterogeneous. Lesions with clear anatomical correlates (e.g.\ calcification or liver capsule boundaries visible in the $\mu$-map) tend to benefit more from $\mu$-guided anisotropy and PET/SPECT coupling, while lesions lacking such correlates may show limited benefit. This heterogeneity is consistent with the design goal of $w$-$d$TNV: CTAC guidance steers \emph{orientation} preferences, but cannot invent edges unsupported by the functional data.
+
+A practical limitation is sensitivity to CTAC artefacts. Since $\xi_n$ in \eqref{eq:90y_xi_def} depends on $D\mu$, structured CT artefacts (e.g.\ arms-down streaking) can imprint into $\|\xi\|$ and therefore into the directional weighting field, providing a pathway for artefact transfer into the emission reconstructions. The stabiliser $\eta$ mitigates amplification of small gradients but cannot reliably suppress coherent high-contrast artefacts. This motivates future work on robust direction-field estimation and artefact-aware guidance strategies.
+
+\section{Conclusion}
+\label{sec:90y_conclusion}
+
+This chapter validated the $w$-$d$TNV prior of Chapter~\ref{chapterlabel4} in joint $^{90}$Y PET/SPECT reconstruction with CTAC-derived directional guidance. The key modelling choice is to use CTAC information directionally (via $\Pi_{n,m}$) while preserving a two-modality Jacobian, retaining the computational advantages of the $2\times 2$ Gram structure (Chapter~\ref{chapterlabel4}) and avoiding unstable intensity coupling to CT.
+
+On a bootstrapped NEMA IEC phantom, \wdtnv improves small-object recovery relative to \wtnv, \dtv, and a sequential hybrid kernel baseline at a matched noise operating point. In a post-SIRT patient cohort, \wdtnv yields higher lesion TBR than the comparators, with background noise differences depending on method. Overall, these findings support CTAC-guided synergistic variational coupling as a practical route towards more reliable post-SIRT $^{90}$Y activity imaging for personalised dosimetry.
+
+\printbibliography[heading=subbibliography,title={References}]
+\end{refsection}

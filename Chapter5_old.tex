@@ -1,0 +1,820 @@
+\chapter{Weighted Directional Total Nuclear Variation: Theory and Optimisation}
+\label{chapter:wdtnv}
+
+\begin{refsection}
+
+In this chapter, we introduce a smoothed, weighted, and directional Total Nuclear Variation ($\wdtnv$) prior. We establish differentiability of the resulting spectral functional and derive a synergy-aware family of diagonal preconditioners.
+
+We then investigate the performance of these diagonal preconditioners, together with an optimal subset-selection strategy for $\wdtnv$ reconstruction using a stochastic variance-reduced gradient method.
+
+\section{Total Nuclear Variation Revisited}
+\label{sec:tv_to_tnv}
+
+This section builds on the definitions in Section~\ref{subsec:synergistic_recon}. For convenience, we restate the key definitions here:
+\begin{itemize}
+    \item Registered images: $\bm{z} \coloneqq \{ z_m \}_{m=1}^{M}$, where $z_m \coloneqq W_m x_m$ and
+    $W_m : \mathbb{R}_+^{J_m} \to \mathbb{R}_+^{N}$.
+    \item Finite-difference operator: for $\ell=1,\dots,d$,
+    \[
+        \big((D x)_n\big)^{(\ell)} \coloneqq \frac{x_{n+\delta_\ell} - x_{n}}{\Delta_{\ell}} .
+    \]
+    \item Voxel-wise Jacobian:
+    \[
+        \mathcal{G}_n(\bm{z})
+        \coloneqq
+        \begin{bmatrix}
+        D z_{1,n} & D z_{2,n} & \cdots & D z_{M,n}
+        \end{bmatrix}
+        \in \mathbb{R}^{d\times M}.
+    \]
+    \item Nuclear norm: for a matrix $Y$ with singular values $\{\sigma_r(Y)\}_{r=1}^{R}$ and $R=\operatorname{rank}(Y)$,
+    \[
+        \|Y\|_* \coloneqq \sum_{r=1}^{R}\sigma_r(Y).
+    \]
+    \item Total nuclear variation:
+    \[
+        \mathcal{R}_{\mathrm{TNV}}(\bm{z}) \coloneqq \sum_{n=1}^N  \|\mathcal{G}_n(\bm{z})\|_* .
+    \]
+\end{itemize}
+
+
+\subsection{Mathematical properties and differentiability}
+\label{subsec:tnv_differentiability}
+
+Briefly revisiting total variation, optimisation of $\mathcal{R}_{\mathrm{TV}}$ (cf.\ \eqref{eq:tv}) is inconvenient in gradient-based methods because these functionals are not globally smooth (the TV gradient is undefined when $(D x_m)_j=0$). A standard remedy is to introduce a small smoothing parameter $\epsilon>0$.
+
+If we define
+\begin{equation}
+\tilde{\mathcal{R}}_{\mathrm{TV}}(x_m)
+\;:=\;
+\sum_{j=1}^{J_m} \|(D x_m)_j\|_{2,\epsilon},
+\qquad
+\|(v)\|_{2,\epsilon}:=\sqrt{\|v\|_2^2+\epsilon^2}.
+\end{equation}
+Then the image-space gradient is
+\begin{equation}
+\nabla_{x_m}\tilde{\mathcal{R}}_{\mathrm{TV}}(x_m)
+\;=\;
+-\,\operatorname{div}\!\left(\frac{D x_m}{\|D x_m\|_{2,\epsilon}}\right),
+\end{equation}
+where the division is understood pointwise over voxels.
+
+For nuclear-norm VTV, the (unsmoothed) singular-value map is not differentiable at zero singular values, and hence the corresponding nuclear norm is not $C^1$ at rank-deficient points. We therefore consider the smoothed nuclear norm obtained by applying the Charbonnier function to the singular values, defined as
+
+\begin{equation}\label{eq:charbonnier_g}
+g(s)=\sqrt{s^2+\epsilon^2},
+\qquad
+g'(s) = \frac{s}{\sqrt{s^2+\epsilon^2}},
+\qquad
+g''(s)=\frac{\epsilon^2}{(s^2+\epsilon^2)^{3/2}}.
+\end{equation}
+
+The nuclear norm is (orthogonally) unitarily invariant. i.e. for any orthogonal $U\in\mathbb{R}^{d\times d}$ and $V\in\mathbb{R}^{M\times M}$,
+\begin{equation}
+\|Y\|_* \;=\; \|U Y V^\top\|_*.
+\end{equation}
+More generally, any function of the form
+\begin{equation}
+\phi(Y) \;:=\; f(\sigma(Y)),
+\qquad
+f(s)=\sum_{\ell=1}^{r} g(s_\ell),
+\qquad
+r=\min\{d,M\},
+\end{equation}
+is orthogonally invariant and depends on $Y$ only through its singular values $\sigma(Y)=(\sigma_1(Y),\dots,\sigma_r(Y))$.
+Since $g\in C^\infty([0,\infty))$ for $\epsilon>0$, the symmetric function $f$ is $C^\infty$ and hence $\phi$ is $C^2$ with a gradient given by the standard formula for orthogonally invariant matrix functions \cite{lewis_convex_1995,lewis_derivatives_1996}).
+
+\paragraph{Jacobian-space gradient.}
+Let $\phi(\mathcal{G})=\sum_{\ell=1}^{\min(d,M)} g(\sigma_\ell(\mathcal{G}))$ with $g(s)=\sqrt{s^2+\epsilon^2}$, where $\sigma_\ell(\mathcal{G})$ are the singular values of the voxel-wise Jacobian matrix $\mathcal{G}\in\mathbb{R}^{d\times M}$. A thin SVD
+\begin{equation}
+\mathcal{G} \;=\; U\,\Sigma\,V^\top,
+\qquad
+U\in\mathbb{R}^{d\times r},\ \Sigma=\mathrm{diag}(\sigma)\in\mathbb{R}^{r\times r},\ V\in\mathbb{R}^{M\times r},
+\end{equation}
+with $r=\mathrm{rank}(\mathcal{G})$ gives the standard spectral-gradient expression
+\begin{equation}\label{eq:phi_grad_svd}
+\nabla_{\mathcal{G}} \phi(\mathcal{G})
+\;=\;
+U\,\mathrm{diag}\!\bigl(g'(\sigma)\bigr)\,V^\top,
+\qquad
+g'(\sigma_\ell)=\frac{\sigma_\ell}{\sqrt{\sigma_\ell^2+\epsilon^2}}.
+\end{equation}
+
+In practice, it is unnecessary to form $U$ (or even to compute an SVD) if we exploit the small Gram matrix
+\begin{equation}
+A := \mathcal{G}^\top \mathcal{G}\in\mathbb{R}^{M\times M},
+\qquad A\succeq 0.
+\end{equation}
+Let $A=V\Lambda V^\top$ with $\Lambda=\mathrm{diag}(\lambda_1,\dots,\lambda_M)$. Then $\lambda_\ell=\sigma_\ell^2$ for the nonzero spectrum and $V$ coincides with the right singular vectors of $\mathcal{G}$. Moreover, on the range of $\mathcal{G}$ we have $U=\mathcal{G}V\Sigma^{-1}$, so substituting into~\eqref{eq:phi_grad_svd} yields
+\begin{equation}\label{eq:phi_grad_gram}
+\nabla_{\mathcal{G}} \phi(\mathcal{G})
+\;=\;
+\mathcal{G}\,V\,\mathrm{diag}\!\left(\frac{g'(\sigma_\ell)}{\sigma_\ell}\right)\,V^\top,
+\end{equation}
+with the continuous extension at $\sigma_\ell=0$. For the Charbonnier-type smoothing,
+\begin{equation}
+\frac{g'(\sigma_\ell)}{\sigma_\ell}
+=
+\frac{1}{\sqrt{\sigma_\ell^2+\epsilon^2}}
+=
+\frac{1}{\sqrt{\lambda_\ell+\epsilon^2}},
+\end{equation}
+hence
+\begin{equation}\label{eq:phi_grad_inv_sqrt}
+\nabla_{\mathcal{G}} \phi(\mathcal{G})
+\;=\;
+\mathcal{G}\,V\,\mathrm{diag}\!\left(\frac{1}{\sqrt{\lambda_\ell+\epsilon^2}}\right)\,V^\top
+\;=\;
+\mathcal{G}\,(A+\epsilon^2 I)^{-1/2}.
+\end{equation}
+Equation~\eqref{eq:phi_grad_inv_sqrt} shows that the Jacobian-space gradient is obtained by applying the inverse square-root of the $M\times M$ SPD matrix $A+\epsilon^2 I$ to the columns of $\mathcal{G}$. This reduces the per-voxel computation from an SVD of a $d\times M$ matrix to evaluating a matrix function of dimension $M$, which is particularly advantageous when $M\ll d$.
+
+For $M=2$ modalities, even an eigendecomposition of $A$ can be avoided: $(A+\epsilon^2 I)^{-1/2}$ admits a closed-form expression in terms of scalar invariants. Writing
+\begin{equation}
+A=
+\begin{pmatrix}
+a & c\\
+c & b
+\end{pmatrix},
+\qquad
+a=\|\mathcal{G}_{:,1}\|_2^2,\ \ b=\|\mathcal{G}_{:,2}\|_2^2,\ \ c=\langle \mathcal{G}_{:,1},\mathcal{G}_{:,2}\rangle,
+\end{equation}
+define $S:=A+\epsilon^2 I=\begin{psmallmatrix}\alpha & \gamma\\ \gamma & \beta\end{psmallmatrix}$ with $\alpha=a+\epsilon^2$, $\beta=b+\epsilon^2$, $\gamma=c$, and the invariants
+\begin{equation}
+t:=\mathrm{tr}(S)=\alpha+\beta,
+\qquad
+\delta:=\det(S)=\alpha\beta-\gamma^2,
+\qquad
+s:=\sqrt{\delta}.
+\end{equation}
+Since $\epsilon>0$ implies $S\succ 0$, we have $\delta>0$ and the following identity holds for $2\times2$ SPD matrices:
+\begin{equation}\label{eq:inv_sqrt_2x2}
+S^{-1/2}
+=
+\sqrt{t+2s}\,(S+sI)^{-1}
+=
+\frac{\sqrt{t+2s}}{2\delta+s\,t}
+\begin{pmatrix}
+\beta+s & -\gamma\\
+-\gamma & \alpha+s
+\end{pmatrix}.
+\end{equation}
+Therefore, for two modalities the Jacobian-space gradient can be evaluated via
+\begin{equation}\label{eq:2x2_gram}
+\nabla_{\mathcal{G}} \phi(\mathcal{G})
+=
+\mathcal{G}\,S^{-1/2},
+\qquad S=A+\epsilon^2 I,
+\end{equation}
+using only dot products and scalar square-roots per voxel, without an explicit SVD or eigendecomposition.
+
+\paragraph{Image-space gradient.}
+Define voxel-wise
+\begin{equation}
+Q_n \;:=\; \nabla_{\mathcal{G}} \phi\bigl(\mathcal{G}_n(\bm{z})\bigr)
+\in\mathbb{R}^{d\times M},
+\end{equation}
+and let $Q=\{Q_n\}_{n=1}^N$. Applying the chain rule through the linear map $\bm{z}\mapsto D\bm{z}$ yields
+\begin{equation}
+\delta \tilde{\mathcal{R}}_{\mathrm{TNV}}(\bm{z})[\delta \bm{z}]
+=
+\sum_{n=1}^N \left\langle Q_n,\ (D\,\delta \bm{z})_n \right\rangle_F
+=
+\left\langle Q,\ D\,\delta \bm{z} \right\rangle,
+\end{equation}
+where $\langle\cdot,\cdot\rangle$ denotes the discrete $\ell^2$ inner product over voxels combined with the Frobenius inner product over the $(d\times M)$ blocks. By definition of the adjoint $D^\ast$,
+\begin{equation}
+\left\langle Q,\ D\,\delta \bm{z} \right\rangle
+=
+\left\langle D^\ast Q,\ \delta \bm{z} \right\rangle.
+\end{equation}
+It is standard to define the discrete divergence as $\operatorname{div}:=-D^\ast$, hence
+\begin{equation}
+\nabla_{\bm{z}} \tilde{\mathcal{R}}_{\mathrm{TNV}}(\bm{z})
+=
+-\,\operatorname{div} Q,
+\end{equation}
+where $\operatorname{div}$ acts column-wise on $Q\in\mathbb{R}^{N\times d\times M}$ (i.e.\ separately for each modality).
+
+\section{Weighted Directional Joint TNV ($w\text{-}dTNV$)}
+\label{sec:wdjtnv}
+
+This section extends Total Nuclear Variation (\wtnv) \cite{rigie_joint_2015, holt_total_2014} in two orthogonal ways:
+\begin{itemize}
+    \item We incorporate high-resolution anatomical guidance directionally (rather than as an additional coupled channel)
+    \item We introduce a voxel-wise, modality-wise diagonal weighting that compensates for heterogeneous scaling and spatially varying reliability across modalities.
+\end{itemize}
+
+The starting point is the standard TNV construction: penalising the nuclear norm of a multi-modality Jacobian promotes joint sparsity and alignment of edges, since a low nuclear norm favours a locally low-rank Jacobian.
+
+\subsection{Directional operators from guidance}
+\label{subsec:directional_from_guidance}
+
+To incorporate guidance information (e.g.\ from a high-resolution anatomical image), we borrow the operator from directional total variation Equation~\ref{eq:directional_op}. The key design choice is that the guidance image is used only to steer the penalty, not to add an extra column to the joint Jacobian. This avoids directly coupling an anatomical channel (with distinct units, resolution, and artefacts) to the emission channels through the singular spectrum. In particular, if a guidance image were appended as an additional modality, then a single global scaling would have data-dependent and spatially non-uniform consequences: where emission gradients are weak, even modest guidance gradients can dominate the local Jacobian and hence the singular values, whereas in strong-emission-edge regions the same scaling may become negligible. Since the nuclear norm couples modalities through the eigenstructure of the local Gram matrix, such reweighting can also transfer structured guidance artefacts into the coupled reconstruction. By contrast, a directional operator provides an explicit, interpretable mechanism: it modifies which gradient components are penalised (anisotropy), without forcing the presence of edges where the emission data do not support them.
+
+A further practical difficulty is that extending the joint Jacobian from two emission channels to three channels (by appending CT-derived guidance as a third modality) makes the relative weighting problem substantially more ill-conditioned. Even in the two-modality case, the scale factors must be tuned so that neither modality trivially dominates the singular spectrum. With three modalities, the situation is more delicate: down-weighting one emission modality to reduce its influence in the nuclear norm immediately raises the question of how to simultaneously calibrate the guidance channel. If the guidance (CT) column is down-weighted together with the weak emission modality, then its anatomical influence is suppressed precisely where that emission modality needs it most. Conversely, if the guidance column is left unscaled (or scaled to match only the stronger emission modality), it tends to overpower the down-weighted modality: the dominant singular directions become governed by the CT gradients, and the down-weighted emission modality contributes negligibly to the local Gram matrix. In other words, there is no single global CT scaling that can both avoid swamping the weaker emission modality and preserve a consistent level of anatomical steering across voxels and across both emission channels. This trade-off is intrinsic to the spectral coupling: scaling any one column changes not only its own contribution but also the cross-terms and eigenstructure of $\mathcal{G}_n^\top\mathcal{G}_n$, so the effective ``amount of guidance'' becomes spatially and data dependently entangled with the desired emission-to-emission balancing.
+
+Using CT only to construct the directional operators decouples these roles. The relative weighting between emission modalities can be controlled explicitly (e.g.\ via $B_n$) without simultaneously having to retune the strength of anatomical information, which is instead governed by the directional-field stabilisation and anisotropy parameters in $\Pi_{n,m}$. This separation yields more predictable behaviour: modality weights determine how strongly emission gradients are coupled to one another through the nuclear norm, while the directional operator determines how strongly the penalty prefers $\mu$-consistent edge directions. 
+
+In addition, retaining a two-modality Jacobian yields a $2\times 2$ Gram matrix (Equation~\ref{eq:2x2_gram}), which admits closed-form expressions for the spectral quantities required by the smoothed nuclear-norm surrogate and its Jacobian-space gradient. This enables efficient and numerically robust evaluation of $(\mathcal{G}_n^\top\mathcal{G}_n+\epsilon^2 I)^{-1/2}$ per voxel using only scalar invariants (trace and determinant), avoiding a general SVD/eigendecomposition and reducing both computational overhead and implementation complexity.
+
+Applying $\Pi_{n,m}$ to each modality gradient defines the directional multi-modality Jacobian
+\begin{equation}
+\mathcal{G}^{\mathrm{dir}}_n(\bm{z})= \bigl[\Pi_{n,1}(D z_1)_n \;|\; \cdots \;|\; \Pi_{n,M}(D z_M)_n\bigr]\in\mathbb{R}^{d\times M}.
+\end{equation}
+Here $D$ denotes the chosen discrete directional-difference operator (so $(D z_m)_n\in\mathbb{R}^d$), and each $\Pi_{n,m}\in\mathbb{R}^{d\times d}$ is constructed from the guidance field at voxel $n$ (and may be modality dependent, though we don't explore this in this thesis). Intuitively, $\Pi_{n,m}$ down-weights gradient components that are deemed inconsistent with the local anatomical direction, so that emission edges aligned with the guidance become cheaper while other directions are penalised more strongly. In homogeneous regions of the guidance image, $\Pi_{n,m}$ is typically close to the identity, so the regulariser reduces to an (approximately) isotropic TNV-type coupling.
+
+\subsection{Voxel-wise diagonal weighting across modalities}
+\label{subsec:voxelwise_weighting}
+
+The directional operators $\{\Pi_{n,m}\}$ encode where and in which directions anatomical guidance should relax the regularisation, but they do not address the fact that the relative magnitude and reliability of modality gradients can vary substantially across channels and across space. Since TNV couples modalities spectrally through the singular values of the joint Jacobian, a principled column-wise normalisation is essential to ensure that the desired joint-edge behaviour is not dominated by arbitrary intensity scaling or by a locally low-information channel. We therefore introduce a diagonal, voxel-wise modality-weighting matrix
+\begin{equation}
+B_n = \mathrm{diag}\bigl(b_{n,1},\ldots,b_{n,M}\bigr)\in\mathbb{R}^{M\times M},
+\qquad
+b_{n,m}>0,
+\end{equation}
+which rescales the columns of the directional Jacobian (i.e.\ the guided modality gradients).
+
+This weighting plays two complementary roles. First, modalities typically differ in physical units, dynamic ranges, and effective resolution. Without rescaling, the singular values of the joint Jacobian are often dominated by the largest-scale modality, and because the nuclear norm is a spectral penalty this dominance is not merely linear: it alters the full singular spectrum and therefore the effective coupling strength between modalities. Column-wise scaling via $B_n$ restores a controlled notion of comparability between modality gradients, so that the alignment/colocation promoted by TNV reflects shared structure rather than arbitrary intensity units.
+
+Second, the informativeness of each modality can be spatially heterogeneous (e.g.\ due to attenuation, sensitivity, and count statistics), and can differ markedly between channels. A voxel-wise choice $b_{n,m}$ allows the coupling to be attenuated in regions where modality $m$ is locally unreliable, reducing the risk that noise-driven gradients in one channel induce spurious aligned edges in another. This can be implemented using a local uncertainty or information proxy, for example $b_{n,m}\propto 1/\sigma_{n,m}$ (with $\sigma_{n,m}$ a local noise scale) or $b_{n,m}\propto \sqrt{I_{n,m}}$ with $I_{n,m}$ a Fisher-information-like weight, optionally factorised into a global normalisation (to match dynamic ranges) and a spatial modulation (to encode local confidence).
+
+Putting the directional and weighting components together, we define the weighted directional Jacobian
+\begin{equation}
+Y^{\mathrm{w\text{-}dTNV}}_n(\bm{z})
+:=
+\mathcal{G}^{\mathrm{dir}}_n(\bm{z})\,B_n
+=
+\bigl[\Pi_{n,1}(D z_1)_n \;|\; \cdots \;|\; \Pi_{n,M}(D z_M)_n\bigr]\,
+\mathrm{diag}(b_{n,1},\ldots,b_{n,M})
+\;\in\;\mathbb{R}^{d\times M}.
+\end{equation}
+Equivalently, the local Gram matrix becomes
+\begin{equation}
+\bigl(Y^{\mathrm{w\text{-}dTNV}}_n(\bm{z})\bigr)^\top Y^{\mathrm{w\text{-}dTNV}}_n(\bm{z})
+=
+B_n^\top \bigl(\mathcal{G}^{\mathrm{dir}}_n(\bm{z})\bigr)^\top \mathcal{G}^{\mathrm{dir}}_n(\bm{z})\,B_n,
+\end{equation}
+so that $B_n$ modulates both the per-modality gradient energies and their cross-terms, thereby controlling how strongly each channel contributes to the singular spectrum that drives TNV coupling.
+
+The (smoothed) weighted directional total nuclear variation prior is then defined voxel-wise by the nuclear norm of $Y^{\mathrm{w\text{-}dTNV}}_n(\bm{z})$, with a differentiable surrogate
+\begin{equation}
+\tilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}(\bm{z})
+=
+\sum_{n=1}^{N} \phi\bigl(Y^{\mathrm{w\text{-}dTNV}}_n(\bm{z})\bigr).
+\end{equation}
+
+Finally, $w\text{-}dTNV$ naturally reduces to a (weighted, directional) TV-type penalty when coupling information is absent. If at voxel $n$ a modality has (approximately) vanishing guided gradient after applying $\Pi_{n,m}$ and scaling by $b_{n,m}$, then the corresponding column of $Y^{\mathrm{w\text{-}dTNV}}_n$ is negligible and the nuclear norm reduces to a penalty on the remaining nonzero columns. Thus the method does not require all modalities to exhibit an edge everywhere; it promotes shared structure only where multiple channels provide consistent gradient evidence, while still allowing single-modality edges when warranted by the data.
+
+\subsection{Diagonal preconditioning strategies}
+\label{subsec:preconditioning}
+
+As introduced in Section~\ref{sec:optimisation}, preconditioning can markedly improve the efficiency and robustness of first-order methods by approximately compensating for local curvature, thereby reducing step-size conservatism and mitigating ill-conditioning. For $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$, however, the exact Hessian is non-trivial and impractical to form. Even at a single voxel $n$, the map $\bm{z}\mapsto Y^{\mathrm{w\text{-}dTNV}}_n(\bm{z})$ is linear, but the spectral potential $Y\mapsto \sum_{\ell} g(\sigma_\ell(Y))$ has curvature contributions both from changes in singular values (``radial'' curvature) and from rotations of singular vectors (``angular'' curvature). In addition, the spatial finite-difference stencils couple neighbouring voxels, so the full Hessian is dense in the voxel domain.
+
+For these reasons, we do not attempt to compute a full second-order model. Instead, we propose three computationally cheap diagonal preconditioners that capture the dominant scale and information variations induced by the $w\text{-}dTNV$ prior while remaining straightforward to evaluate and apply. Each preconditioner can be interpreted as a different diagonal surrogate for the curvature of the regulariser, trading fidelity for speed and numerical simplicity.
+
+We derive three diagonal curvature surrogates $P_m$ (one per modality) that approximate the diagonal of the Hessian of $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ in image coordinates. For clarity, we first keep the number of modalities $M$ general and characterise the relevant local second-order behaviour through the exact second directional derivative $\mathrm{d}^2\phi(Y)[H,H]$ using Lewis--Sendov theory applied to the $M\times M$ Gram matrix. We then specialise to the practically relevant case $M=2$ when defining the final preconditioners, which admit particularly efficient closed-form expressions.
+
+\subsubsection{Notation and setup}
+
+Fix a voxel $n$ and define for brevity
+\begin{equation}
+Y_n := Y^{\mathrm{w\text{-}dTNV}}_n(\bm{z}) = \mathcal{G}^{\mathrm{dir}}_n(\bm{z})\,B_n \in \mathbb{R}^{d\times M}.
+\end{equation}
+Write the thin SVD
+\begin{equation}
+Y_n = U_n \Sigma_n V_n^\top, \qquad
+\Sigma_n = \mathrm{diag}(\sigma_{n,1},\ldots,\sigma_{n,r}), \qquad r=\min\{d,M\},
+\end{equation}
+where $U_n \in \mathbb{R}^{d \times r}$ has orthonormal columns (left singular vectors), $V_n \in \mathbb{R}^{M \times r}$ has orthonormal columns (right singular vectors), and $\sigma_{n,1} \geq \sigma_{n,2} \geq \cdots \geq \sigma_{n,r} \geq 0$.
+
+And remember the definition of the voxelwise spectral potential
+\begin{equation}
+\phi(Y) := \sum_{\ell=1}^{r} g(\sigma_r(Y)),
+\end{equation}
+so that $\mathcal{R}_{\mathrm{w\text{-}dTNV}}(\bm{z}) = \sum_{n=1}^N \phi(Y_n)$.
+
+\subsubsection{The stencil neighbourhood}
+
+A coordinate perturbation $z_m \mapsto z_m + \delta\, e_n$ (with $e_n \in \mathbb{R}^N$ the $n$-th standard basis vector) affects the discrete gradient at multiple voxels, not just at voxel $n$. This is because the discrete gradient at a voxel depends on image values at neighbouring voxels.
+
+\begin{definition}[Impulse-gradient stencil vectors]
+For a ``source'' voxel $n$ and a ``target'' voxel $n'$, define the stencil vector
+\begin{equation}
+q_{n' \leftarrow n} := (D e_n)_{n'} \in \mathbb{R}^d.
+\end{equation}
+This vector captures how a unit impulse at voxel $n$ affects the discrete gradient evaluated at voxel $n'$.
+\end{definition}
+
+\begin{proposition}[Stencil vectors for forward differences]
+\label{prop:stencil_vectors}
+For the forward difference scheme at interior voxels:
+\begin{itemize}
+    \item At $n' = n$: $(q_{n \leftarrow n})^{(\ell)} = -1/h_\ell$ for each direction $\ell \in \{1, \ldots, d\}$.
+    \item At $n' = n - \delta_\ell$ (the backward neighbour in direction $\ell$): $(q_{(n-\delta_\ell) \leftarrow n})^{(\ell)} = +1/h_\ell$, with other components zero.
+    \item For all other target voxels $n'$: $q_{n' \leftarrow n} = 0$.
+\end{itemize}
+\end{proposition}
+
+\begin{definition}[Stencil neighbourhood]
+The stencil neighbourhood of source voxel $n$ is
+\begin{equation}
+\mathcal{N}(n) := \{ n' \in \{1, \ldots, N\} : q_{n' \leftarrow n} \neq 0 \}.
+\end{equation}
+For forward differences at interior voxels, $\mathcal{N}(n) = \{n\} \cup \{n - \delta_\ell : \ell = 1, \ldots, d\}$, so $|\mathcal{N}(n)| = 1 + d$.
+\end{definition}
+
+\begin{definition}[Per-target perturbation direction]
+For target voxel $n' \in \mathcal{N}(n)$ and modality $m$, define the perturbation direction
+\begin{equation}
+H_{n'} := b_{n',m} \Pi_{n',m} q_{n' \leftarrow n} \, e_m^\top \in \mathbb{R}^{d \times M},
+\end{equation}
+where $e_m \in \mathbb{R}^M$ is the $m$-th standard basis vector. This matrix has rank at most 1, with only column $m$ nonzero.
+\end{definition}
+
+For notational convenience, we also define the perturbation vector
+\begin{equation}
+a_{n'} := b_{n',m} \Pi_{n',m} q_{n' \leftarrow n} \in \mathbb{R}^d,
+\end{equation}
+so that $H_{n'} = a_{n'} e_m^\top$.
+
+\begin{theorem}[Diagonal Hessian entry as stencil sum]
+\label{thm:diagonal_stencil_sum}
+The diagonal Hessian entry for modality $m$ at voxel $n$ is
+\begin{equation}
+(P_m)_n = \sum_{n' \in \mathcal{N}(n)} \mathrm{d}^2 \phi(Y_{n'})[H_{n'}, H_{n'}],
+\end{equation}
+where $\mathrm{d}^2 \phi(Y_{n'})[H_{n'}, H_{n'}]$ denotes the second directional derivative of the spectral potential $\phi$ at $Y_{n'}$ in direction $H_{n'}$.
+\end{theorem}
+
+\begin{proof}
+Under the perturbation $z_m \mapsto z_m + \delta\, e_n$, the weighted Jacobian at target voxel $n'$ transforms as $Y_{n'} \mapsto Y_{n'} + \delta H_{n'}$ for $n' \in \mathcal{N}(n)$, and remains unchanged for $n' \notin \mathcal{N}(n)$. Since $\mathcal{R}_{\mathrm{w\text{-}dTNV}}(\bm{z}) = \sum_{n'=1}^N \phi(Y_{n'})$, the second derivative with respect to $\delta$ at $\delta = 0$ receives contributions only from voxels in $\mathcal{N}(n)$.
+\end{proof}
+
+\subsubsection{The Gram matrix lift and Lewis--Sendov theory (general $M$)}
+
+To compute the second directional derivative $\mathrm{d}^2 \phi(Y)[H, H]$ for $Y\in\mathbb{R}^{d\times M}$, we reformulate the spectral potential via the $M\times M$ Gram matrix and apply the Lewis--Sendov theory for spectral functions on $\mathrm{Sym}^M$.
+
+\begin{definition}[Gram matrix and lifted potential]
+For $Y \in \mathbb{R}^{d \times M}$, define the Gram matrix $A := Y^\top Y \in \mathbb{R}^{M \times M}$.  For the Charbonnier choice $g(s)=\sqrt{s^2+\epsilon^2}$, define the lifted potential
+\begin{equation}
+h(t) := g(\sqrt{t}) = \sqrt{t + \epsilon^2}, \qquad t \geq 0.
+\end{equation}
+The derivatives are
+\begin{equation}
+h'(t) = \frac{1}{2\sqrt{t + \epsilon^2}}, \qquad h''(t) = -\frac{1}{4(t + \epsilon^2)^{3/2}}.
+\end{equation}
+\end{definition}
+
+Let $Y$ have singular values $\sigma_1\geq\cdots\geq\sigma_r\geq 0$ with $r=\min\{d,M\}$.  The eigenvalues of $A=Y^\top Y$ satisfy
+\begin{equation}
+\lambda_i(A)=\sigma_i^2 \quad (i=1,\ldots,r), \qquad \lambda_i(A)=0 \quad (i=r+1,\ldots,M).
+\end{equation}
+Define the spectral function on $\mathrm{Sym}^M$
+\begin{equation}
+F(A) := \sum_{i=1}^{M} h(\lambda_i(A)).
+\end{equation}
+Since $h(\sigma^2)=g(\sigma)$ for $\sigma\geq 0$, we have the exact identity
+\begin{equation}
+F(Y^\top Y)=\sum_{i=1}^{r} h(\sigma_i^2) + \sum_{i=r+1}^{M} h(0)
+= \sum_{i=1}^{r} g(\sigma_i) + (M-r) g(0)
+= \phi(Y) + (M-r)\,g(0).
+\label{eq:phi_F_const}
+\end{equation}
+Therefore, $\phi(Y)=F(Y^\top Y) - (M-r)g(0)$ differs from $F(Y^\top Y)$ only by a constant, and in particular all first and second derivatives of $\phi$ coincide with those of $F\circ\psi$ where $\psi(Y)=Y^\top Y$.
+
+\begin{theorem}[Lewis, 1996 \cite{lewis_derivatives_1996}]
+\label{thm:lewis}
+Let $f: \mathbb{R} \to \mathbb{R}$ be continuously differentiable. The spectral function $F(A) = \sum_{i=1}^{M} f(\lambda_i(A))$ on $\mathrm{Sym}^M$ is continuously differentiable, with gradient
+\begin{equation}
+\nabla_A F(A) = V \, \mathrm{diag}(f'(\lambda_1), \ldots, f'(\lambda_M)) \, V^\top,
+\end{equation}
+where $A = V \Lambda V^\top$ is an eigendecomposition.
+\end{theorem}
+
+\begin{theorem}[Lewis--Sendov, 2001 \cite{doi:10.1137/S089547980036838X}]
+\label{thm:lewis_sendov}
+Let $f: \mathbb{R} \to \mathbb{R}$ be twice continuously differentiable. The spectral function $F(A) = \sum_{i=1}^{M} f(\lambda_i(A))$ on $\mathrm{Sym}^M$ is twice continuously differentiable. For $A = V \Lambda V^\top$ with $\Lambda = \mathrm{diag}(\lambda_1, \ldots, \lambda_M)$ and perturbation $\Delta \in \mathrm{Sym}^M$, define $\tilde{\Delta} := V^\top \Delta V$. Then
+\begin{equation}
+\mathrm{d}^2 F(A)[\Delta, \Delta] = \sum_{i=1}^{M} f''(\lambda_i) \, \tilde{\Delta}_{ii}^2 + 2 \sum_{1 \leq i < j \leq M} \omega_{ij} \, \tilde{\Delta}_{ij}^2,
+\end{equation}
+where the divided-difference coefficients are
+\begin{equation}
+\omega_{ij} := \begin{cases} \dfrac{f'(\lambda_i) - f'(\lambda_j)}{\lambda_i - \lambda_j} & \text{if } \lambda_i \neq \lambda_j, \\[10pt] f''(\lambda_i) & \text{if } \lambda_i = \lambda_j. \end{cases}
+\end{equation}
+\end{theorem}
+
+\subsubsection{Chain rule for the pullback (general $M$)}
+
+\begin{proposition}[Chain rule for composed functions]
+\label{prop:chain_rule}
+Let $\psi(Y)=Y^\top Y$ and let $F$ be a spectral function on $\mathrm{Sym}^M$.  For $\phi(Y)=F(Y^\top Y)-(M-r)g(0)$ (cf.~\eqref{eq:phi_F_const}), we have
+\begin{equation}
+\mathrm{d}^2 \phi(Y)[H, H] = \mathrm{d}^2 F(A)[\Delta, \Delta] + 2 \langle \nabla_A F(A), H^\top H \rangle_F,
+\end{equation}
+where $A = Y^\top Y$, $\Delta = Y^\top H + H^\top Y$, and $\langle \cdot, \cdot \rangle_F$ denotes the Frobenius inner product.
+\end{proposition}
+
+\begin{proof}
+The Gram map $\psi(Y) = Y^\top Y$ has first differential $\mathrm{d}\psi(Y)[H] = Y^\top H + H^\top Y$ and second differential $\mathrm{d}^2 \psi(Y)[H, H] = 2 H^\top H$. Since $\phi(Y)$ differs from $F(\psi(Y))$ only by the constant $(M-r)g(0)$, their second derivatives coincide. The result follows from the second-order chain rule for $\phi = F \circ \psi$.
+\end{proof}
+
+\subsubsection{Structure of the transformed perturbation (general $M$)}
+
+For the rank-1 perturbation $H = a \, e_m^\top$ with $a \in \mathbb{R}^d$, we compute the key quantities needed by Theorem~\ref{thm:lewis_sendov} and Proposition~\ref{prop:chain_rule}.
+
+\begin{lemma}[Transformed perturbation in the Gram eigenbasis]
+\label{lem:delta_tilde_general}
+Let $Y = U \Sigma V^\top$ be the thin SVD with $\Sigma=\mathrm{diag}(\sigma_1,\ldots,\sigma_r)$ and $r=\min\{d,M\}$.  Let $V_\perp\in\mathbb{R}^{M\times(M-r)}$ be any orthonormal completion so that
+\begin{equation}
+\bar V := [\,V \;\; V_\perp\,]\in\mathbb{R}^{M\times M} \quad \text{is orthogonal, and}\quad
+A=Y^\top Y = \bar V \,\mathrm{diag}(\sigma_1^2,\ldots,\sigma_r^2,\underbrace{0,\ldots,0}_{M-r})\,\bar V^\top.
+\end{equation}
+Define
+\begin{equation}
+w_i := u_i^\top a \quad (i=1,\ldots,r), \qquad
+p := \bar V^\top e_m \in \mathbb{R}^M, \qquad
+p_i := p_i = (\bar v_i)_m,
+\end{equation}
+where $\bar v_i$ denotes the $i$-th column of $\bar V$.  Let
+\begin{equation}
+S := \sum_{i=1}^{r} p_i^2 = \|V^\top e_m\|_2^2, \qquad
+1-S = \sum_{i=r+1}^{M} p_i^2 = \|V_\perp^\top e_m\|_2^2.
+\label{eq:S_def}
+\end{equation}
+Then $\Delta=Y^\top H + H^\top Y$ satisfies $\tilde{\Delta} := \bar V^\top \Delta \bar V = \tilde y\,p^\top + p\,\tilde y^\top$ with
+\begin{equation}
+\tilde y := \bar V^\top (Y^\top a) = (\sigma_1 w_1,\ldots,\sigma_r w_r,\underbrace{0,\ldots,0}_{M-r})^\top,
+\end{equation}
+and consequently the entries of $\tilde\Delta$ obey:
+\begin{align}
+\tilde{\Delta}_{ii} &= 2 \sigma_i w_i p_i, \qquad i=1,\ldots,r, \label{eq:delta_rr_diag}\\
+\tilde{\Delta}_{ij} &= \sigma_i w_i p_j + p_i \sigma_j w_j, \qquad 1\leq i<j \leq r, \label{eq:delta_rr_off}\\
+\tilde{\Delta}_{i j} &= \sigma_i w_i p_j, \qquad i=1,\ldots,r,\;\; j=r+1,\ldots,M, \label{eq:delta_rnull}\\
+\tilde{\Delta}_{ij} &= 0, \qquad i,j=r+1,\ldots,M. \label{eq:delta_nullnull}
+\end{align}
+In particular,
+\begin{equation}
+\sum_{j=r+1}^{M} \tilde{\Delta}_{ij}^2
+= \sigma_i^2 w_i^2 \sum_{j=r+1}^{M} p_j^2
+= \sigma_i^2 w_i^2 (1-S), \qquad i=1,\ldots,r.
+\label{eq:delta_rnull_sum}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Let $H=a e_m^\top$ and define $y:=Y^\top a\in\mathbb{R}^M$. Then
+\begin{equation}
+Y^\top H = (Y^\top a)\,e_m^\top = y\,e_m^\top, \qquad
+H^\top Y = e_m (Y^\top a)^\top = e_m y^\top,
+\end{equation}
+so $\Delta=y e_m^\top + e_m y^\top$.
+With $Y=U\Sigma V^\top$, we have $y=Y^\top a = V\Sigma U^\top a$, hence $\bar V^\top y = (\Sigma w,0)$ where $w_i=u_i^\top a$ and the last $M-r$ entries are zero. Defining $p=\bar V^\top e_m$, we obtain
+\begin{equation}
+\tilde\Delta=\bar V^\top \Delta \bar V = (\bar V^\top y)(\bar V^\top e_m)^\top + (\bar V^\top e_m)(\bar V^\top y)^\top = \tilde y\,p^\top + p\,\tilde y^\top.
+\end{equation}
+The entrywise formulas \eqref{eq:delta_rr_diag}--\eqref{eq:delta_nullnull} follow immediately by expanding $\tilde y\,p^\top + p\,\tilde y^\top$ and using that $\tilde y_j=0$ for $j>r$. The summed identity \eqref{eq:delta_rnull_sum} is obtained by squaring \eqref{eq:delta_rnull} and summing over $j=r+1,\ldots,M$, then using \eqref{eq:S_def}.
+\end{proof}
+
+\begin{lemma}[Gradient term for general $M$]
+\label{lem:grad_term_general}
+Let $H=a e_m^\top$. Then
+\begin{equation}
+\langle \nabla_A F(A), H^\top H \rangle_F
+= \|a\|_2^2 \left( \sum_{i=1}^{r} h'(\sigma_i^2) p_i^2 + h'(0)\,(1-S) \right),
+\label{eq:grad_general}
+\end{equation}
+with $S$ as in \eqref{eq:S_def}.
+\end{lemma}
+
+\begin{proof}
+By Theorem~\ref{thm:lewis} with $f=h$ and the eigendecomposition of $A$ in the basis $\bar V$,
+\begin{equation}
+\nabla_A F(A) = \bar V \,\mathrm{diag}(h'(\sigma_1^2),\ldots,h'(\sigma_r^2),\underbrace{h'(0),\ldots,h'(0)}_{M-r})\,\bar V^\top.
+\end{equation}
+Since $H^\top H = \|a\|_2^2 e_m e_m^\top$,
+\begin{align}
+\langle \nabla_A F(A), H^\top H \rangle_F
+&= \|a\|_2^2\, e_m^\top \nabla_A F(A)\, e_m \\
+&= \|a\|_2^2\, (\bar V^\top e_m)^\top \mathrm{diag}(h'(\sigma_1^2),\ldots,h'(\sigma_r^2),h'(0),\ldots,h'(0))\,(\bar V^\top e_m) \\
+&= \|a\|_2^2 \left( \sum_{i=1}^{r} h'(\sigma_i^2) p_i^2 + h'(0)\sum_{i=r+1}^{M} p_i^2 \right)
+= \|a\|_2^2 \left( \sum_{i=1}^{r} h'(\sigma_i^2) p_i^2 + h'(0)\,(1-S) \right).
+\end{align}
+\end{proof}
+
+\subsubsection{Exact $\mathrm{d}^2\phi(Y)[H,H]$ for general $M$}
+
+We now combine Proposition~\ref{prop:chain_rule}, Theorem~\ref{thm:lewis_sendov}, and Lemmas~\ref{lem:delta_tilde_general}--\ref{lem:grad_term_general} to obtain an explicit formula for the exact second directional derivative for arbitrary numbers of modalities.
+
+\begin{theorem}[Exact second directional derivative for general $M$]
+\label{thm:exact_d2phi_general}
+Let $Y \in \mathbb{R}^{d \times M}$ with thin SVD $Y = U \Sigma V^\top$ and $\Sigma=\mathrm{diag}(\sigma_1,\ldots,\sigma_r)$, $r=\min\{d,M\}$. Let $H = a \, e_m^\top$ with $a \in \mathbb{R}^d$ and $e_m\in\mathbb{R}^M$. Define $w_i:=u_i^\top a$ for $i=1,\ldots,r$, define $p_i$ and $S$ as in Lemma~\ref{lem:delta_tilde_general}, and set $A=Y^\top Y$.
+
+Then
+\begin{equation}
+\mathrm{d}^2 \phi(Y)[H, H] = \mathcal{T}_{\mathrm{diag}} + \mathcal{T}_{\mathrm{off}} + \mathcal{T}_{\mathrm{null}} + \mathcal{T}_{\mathrm{grad}},
+\label{eq:d2phi_general_decomp}
+\end{equation}
+where:
+\begin{align}
+\mathcal{T}_{\mathrm{diag}}
+&:= \sum_{i=1}^{r} 4 \sigma_i^2 h''(\sigma_i^2)\, w_i^2 p_i^2, \label{eq:Tdiag_general}\\[3pt]
+\mathcal{T}_{\mathrm{off}}
+&:= 2 \sum_{1\leq i<j\leq r} \omega_{ij}^{(h)} \left(\sigma_i w_i p_j + p_i \sigma_j w_j\right)^2, \label{eq:Toff_general}\\[3pt]
+\mathcal{T}_{\mathrm{null}}
+&:= 2 \sum_{i=1}^{r} \omega_{i0}^{(h)} \,\sigma_i^2 w_i^2\,(1-S), \label{eq:Tnull_general}\\[3pt]
+\mathcal{T}_{\mathrm{grad}}
+&:= 2 \|a\|_2^2\left( \sum_{i=1}^{r} h'(\sigma_i^2) p_i^2 + h'(0)\,(1-S) \right). \label{eq:Tgrad_general}
+\end{align}
+The range--range divided-difference coefficients are
+\begin{equation}
+\omega_{ij}^{(h)} := \begin{cases}
+\dfrac{h'(\sigma_i^2) - h'(\sigma_j^2)}{\sigma_i^2 - \sigma_j^2} & \text{if } |\sigma_i^2-\sigma_j^2|\geq \tau, \\[10pt]
+h''(\sigma_i^2) & \text{if } |\sigma_i^2-\sigma_j^2|<\tau,
+\end{cases}
+\qquad 1\leq i<j\leq r,
+\label{eq:omega_ij_general}
+\end{equation}
+and the range--null coefficients are
+\begin{equation}
+\omega_{i0}^{(h)} := \begin{cases}
+\dfrac{h'(\sigma_i^2) - h'(0)}{\sigma_i^2 - 0} & \text{if } \sigma_i^2 \geq \tau, \\[10pt]
+h''(0) & \text{if } \sigma_i^2<\tau,
+\end{cases}
+\qquad i=1,\ldots,r,
+\label{eq:omega_i0_general}
+\end{equation}
+where $\tau>0$ is a numerical stability threshold (e.g.\ $\tau=\epsilon^2$).
+\end{theorem}
+
+\begin{proof}
+From Proposition~\ref{prop:chain_rule} and \eqref{eq:phi_F_const}, we have
+\begin{equation}
+\mathrm{d}^2 \phi(Y)[H,H] = \mathrm{d}^2 F(A)[\Delta,\Delta] + 2\langle \nabla_A F(A), H^\top H\rangle_F,
+\end{equation}
+with $A=Y^\top Y$ and $\Delta=Y^\top H + H^\top Y$.
+
+Apply Theorem~\ref{thm:lewis_sendov} with $f=h$ in the orthogonal eigenbasis $\bar V=[V\;\;V_\perp]$ of $A$ (Lemma~\ref{lem:delta_tilde_general}). Since the eigenvalues are $(\sigma_1^2,\ldots,\sigma_r^2,0,\ldots,0)$ and $\tilde\Delta=\bar V^\top \Delta \bar V$, the Lewis--Sendov expansion splits into:
+\begin{itemize}
+\item diagonal terms for $i\leq r$ (the $i>r$ diagonal terms vanish because $\tilde\Delta_{ii}=0$ for $i>r$ by \eqref{eq:delta_nullnull});
+\item off-diagonal terms with $1\leq i<j\leq r$ using \eqref{eq:delta_rr_off};
+\item range--null off-diagonal terms with $i\leq r<j\leq M$ using \eqref{eq:delta_rnull};
+\item null--null terms with $r<i<j\leq M$, which vanish because $\tilde\Delta_{ij}=0$ for $i,j>r$ by \eqref{eq:delta_nullnull}.
+\end{itemize}
+Concretely,
+\begin{align}
+\mathrm{d}^2 F(A)[\Delta,\Delta]
+&= \sum_{i=1}^{r} h''(\sigma_i^2)\,\tilde\Delta_{ii}^2
++ 2\sum_{1\leq i<j\leq r} \omega_{ij}^{(h)}\,\tilde\Delta_{ij}^2
++ 2\sum_{i=1}^{r}\sum_{j=r+1}^{M} \omega_{i0}^{(h)}\,\tilde\Delta_{ij}^2.
+\end{align}
+Using \eqref{eq:delta_rr_diag} gives $\sum_{i=1}^{r} h''(\sigma_i^2)\,(2\sigma_i w_i p_i)^2$, which is exactly \eqref{eq:Tdiag_general}.
+Using \eqref{eq:delta_rr_off} yields the range--range off-diagonal contribution \eqref{eq:Toff_general}.
+Finally, using \eqref{eq:delta_rnull_sum} collapses the double range--null sum to
+\begin{equation}
+2\sum_{i=1}^{r}\omega_{i0}^{(h)} \sum_{j=r+1}^{M} (\sigma_i w_i p_j)^2
+= 2\sum_{i=1}^{r}\omega_{i0}^{(h)}\,\sigma_i^2 w_i^2\,(1-S),
+\end{equation}
+which is \eqref{eq:Tnull_general}.
+
+The gradient contraction term is $\mathcal{T}_{\mathrm{grad}}=2\langle \nabla_A F(A),H^\top H\rangle_F$, and Lemma~\ref{lem:grad_term_general} gives \eqref{eq:Tgrad_general}. Summing these contributions yields \eqref{eq:d2phi_general_decomp}.  The numerically-stabilised definitions \eqref{eq:omega_ij_general}--\eqref{eq:omega_i0_general} follow from the same divided-difference continuity used in Theorem~\ref{thm:lewis_sendov} (l'H\^{o}pital's rule in the scalar case).
+\end{proof}
+
+\subsubsection{Specialisation to two modalities for preconditioner design}
+
+\paragraph{Two-modality simplification.}
+We now specialise the implementation of the diagonal preconditioners to the case $M = 2$ modalities.  In typical imaging applications $d\geq 2$, hence $r=\min\{d,M\}=2$ and the Gram matrix $A=Y^\top Y\in\mathbb{R}^{2\times 2}$ has exactly two eigenvalues $\lambda_1=\sigma_1^2$ and $\lambda_2=\sigma_2^2$ with no additional zero eigenvalues.  This yields three key simplifications when evaluating Theorem~\ref{thm:exact_d2phi_general}:
+\begin{enumerate}
+    \item \textbf{No null-space terms.} Since $M-r=0$, we have $1-S=0$ and the range--null contribution $\mathcal{T}_{\mathrm{null}}$ vanishes identically.
+    \item \textbf{Completeness relation.} For $M=r=2$, $V\in\mathbb{R}^{2\times 2}$ is orthogonal, so for the right singular vector components $p_{\ell}:=(v_{\ell})_m$ we have $p_1^2+p_2^2=1$ exactly. Equivalently, $S=\sum_{\ell=1}^2 p_\ell^2=1$ and $(1-S)=0$.
+    \item \textbf{Single off-diagonal pair.} There is exactly one range--range off-diagonal coupling term, corresponding to the pair $(1,2)$.
+\end{enumerate}
+
+\begin{theorem}[Exact second directional derivative for two modalities]
+\label{thm:exact_d2phi}
+Let $Y \in \mathbb{R}^{d \times 2}$ with thin SVD $Y = U \Sigma V^\top$, where $\Sigma = \mathrm{diag}(\sigma_1, \sigma_2)$. Let $H = a \, e_m^\top$ with $a \in \mathbb{R}^d$ and $m\in\{1,2\}$. Define $w_\ell := u_\ell^\top a$ and $p_\ell := (v_\ell)_m$ for $\ell = 1, 2$. Then
+\begin{equation}
+\mathrm{d}^2 \phi(Y)[H, H] = \mathcal{T}_{\mathrm{diag}} + \mathcal{T}_{\mathrm{off}} + \mathcal{T}_{\mathrm{grad}},
+\end{equation}
+where:
+\begin{align}
+\mathcal{T}_{\mathrm{diag}} &= 4 \sigma_1^2 h''(\sigma_1^2) w_1^2 p_1^2 + 4 \sigma_2^2 h''(\sigma_2^2) w_2^2 p_2^2, \label{eq:T_diag} \\
+\mathcal{T}_{\mathrm{off}} &= 2 \, \omega_{12}^{(h)} \left( \sigma_1 w_1 p_2 + p_1 w_2 \sigma_2 \right)^2, \label{eq:T_off} \\
+\mathcal{T}_{\mathrm{grad}} &= 2 \|a\|_2^2 \left( h'(\sigma_1^2) p_1^2 + h'(\sigma_2^2) p_2^2 \right), \label{eq:T_grad}
+\end{align}
+with the divided-difference coefficient
+\begin{equation}
+\omega_{12}^{(h)} := \begin{cases} \dfrac{h'(\sigma_1^2) - h'(\sigma_2^2)}{\sigma_1^2 - \sigma_2^2} & \text{if } |\sigma_1^2 - \sigma_2^2| \geq \tau, \\[10pt] h''(\sigma_1^2) & \text{if } |\sigma_1^2 - \sigma_2^2| < \tau, \end{cases}
+\label{eq:omega_12}
+\end{equation}
+where $\tau > 0$ is a numerical stability threshold (e.g., $\tau = \epsilon^2$).
+\end{theorem}
+
+\begin{proof}
+This is the specialisation of Theorem~\ref{thm:exact_d2phi_general} to $M=2$ and $r=2$, using the facts that $1-S=0$ (hence $\mathcal{T}_{\mathrm{null}}=0$) and that there is only one off-diagonal pair $(1,2)$.
+\end{proof}
+
+\begin{remark}[Absence of null-space terms for $M=2$]
+In the general case with $M>2$ modalities, Theorem~\ref{thm:exact_d2phi_general} contains the range--null contribution $\mathcal{T}_{\mathrm{null}}$ and the $h'(0)(1-S)$ part of $\mathcal{T}_{\mathrm{grad}}$, reflecting coupling to the null eigenspace of $A=Y^\top Y$.  For $M=2$ with $r=2$, this null eigenspace is trivial: $(1-S)=0$ and these terms vanish identically.
+\end{remark}
+
+\subsubsection{Method A: Exact diagonal preconditioner (two modalities)}
+\label{subsubsec:method_A}
+
+Method A uses the exact formula from Theorem~\ref{thm:exact_d2phi}, summed over the stencil neighbourhood.
+
+\begin{theorem}[Method A: Exact diagonal preconditioner for two modalities]
+\label{thm:method_A}
+For modality $m \in \{1, 2\}$ and source voxel $n$, the exact diagonal Hessian entry is
+\begin{equation}
+(P_m^{\mathrm{Exact}})_n = \sum_{n' \in \mathcal{N}(n)} \left( \mathcal{T}_{\mathrm{diag}}(n') + \mathcal{T}_{\mathrm{off}}(n') + \mathcal{T}_{\mathrm{grad}}(n') \right),
+\end{equation}
+where for each target voxel $n' \in \mathcal{N}(n)$:
+\begin{enumerate}
+    \item Compute the thin SVD: $Y_{n'} = U_{n'} \Sigma_{n'} V_{n'}^\top$ with $\Sigma_{n'} = \mathrm{diag}(\sigma_{n',1}, \sigma_{n',2})$.
+    \item Compute the perturbation vector: $a_{n'} := b_{n',m} \Pi_{n',m} q_{n' \leftarrow n} \in \mathbb{R}^d$.
+    \item Compute projections: $w_{n',\ell} := u_{n',\ell}^\top a_{n'}$ and $p_{n',\ell} := (v_{n',\ell})_m$ for $\ell = 1, 2$.
+    \item Evaluate the three terms using \eqref{eq:T_diag}--\eqref{eq:T_grad} with voxel-$n'$ quantities.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+Direct application of Theorem~\ref{thm:diagonal_stencil_sum} and Theorem~\ref{thm:exact_d2phi}.
+\end{proof}
+
+\paragraph{Computational cost.} For each source voxel $n$: for each of the $|\mathcal{N}(n)| = 1 + d$ target voxels, compute the SVD of $Y_{n'} \in \mathbb{R}^{d \times 2}$ in $O(d)$ operations, compute projections in $O(d)$, and evaluate the three terms in $O(1)$. Total: $O((1+d) \cdot d) = O(d^2)$ per source voxel.
+
+\subsubsection{Method B: Spectral approximation (two modalities)}
+\label{subsubsec:method_B}
+
+Method B retains the radial curvature exactly but replaces the remaining (angular) curvature by an isotropic surrogate scaled by an ``angular stiffness'' factor.
+
+\begin{definition}[Radial and angular decomposition]
+The radial curvature contribution is
+\begin{equation}
+\mathcal{T}_{\mathrm{radial}} := \sum_{\ell=1}^{2} g''(\sigma_r) (u_\ell^\top H v_\ell)^2 = \sum_{\ell=1}^{2} g''(\sigma_r) w_\ell^2 p_\ell^2,
+\end{equation}
+where the second equality uses $u_\ell^\top H v_\ell = (u_\ell^\top a)(e_m^\top v_\ell) = w_\ell p_\ell$ for $H = a e_m^\top$.
+
+The angular contribution is the remainder: $\mathcal{T}_{\mathrm{angular}} := \mathrm{d}^2 \phi(Y)[H, H] - \mathcal{T}_{\mathrm{radial}}$.
+\end{definition}
+
+\begin{definition}[Angular stiffness]
+Define
+\begin{equation}
+\alpha(Y) := \frac{g'(\sigma_1)}{\sigma_1 + \epsilon} + \frac{g'(\sigma_2)}{\sigma_2 + \epsilon}.
+\label{eq:alpha_def}
+\end{equation}
+The stabilisation $\sigma_r + \epsilon$ in the denominator ensures finiteness when singular values are small.
+\end{definition}
+
+\begin{proposition}[Angular surrogate]
+\label{prop:angular_bound}
+We approximate the angular contribution by the isotropic surrogate
+\begin{equation}
+\mathcal{T}_{\mathrm{angular}} \approx \alpha(Y)\,\|H\|_F^2,
+\end{equation}
+motivated by the fact that the angular coefficients in \eqref{eq:T_off}--\eqref{eq:T_grad} scale like $g'(\sigma)/\sigma$ (equivalently $h'(\sigma^2)$ and divided differences of $h'$), and $\|H\|_F^2=\|a\|_2^2$ controls the magnitude of the quadratic forms.
+\end{proposition}
+
+\begin{theorem}[Method B: Spectral approximation for two modalities]
+\label{thm:method_B}
+\begin{equation}
+(P_m^{\mathrm{Spec}})_n = \sum_{n' \in \mathcal{N}(n)} \left[ g''(\sigma_{n',1}) w_{n',1}^2 p_{n',1}^2 + g''(\sigma_{n',2}) w_{n',2}^2 p_{n',2}^2 + \alpha(Y_{n'}) \|a_{n'}\|_2^2 \right],
+\end{equation}
+where $\alpha(Y_{n'})$ is defined by \eqref{eq:alpha_def} with voxel-$n'$ singular values.
+\end{theorem}
+
+\begin{proof}
+Decompose $\mathrm{d}^2 \phi(Y_{n'})[H_{n'}, H_{n'}] = \mathcal{T}_{\mathrm{radial}}(n') + \mathcal{T}_{\mathrm{angular}}(n')$. Compute the radial term exactly and replace the angular term by the surrogate in Proposition~\ref{prop:angular_bound}. Sum over $n' \in \mathcal{N}(n)$ and multiply by $\lambda$.
+\end{proof}
+
+\paragraph{Computational cost.} Same as Method A: $O(d^2)$ per source voxel. The SVD is still required, but the formula is simpler (no divided difference computation).
+
+\subsubsection{Method C: Frobenius approximation (two modalities)}
+\label{subsubsec:method_C}
+
+Method C avoids the SVD entirely by approximating all singular values as equal.
+
+\begin{proposition}[Equal singular value heuristic]
+\label{prop:equal_sv}
+For $Y \in \mathbb{R}^{d \times 2}$ with $\rho := \|Y\|_F = \sqrt{\sigma_1^2 + \sigma_2^2}$, the approximation
+\begin{equation}
+\sigma_1 \approx \sigma_2 \approx \frac{\rho}{\sqrt{2}}
+\end{equation}
+is consistent with the constraint $\sigma_1^2 + \sigma_2^2 = \rho^2$.
+\end{proposition}
+
+\begin{definition}[Frobenius angular stiffness]
+Define
+\begin{equation}
+\alpha^{\mathrm{Frob}}(Y) := 2 \cdot \frac{g'(\rho)}{\rho + \epsilon},
+\label{eq:alpha_frob_def}
+\end{equation}
+where the factor of 2 accounts for the two singular values.
+\end{definition}
+
+\begin{theorem}[Method C: Frobenius approximation for two modalities]
+\label{thm:method_C}
+\begin{equation}
+(P_m^{\mathrm{Frob}})_n = \sum_{n' \in \mathcal{N}(n)} \alpha^{\mathrm{Frob}}(Y_{n'}) \cdot b_{n',m}^2 \|\Pi_{n',m}\|_2^2 \|q_{n' \leftarrow n}\|_2^2,
+\end{equation}
+where
+\begin{equation}
+\rho_{n'} := \|Y_{n'}\|_F = \sqrt{\|b_{n',1} \Pi_{n',1} (D z_1)_{n'}\|_2^2 + \|b_{n',2} \Pi_{n',2} (D z_2)_{n'}\|_2^2}.
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+Replace the full second directional derivative by the Frobenius-scaled surrogate
+\begin{equation}
+\mathrm{d}^2 \phi(Y_{n'})[H_{n'}, H_{n'}] \approx \alpha^{\mathrm{Frob}}(Y_{n'}) \|H_{n'}\|_F^2.
+\end{equation}
+For $H_{n'} = a_{n'} e_m^\top$ we have $\|H_{n'}\|_F^2 = \|a_{n'}\|_2^2$ and
+\begin{equation}
+\|a_{n'}\|_2^2 = \|b_{n',m} \Pi_{n',m} q_{n' \leftarrow n}\|_2^2 \leq b_{n',m}^2 \|\Pi_{n',m}\|_2^2 \|q_{n' \leftarrow n}\|_2^2.
+\end{equation}
+Sum over $n' \in \mathcal{N}(n)$ and multiply by $\lambda$.
+\end{proof}
+
+\begin{remark}[Spectral norm of directional operators]
+For $\Pi_{n',m} = I_d - \gamma_m \xi \xi^\top$ with $\|\xi\|_2 = 1$ and $\gamma_m \in [0, 1]$, we have $\|\Pi_{n',m}\|_2 = 1$, so this factor can be omitted.
+\end{remark}
+
+\paragraph{Computational cost.} Per target voxel: compute $\rho_{n'}^2$ in $O(d)$ (sum of squared column norms), evaluate $\alpha^{\mathrm{Frob}}$ in $O(1)$. Total: $O((1+d) \cdot d) = O(d^2)$ per source voxel, with a smaller constant than Methods A and B since no SVD is required.
+
+\subsubsection{Summary of the three methods}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lccc}
+\toprule
+\textbf{Method} & \textbf{SVD Required} & \textbf{Per-Target Cost} & \textbf{Accuracy} \\
+\midrule
+A (Exact) & Yes & $O(d)$ & Exact \\
+B (Spectral) & Yes & $O(d)$ & High \\
+C (Frobenius) & No & $O(d)$ & Moderate \\
+\bottomrule
+\end{tabular}
+\caption{Comparison of diagonal preconditioner methods for two modalities.}
+\label{tab:precond_comparison}
+\end{table}
+
+\paragraph{Method selection guidelines.}
+\begin{itemize}
+    \item \textbf{Method A} provides the exact diagonal Hessian and should be used when highest preconditioner accuracy is required.
+    \item \textbf{Method B} offers a balance between accuracy and simplicity; the radial curvature is exact while angular curvature is replaced by an isotropic surrogate.
+    \item \textbf{Method C} is computationally cheapest (no SVD) and appropriate when singular values of $Y_n$ are expected to be similar or when computational cost must be minimised.
+\end{itemize}
+
+\paragraph{Critical implementation note.}
+All three methods require summing contributions over the stencil neighbourhood $\mathcal{N}(n)$. For forward differences at interior voxels, $|\mathcal{N}(n)| = 1 + d$ (the source voxel plus $d$ backward neighbours). Boundary voxels may have smaller neighbourhoods.
+
+
+\subsection{Diffusivity analysis}
+
+\textbf{Joint Total Variation} regularises the magnitude of the combined gradient vector. Its diffusivity is an isotropic
+identity matrix scaled by the total magnitude:
+\begin{equation}
+K_{\mathrm{JTV}}
+=
+\left(\sum_{m=1}^{M} \|D z_{m,n}\|_2^2 + \beta^2\right)^{-1/2} \cdot I_{dM \times dM}.
+\end{equation}
+It couples channels only through the scalar magnitude; structural alignment is not explicitly encouraged.
+
+\textbf{Parallel Level Sets} introduce a cross-diffusion tensor explicitly dependent on the angle between gradients.
+The off-diagonal terms take the form
+\begin{equation}
+\tau(u,v) =
+-\psi'[|\langleD u, D v\rangle|_{\beta^2}]
+\frac{\langleD u, D v\rangle}{|\langleD u, D v\rangle|_{\beta^2}}
+\rho(u,v).
+\end{equation}
+While this forces alignment, the factor
+$\frac{\langleD u, D v\rangle}{|\langle \dots \rangle|}$
+introduces singular behaviour when gradients are orthogonal, typically requiring stabilisation.
+
+\textbf{Total Nuclear Variation} implies a spectral diffusivity derived from the SVD components:
+\begin{equation}
+K_{\mathrm{TNV}}
+=
+U \operatorname{diag}\left(\frac{g'(\sigma_r)}{\sigma_r}\right) U^\top.
+\end{equation}
+The key distinction is that TNV diffuses selectively along the principal singular vectors of the joint Jacobian.
+
+\subsection{Comparative summary}
+
+JTV is stable but structurally blind. PLS is structurally explicit but numerically fragile near orthogonality. TNV achieves
+a synthesis: by penalising the nuclear norm, it encourages rank deficiency (alignment) through a convex spectral function.
+This avoids the singularities of PLS while providing richer structural coupling than JTV.
+
+\section{Conclusion}
+
+This chapter introduced the (directional) Total Nuclear Variation prior. By leveraging the Lewis--Sendov theorem, we established
+differentiability of the spectral functional and derived a mathematically rigorous optimisation framework. The three proposed
+preconditioners---Spectral, Decoupled, and Frobenius---provide a scalable hierarchy of approximations for the complex Hessian
+structure. This framework enables exploitation of shared anatomical boundaries in multi-modal reconstruction without sacrificing
+numerical stability.
+
+\printbibliography[heading=subbibliography,title={References}]
+\end{refsection}

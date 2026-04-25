@@ -1,0 +1,27 @@
+\chapter{Introduction}
+\label{ch:introduction}
+\begin{refsection}
+\addcontentsline{toc}{chapter}{Introduction}
+
+\gls{y90} \gls{sirt}, also referred to as \gls{tare}, is an established treatment for primary and secondary liver malignancies \cite{sundram_selective_2017}. \gls{y90}-labelled microspheres are administered into the hepatic artery to preferentially irradiate tumour tissue while sparing healthy liver parenchyma. The administered activities are high (typically of the order \SI{2}{\giga\becquerel}), and clinically relevant absorbed-dose heterogeneity can occur at multiple spatial scales due to vascular delivery, microsphere clustering, and patient-specific hepatic anatomy \cite{strigari_evidence_2014} and recommended tumour dose is often in excess of \SI{200}{\gray} \cite{salem_clinical_2019} and recent evidence has shown the benefits of additional subsequent treatmetnt, further increasing healthy liver dose \cite{reincke_hepatic_2022}. As a consequence, post-therapy quantitative imaging and dosimetry are central to treatment verification, outcome modelling, and the optimisation of any subsequent therapy.
+
+Despite its importance, routine post-\gls{sirt} dosimetry is not universally performed in clinical practice, primarily due to practical workflow constraints and limitations in quantitative accuracy \cite{kappadath_quantitative_2024, gear_eanm_2023}. Post-therapy imaging of \gls{y90} is inherently challenging: image quality is often degraded by low effective count statistics and by physics that is less favourable than standard diagnostic radionuclide imaging, leading to increased noise and modelling error \cite{kappadath_quantitative_2024}. More broadly, emission tomography is vulnerable to substantial degradation from Poisson counting statistics as well as inaccuracies in system modelling and hardware limitations \cite{bai_tumor_2013}. Improving reconstruction quality in this low-count, model-mismatch regime is therefore a key enabling step for accurate absorbed-dose estimation and for robust patient-specific outcome prediction \cite{davis_personalisation_2020}.
+
+In contemporary post-\gls{sirt} workflows, emission imaging is routinely paired with \gls{ct}, which provides attenuation correction and anatomical context. This naturally motivates reconstruction approaches in which structural information from CT is used to regularise the emission reconstruction, with the explicit aim of improving quantitative accuracy. Synergistic methods, where information is shared across modalities during reconstruction, have gained prominence in related hybrid imaging contexts \cite{arridge_overview_2021}. Within the specific context of post-\gls{y90} \gls{sirt} imaging, such approaches have the potential to improve lesion-level quantification and absorbed-dose estimation without increasing acquisition time or administered activity.
+
+The aim of this project is to introduce and evaluate a synergistic reconstruction method tailored to post-\gls{y90} \gls{sirt}, with a particular focus on improving the reliability of quantitative emission imaging and therefore downstream dosimetry under clinically realistic count levels and modelling limitations.
+
+The thesis is organised as follows:
+\begin{itemize}
+    \item \textbf{Chapter 1} lays the groundwork for the \gls{pet}/\gls{spect}/\gls{ct} imaging problem, outlining the fundamental principles of each imaging modality before describing potential clinical applications.
+    \item \textbf{Chapter 2} describes the inverse problem involved in emission tomographic image reconstruction and details methods of regularisation and efficient optimisation.
+    \item \textbf{Chapter 3} discusses the challenges associated with post-\gls{sirt} imaging and proposes methods for improvement in the reconstruction process.
+    \item \textbf{Chapter 4} demonstrates some of the regularisers and optimisation schemes that we discuss in Chapter 3, applied to post-reconstruction deconvolution.
+    \item \textbf{Chapter 5} introduces the weighted directional total nuclear variation prior. We investigate preconditioner and subset selection choice for optimal reconstruction.
+    \item \textbf{Chapter 6} evaluates \gls{wdtnv}, comparing with the current state-of-the-art method, \gls{shkem}.
+    \item \textbf{Chapter 7} summarises the results and includes a discussion of the findings, as well as plans for further expansion and investigation of the methods presented in this work.
+    \item \textbf{The Appendix} contains additional work completed throughout the PhD that does not fit succinctly into the main thesis narrative.
+\end{itemize}
+
+\printbibliography[heading=subbibliography,title={References}]
+\end{refsection}

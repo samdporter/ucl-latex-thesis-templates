@@ -1,0 +1,406 @@
+\chapter{Anatomy-informed deconvolution for PET partial volume correction}
+\label{chapter:deconvolution_pvc}
+
+\begin{refsection}
+
+\section{Introduction and relationship to the thesis}
+\label{sec:deconv_intro}
+
+Chapter~\ref{chapter:reconstruction} established the penalised-likelihood (MAP) framework for emission tomography, reviewed representative priors (including anatomically guided and kernelised models), and motivated optimisation strategies that remain stable under regularisation. The core of this thesis concerns regularised and synergistic reconstruction under the full Poisson forward model $\bar y(x)=Ax+b$, where the ill-conditioning of $A$ and the low-count regime make both prior design, preconditioning and choice of optimisation algorithm critical.
+
+In this chapter we consider a deliberately simplified, image-domain inverse problem: post-reconstruction partial volume correction (PVC) via deconvolution with an estimated point spread function (PSF). Although this is not a substitute for incorporating resolution modelling within reconstruction, it provides a controlled sandbox in which the effects of anatomical guidance and regularisation can be studied without confounding factors such as subset noise, projector modelling error, and complex system geometry. In particular, the chapter serves two main purposes within the broader narrative:
+\begin{enumerate}
+    \item it connects the priors reviewed in Chapter~\ref{chapter:reconstruction} (kernel methods, directional regularisation) to a tractable inverse problem where their qualitative behaviour is easily interpreted;
+    \item it provides a practical PVC baseline that is straightforward to deploy on retrospectively reconstructed images.
+\end{enumerate}
+
+Richardson--Lucy (RL) deconvolution \cite{fish_blind_1995} can be viewed as the image-domain analogue of MLEM under the Poisson model $\bar y(x)=Cx+b$: it is the same EM update, with the system matrix $A$ replaced by the PSF convolution operator $C$. In this setting the ``sensitivity image'' simplifies substantially, since for a unit-sum PSF one has $C^{\mathsf T}\mathbf{1}\approx \mathbf{1}$, so the usual MLEM normalisation by $A^{\mathsf T}\mathbf{1}$ becomes trivial. As in Chapter~\ref{chapter:reconstruction}, our aim is not to use early stopping as the sole stabilisation mechanism, but to introduce explicit anatomical regularisation in ways that mirror the MAP and kernel constructions already developed for full reconstruction. Specifically, we extend RL to a penalised deconvolution regime by incorporating a directional total variation prior (Equation \ref{eq:dtv_defn}), and we construct kernelised deconvolution updates by substituting the kernel image model $x=K\alpha$, exactly as in KEM/HKEM. The resulting anatomy-aware deconvolution variants are referred to throughout as kernelised RL (KRL), hybrid kernelised RL (HKRL), and RL with directional total variation (RL--DTV); their basic update equations are derived in the following sections.
+
+\section{Image-domain inverse problem and objective}
+\label{sec:deconv_model}
+
+Let $x\in\mathbb{R}^J_+$ denote the unknown (sharper) PET activity image on a voxel grid, and let $y\in\mathbb{R}^J_+$ denote an observed blurred image. We model the image-domain observation as
+\begin{equation}
+    y_j \sim \mathrm{Poisson}(\bar y_j(x)),
+    \qquad
+    \bar y(x)=Cx+b,
+    \qquad j=1,\dots,J,
+    \label{eq:deconv_forward_model}
+\end{equation}
+where $C\in\mathbb{R}_+^{J\times J}$ is a discretised convolution operator representing a space-invariant PSF, and $b\in\mathbb{R}^J_+$ is an optional additive background term (set to $0$ in the experiments unless stated otherwise). The operator $C$ plays the same role as the system matrix $A$ in \eqref{eq:forward_model}, but in the image domain.
+
+Assuming independence across voxels in the image-domain observation model, the Poisson negative log-likelihood is
+\begin{equation}
+    \mathcal{L}(x)
+    =
+    \sum_{j=1}^{J}
+    \left(
+        \bar y_j(x) - y_j \log \bar y_j(x)
+    \right),
+    \qquad
+    \bar y(x)=Cx+b,
+    \label{eq:deconv_nll}
+\end{equation}
+dropping constants independent of $x$ as in Chapter~\ref{chapter:reconstruction}.
+
+A MAP (penalised-likelihood) deconvolution estimate is then
+\begin{equation}
+    \hat x
+    \in
+    \arg\min_{x\in\mathcal{C}}
+    \left\{
+        \mathcal{L}(x) + \beta \mathcal{R}(x)
+    \right\},
+    \qquad
+    \mathcal{C}=\mathbb{R}_+^J,
+    \label{eq:deconv_map}
+\end{equation}
+with $\beta>0$ and an appropriate regulariser $\mathcal{R}$. This chapter considers both implicit regularisation via kernelised image models ($x=K\alpha$) and explicit regularisation via a directional TV penalty $\mathcal{R}(x)=R_{\mathrm{DTV}}(x;u)$ guided by a co-registered anatomical image $u$.
+
+Throughout, $C$ is non-negative and (approximately) intensity preserving: for a unit-sum PSF kernel and negligible boundary effects, $C\mathbf{1}\approx \mathbf{1}$. The adjoint $C^{\mathsf T}$ corresponds to convolution with the flipped PSF; for symmetric PSFs common in PET, $C^{\mathsf T}\approx C$.
+
+\section{Baseline: Richardson--Lucy deconvolution}
+\label{sec:deconv_rl}
+
+The RL algorithm is the EM algorithm for the Poisson model \eqref{eq:deconv_forward_model} with $b=0$ \cite{shepp_maximum_1982}. Introducing elementwise multiplication and division, denoted $\odot$ and $\oslash$, the RL update is
+\begin{equation}
+    x^{(k+1)}
+    =
+    x^{(k)} \odot
+        C^{\mathsf T}\!\left( y \oslash (C x^{(k)}) \right).
+    \label{eq:rl_update}
+\end{equation}
+As with MLEM/OSEM under the full forward model, RL iterations tend to sharpen edges rapidly but amplify high-frequency noise as $k$ increases. Consequently, unregularised RL is typically used with early stopping, which acts as an implicit regulariser but yields iteration-dependent bias.
+
+\subsection{Scaled-gradient interpretation and EM-type preconditioning}
+\label{sec:deconv_precond}
+
+To connect with Chapter~\ref{chapter:reconstruction}, we rewrite \eqref{eq:rl_update} as an additive scaled-gradient step. The gradient of the Poisson negative log-likelihood \eqref{eq:deconv_nll} (with $b=0$) is
+\begin{equation}
+    D_x \mathcal{L}(x)
+    =
+    C^{\mathsf T}\!\left(
+        \mathbf{1} - y \oslash (Cx)
+    \right).
+    \label{eq:deconv_nll_grad}
+\end{equation}
+Using the same rearrangement as for MLEM in Chapter~\ref{chapter:reconstruction}, one obtains
+\begin{equation}
+    x^{(k+1)}
+    =
+    x^{(k)}
+    -
+    P_{\mathrm{RL}}^{(k)}\,D_x\mathcal{L}(x^{(k)}),
+    \label{eq:deconv_scaled_grad}
+\end{equation}
+where $P_{\mathrm{RL}}^{(k)}$ is simply $x^{(k)}$. This corresponds an EM-type diagonal preconditioner analogous to $P_{EM}^{(k)}=\operatorname{diag}(x^{(k)}/(A^{\mathsf T}\mathbf{1}))$ in the full reconstruction problem.
+
+This viewpoint is useful for constructing regularised and anatomy-guided variants: rather than relying purely on early stopping, one can augment the likelihood gradient with a prior gradient while retaining the same EM-type scaling.
+
+\section{Kernelised Richardson--Lucy deconvolution}
+\label{sec:deconv_krl}
+
+Kernel methods were reviewed in Chapter~\ref{chapter:reconstruction} as an implicit regularisation strategy in which prior information enters through the image model $x=K\alpha$ rather than through an explicit penalty \cite{wang_pet_2015,hutchcroft_anatomically-aided_2016}. The same idea can be applied to image-domain deconvolution.
+
+\subsection{Kernel image model}
+\label{sec:deconv_kernel_model}
+
+Let $u$ be a co-registered anatomical guidance image (MR or CT), resampled to the PET grid. We represent
+\begin{equation}
+    x = K\alpha,
+    \qquad
+    \alpha\in\mathbb{R}^J_+,
+    \qquad
+    K\in\mathbb{R}_+^{J\times J},
+    \label{eq:deconv_kernel_x}
+\end{equation}
+where $K$ is a sparse, row-normalised kernel matrix constructed from features extracted from $u$ (and optionally spatial coordinates), as in Chapter~\ref{chapter:reconstruction}. Row normalisation ($K\mathbf{1}=\mathbf{1}$) ensures that $K$ preserves overall intensity scaling.
+
+Substituting into \eqref{eq:deconv_forward_model} gives the kernelised forward model
+\begin{equation}
+    \bar y(\alpha) = C(K\alpha)+b.
+    \label{eq:deconv_kernel_forward}
+\end{equation}
+
+\subsection{KRL update}
+\label{sec:deconv_krl_update}
+
+Maximising the Poisson likelihood with respect to $\alpha$ under \eqref{eq:deconv_kernel_forward} yields an EM-type multiplicative update analogous to KEM:
+\begin{equation}
+    \alpha^{(k+1)}
+    =
+    \alpha^{(k)} \odot
+    \frac{
+        K^{\mathsf T}C^{\mathsf T}\!\left(
+            y \oslash (C K \alpha^{(k)} + b)
+        \right)
+    }{
+        K^{\mathsf T}\mathbf{1}
+    },
+    \qquad
+    x^{(k+1)} = K\alpha^{(k+1)}.
+    \label{eq:krl_update}
+\end{equation}
+As in KEM, the denominator can be precomputed once, and the update preserves non-negativity given $\alpha^{(0)}\ge 0$.
+
+\subsection{Hybrid KRL (HKRL)}
+\label{sec:deconv_hkrl}
+
+A known limitation of purely anatomy-derived kernels is suppression of PET-unique structures when they are not supported by the guidance image \cite{deidda_hybrid_2019}. Hybrid kernels mitigate this by incorporating features derived from the evolving PET estimate, mirroring HKEM \cite{deidda_hybrid_2019}. In deconvolution form, this corresponds to an iteration-dependent kernel $K^{(k)}$ whose entries depend on both anatomical and functional features.
+
+Because iteration-dependent kernels can propagate noise back into the coupling structure at late iterations, we adopt a frozen-kernel strategy consistent with the motivation in HKEM (although this proved to be unnecessary for the sphre phantom as the best iteration was usually before this point):
+\begin{enumerate}
+    \item initialise with an anatomy-only kernel $K^{(0)}$ and compute $x^{(k)}=K^{(0)}\alpha^{(k)}$ for a small number of iterations;
+    \item construct a hybrid kernel $K^{(k_f)}$ using anatomical features from $u$ and functional features derived from $x^{(k_f)}$;
+    \item freeze $K=K^{(k_f)}$ and continue with the KRL update \eqref{eq:krl_update}.
+\end{enumerate}
+This retains PET adaptivity while limiting late-iteration noise imprinting into the kernel.
+
+\section{Directional-TV regularised RL deconvolution}
+\label{sec:deconv_dtv}
+
+Directional total variation (DTV) was introduced in Chapter~\ref{chapter:reconstruction} as an anatomically guided regulariser that promotes edge alignment between the emission image and a structural guidance image \cite{ehrhardt_pet_2016}. Here we use DTV as an explicit penalty for deconvolution.
+
+\subsection{Penalised objective and update}
+\label{sec:deconv_dtv_update}
+
+The penalised-likelihood deconvolution objective is
+\begin{equation}
+    \hat x
+    \in
+    \arg\min_{x\in\mathbb{R}^J_+}
+    \left\{
+        \mathcal{L}(x) + \beta R_{\mathrm{sDTV}}(x;u)
+    \right\},
+    \qquad
+    \mathcal{L}(x)=\sum_{j}\left((Cx+b)_j-y_j\log(Cx+b)_j\right).
+    \label{eq:deconv_map_dtv}
+\end{equation}
+Here $R_{\mathrm{sDTV}}$ is a smooth DTV penalty and we write $r(x)=\nabla_x R_{\mathrm{sDTV}}(x;u)$ for its gradient. A natural baseline solver is the scaled-gradient RL--DTV iteration
+\begin{equation}
+    x^{(k+1)}
+    =
+    \left\{
+        x^{(k)}
+        -
+        \varsigma_k\,P_{\mathrm{RL}}^{(k)}
+        \left(
+            D_x\mathcal{L}(x^{(k)}) + \beta\, r(x^{(k)})
+        \right)
+    \right\}_{\geq 0},
+    \label{eq:rldtv_update}
+\end{equation}
+where $P_{\mathrm{RL}}^{(k)}=\operatorname{diag}(x^{(k)}/(C^{\mathsf T}\mathbf{1}))$ and $\{\}_{\geq0}$ denotes projection onto non-negativity. Step sizes $\{\varsigma_k\}$ may be taken constant (with conservative tuning) or diminishing to improve stability. This update is the image-domain analogue of the scaled-gradient MAP schemes discussed in Chapter~\ref{chapter:reconstruction} (compare with BSREM-type forms), but without subsets.
+
+In contrast to kernelised RL variants, RL--DTV is typically numerically stable once $\beta$ is chosen, and the objective in \eqref{eq:deconv_map_dtv} is smooth with simple bound constraints. This makes it well suited to a quasi-Newton solver: in the experiments of this chapter we therefore accelerate convergence by optimising \eqref{eq:deconv_map_dtv} with the L-BFGS-B algorithm reviewed in Section~\ref{sec:optimisation}, using bound constraints to enforce non-negativity. In this setting, L-BFGS-B replaces the hand-tuned step-size sequence $\{\varsigma_k\}$ by an automatic line search and curvature-informed scaling, often reaching a stationary point of \eqref{eq:deconv_map_dtv} in substantially fewer iterations than the scaled-gradient RL--DTV update \eqref{eq:rldtv_update}.
+
+For RL and KRL/HKRL, early stopping is essential and is treated as part of the regularisation. In experiments we report results across iteration counts and select a stopping point based on a NRMSE (Equation \ref{eq:nrmse_krl}) for the phantom and qualitative assessment  For RL--DTV, iteration sensitivity is reduced, but a stopping point is still selected to avoid unnecessary computation once change falls below a tolerance defined by
+\begin{equation}
+    \frac{\mathcal{O}(x^{(k)} - \mathcal{O}(x^{(k+1)}} {\mathrm{max}(|\mathcal{O}(x^{(k)}|, |\mathcal{O}(x^{(k+1)}|, 1)} <= f_{tol} * \epsilon_{mp}
+\end{equation}
+where $\epsilon_{mp}$ is the machine precision and $f_{tol}$ is chosen to be $10^{-6}$. 
+
+\section{Data and experimental setup} \label{sec:deconv_data}
+Two datasets are used to characterise behaviour under controlled and realistic conditions.
+
+\begin{enumerate}
+    \item \textbf{Spherical phantom:} a hot-sphere phantom enabling assessment of edge recovery and spill-over (See Figure \ref{fig:spheres overview}).
+
+    \item \textbf{$\tau$-PET brain with MRI guidance:} a representative in vivo dataset (See Figure \ref{fig:brain overview}).
+\end{enumerate}
+
+\begin{figure}[hbtp]
+    \centering
+    \includegraphics[width=1\linewidth]{figures/Chapter3a/poster_figures_blur_init/fig1_spheres_overview.png}
+    \caption{Left, ground truth phantom, centre blurred and noise reconstruction and right MRI guidance image for the simulated sphere phantom. Units are arbitrary.}
+    \label{fig:spheres overview}
+\end{figure}
+
+\begin{figure}[hbtp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/Chapter3a/poster_figures_blur_init/fig2_brain_overview.png}
+    \caption{Left, reconstructed $\tau$-PET brain, right registered MRI guidance image. Units are arbitrary.}
+    \label{fig:brain overview}
+\end{figure}
+
+In both cases, the anatomical image $u$ is registered to the PET grid and resampled to the reconstruction voxel size. The registered anatomy is used either to define the kernel $K$ (KRL/HKRL) or the directional field $\{\xi_j\}$ (RL--DTV).
+
+To obtain a controlled test case with known truth while retaining a realistic resolution/noise regime, the sphere dataset is simulated from a digital activity distribution by forward projecting with an isotropic Gaussian resolution model of $\mathrm{FWHM}=$\SI{6}{\milli\metre} embedded in the forward projector, adding Poisson noise to the resulting sinograms, and then reconstructed using an operator without additional blurring. This deliberately introduces a resolution-modelling mismatch between simulation and reconstruction.
+
+Let $x^\star$ denote the digital ground-truth activity image and $\hat{x}$ the reconstructed image. For each sphere $s$, let $\mathcal{S}_s$ be the set of voxel indices belonging to that sphere, and let $\mathcal{S}=\bigcup_s \mathcal{S}_s$ denote the union over all spheres. We report an aggregate recovery coefficient computed by pooling all sphere voxels,
+\begin{equation}
+\mathrm{RC} \;=\; \frac{\frac{1}{|\mathcal{S}|}\sum_{i\in \mathcal{S}}\hat{x}_i}{\frac{1}{|\mathcal{S}|}\sum_{i\in \mathcal{S}}x^\star_i}.
+\end{equation}
+
+To quantify background noise, let $\mathcal{B}$ denote the set of voxel indices in a warm background region. We compute the coefficient of variation (CoV) within $\mathcal{B}$ as
+\begin{equation}
+\mathrm{CoV}_{\mathcal{B}} \;=\; \frac{\sigma_{\mathcal{B}}}{\mu_{\mathcal{B}}},
+\qquad
+\mu_{\mathcal{B}} \;=\; \frac{1}{|\mathcal{B}|}\sum_{i\in \mathcal{B}}\hat{x}_i,
+\qquad
+\sigma_{\mathcal{B}} \;=\; \sqrt{\frac{1}{|\mathcal{B}|-1}\sum_{i\in \mathcal{B}}\left(\hat{x}_i-\mu_{\mathcal{B}}\right)^2}.
+\end{equation}
+
+Finally, overall fidelity to the truth is summarised by the normalised root mean squared error (NRMSE) over the full image grid $\Omega$,
+\begin{equation}\label{eq:nrmse_krl}
+\mathrm{NRMSE} \;=\; 
+\frac{\sqrt{\frac{1}{|\Omega|}\sum_{i\in \Omega}\left(\hat{x}_i-x^\star_i\right)^2}}
+{\sqrt{\frac{1}{|\Omega|}\sum_{i\in \Omega}\left(x^\star_i\right)^2}}.
+\end{equation}
+
+The in vivo dataset is a $\tau$-PET scan acquired on a healthy volunteer using the tracer \textsuperscript{18}F-MK-6240, with a co-registered anatomical MRI serving as guidance. This dataset is used to qualitatively illustrate how the different priors behave in the presence of heterogeneous uptake patterns and fine anatomical structure, where over-regularisation can lead to anatomical ``imprinting''. The FWHM of the deconvolution operator was estimated using a Hoffmann phantom scan, by co-registering the reconstructed images to a Hoffmann template and selecting the Gaussian smoothing (independently in the in-plane and axial directions) that minimised the sum-of-squared differences between the template and the reconstructed image. This was estimated to be $\mathrm{FWHM}=$(\SI{4.6}{\milli\metre},\SI{4.6}{\milli\metre},\SI{6.4}{\milli\metre})
+
+\subsection{Hyperparameter tuning}
+\label{subsec:hyperparameter_tuning}
+
+Hyperparameters were tuned by grid search.
+
+For dTV reconstructions, we swept the regularisation weight 
+$$\beta\in\{0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0\}$$ .
+
+Kernel methods used a fixed number of neighbours ($48$-NN) within a cubic $9\times9\times9$ neighbourhood \cite{hutchcroft_anatomically-aided_2016}. For KEM we swept the anatomical weighting $\sigma_a$. For HKEM we additionally swept the functional weighting $\sigma_f$. Because we used a k-NN neighbourhood strategy, distance weights ($\sigma_{df}, \sigma_{da}$ were not used.
+
+\begin{table}[hbtp]
+\centering
+\caption{Hyperparameter sweeps for kernel-based reconstructions}
+\label{tab:kernel_sweeps}
+\begin{tabular}{lll}
+\hline
+Method & Hyperparameter & Values swept \\
+\hline
+KEM/HKEM & $\sigma_{a}$ & \{0.1, 0.2, 0.5, 1.0, 2.0, 5.0\} \\
+HKEM & $\sigma_{f}$ & \{0.1, 0.2, 0.5, 1.0, 2.0, 5.0\} \\
+\hline
+\end{tabular}
+\end{table}
+
+The requirements of early stopping for RL, KRL and HKRL mean that the initialisign image plays a pivotal role in regularisation. We investigate the effect that initialisation could have one image quality by running identical sweeps over the sphere data set initialising with a uniform image of ones and the blurred PET image.
+
+$\tau$-PET brain data reconstructions were initialised using a uniform image of ones for RL/KRL/HKRL and the blurred PET image for RL--dTV.
+
+\section{Results}
+\label{sec:deconv_results}
+
+\subsection{Spheres}
+
+The results for the best reconstructions are summarised in Table \ref{tab:spheres_krl} and visualised in Figure \ref{fig:recons_krl}
+
+\begin{figure}[hbtp]
+    \centering
+    \begin{subfigure}[b]{1\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_blur_init/fig3_spheres_best_comparison.png}
+    \end{subfigure}
+    \begin{subfigure}[b]{1\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_unif_init/fig3_spheres_best_comparison.png}
+    \end{subfigure}
+    \caption{Figures showing central slice of reconstructions with best RMSE. Top, initialised by the blurred PET image and bottom, initialised by a uniform image.}
+    \label{fig:recons_krl}
+\end{figure}
+
+\begin{table}[hbtp]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.15}
+
+\begin{tabular}{lrrrrrrr}
+\toprule
+\multicolumn{8}{c}{\textbf{Uniform initialisation}}\\
+\midrule
+Method & Min NRMSE & Iter. & RC & Bkg CoV & $\sigma_a$ & $\sigma_f$ & $\beta$ \\
+\midrule
+RL     & 0.0327 & 2   & 0.7645 & 0.2106 & --   & --  & -- \\
+KRL    & 0.0190 & 3   & 0.8781 & 0.1546 & 0.5  & --  & -- \\
+HKRL   & 0.0191 & 3   & 0.8776 & 0.1546 & 0.5  & 5   & -- \\
+RL-dTV & 0.0177 & 143 & 0.8890 & 0.1233 & --   & --  & 2  \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.8em}
+
+\begin{tabular}{lrrrrrrr}
+\toprule
+\multicolumn{8}{c}{\textbf{Blurred initialisation}}\\
+\midrule
+Method & Min NRMSE & Iter. & RC & Bkg CoV & $\sigma_a$ & $\sigma_f$ & $\beta$ \\
+\midrule
+RL     & 0.0338 & 0   & 0.7307 & 0.2278 & -- & --& -- \\
+KRL    & 0.0208 & 2   & 0.8841 & 0.1805 & 5  & -- & -- \\
+HKRL   & 0.0212 & 2   & 0.8805 & 0.1805 & 5  & 5 & -- \\
+RL-dTV & 0.0177 & 164 & 0.8893 & 0.1233 & -- & -- & 2  \\
+\bottomrule
+\end{tabular}
+\caption{Tables summarising the hyperparameters and metrics values of the best (mesured by NRMSE) reconstructions of the various methods for (top) a uniform initialisation of ones and (bottom) the blurred PET image.}
+\label{tab:spheres_krl}
+\end{table}
+
+The effect of initialisation on the quality of reconstructions can be seen in Figures \ref{fig:nrmse_krl} and \ref{fig:rc_cov_krl}.
+
+\begin{figure}[hbtp]
+    \centering
+    \begin{subfigure}[b]{0.8\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_blur_init/fig4_spheres_nrmse_curves.png}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.8\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_unif_init/fig4_spheres_nrmse_curves.png}
+    \end{subfigure}
+    \caption{Figures showing iteration versus global NRMSE for the best performing reconstructions. Top, initialised by the blurred PET image and bottom, initialised by a uniform image.}
+    \label{fig:nrmse_krl}
+\end{figure}
+
+\begin{figure}[hbtp]
+    \centering
+    \begin{subfigure}[b]{0.8\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_blur_init/fig4eii_spheres_recovery_vs_cov_all_params_curves_fixed_axes.png}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.8\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_unif_init/fig4eii_spheres_recovery_vs_cov_all_params_curves_fixed_axes.png}
+    \end{subfigure}
+    \caption{Figures showing RC versus CoV for all reconstructions. Top, initialised by the blurred PET image and bottom, initialised by a uniform image. Note that KRL and HKRL are indistinguishable in these plots. KRL lies under the curves with the highest RC.}
+    \label{fig:rc_cov_krl}
+\end{figure}
+
+\subsection{$\tau$-PET brain}
+
+$tau$-PET brains were only qualitatively analysed. Optimal images were chosen by visual quality (an obvious drawback of the study design). The chosen images are shown in Figure \ref{fig:brain_recons_krl}
+
+\begin{figure}[hbtp]
+    \centering
+    \begin{subfigure}[b]{0.72\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_unif_init/fig5_brain_example_comparison.png}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_blur_init/fig5_brain_example_comparison.png}
+    \end{subfigure}
+    \caption{Figures showing visually best reconstructions for the different reconstructions.}
+    \label{fig:brain_recons_krl}
+\end{figure}
+
+
+
+\section{Discussion}
+\label{sec:deconv_discussion}
+
+Deblurring is inherently ill-posed: the PSF attenuates high frequencies, so naive inversion magnifies noise. Anatomical guidance provides a structured way to preferentially preserve edges that are plausible given $u$ while damping noise-like oscillations, either by restricting the solution space (kernel methods) or by penalising anatomically inconsistent gradients (DTV).
+
+All guidance-based methods risk bias when the guidance image does not reflect tracer uptake boundaries. KRL is the most restrictive because it enforces $x\in\mathrm{range}(K)$; RL--DTV is less restrictive but can still encourage alignment where the data term is weak (low counts, low contrast). HKRL partially mitigates mismatch by allowing the coupling structure to adapt to PET features, but must be controlled (e.g.\ freezing) to avoid noise-driven feedback.
+
+The behaviours observed here anticipate challenges in the full reconstruction setting: strong priors induce spatially varying curvature and require effective scaling (preconditioning), and guidance mechanisms must be designed to avoid suppressing modality-unique information. These considerations directly motivate the synergy-aware prior and optimisation strategy developed later in the thesis.
+
+\section{Summary}
+\label{sec:deconv_summary}
+
+This chapter formulated post-reconstruction PET PVC as an image-domain Poisson inverse problem $\bar y(x)=Cx+b$ and studied RL deconvolution and three anatomy-aware regularised variants. KRL and HKRL implement implicit regularisation through kernelised image models, consistent with the kernel framework reviewed in Chapter~\ref{chapter:reconstruction} \cite{wang_pet_2015,hutchcroft_anatomically-aided_2016,deidda_hybrid_2019}. RL--DTV implements explicit anatomically guided regularisation via a DTV penalty \cite{ehrhardt_pet_2016} using the same directional notation as Chapter~\ref{chapter:reconstruction}. Together, these methods provide a practical PVC baseline and a controlled setting in which to diagnose guidance-driven bias and noise amplification, informing the design choices for the synergistic priors and optimisation algorithms developed in subsequent chapters.
+
+\printbibliography[heading=subbibliography,title={References}]
+
+\end{refsection}

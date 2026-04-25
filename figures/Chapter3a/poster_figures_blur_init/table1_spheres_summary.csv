@@ -1,0 +1,5 @@
+Method,Min NRMSE,Iteration,Recovery Coefficient,Background CoV,Sigma Anat,Sigma Emission,Freeze Iter,Alpha
+RL,0.033809,0,0.730679,0.227798,,,,
+KRL,0.020781,2,0.884134,0.180469,5,,,
+HKRL,0.021154,2,0.880457,0.180549,5,5,5,
+RL-dTV,0.017674,164,0.889301,0.123310,,,,2

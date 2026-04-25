@@ -1,0 +1,562 @@
+\chapter{The dTNV prior}
+\label{chapterlabel4}
+
+\maketitle
+
+\section{Motivation}
+
+We want a synergistic prior with an objective function of the form
+\[
+    \mathcal{\mathbf{x}}^* \in \underset{\mathbf{x}\geq0}{\text{arg min }}\sum_{m=1}^M \mathcal{L}(y_m | x_m) + \mathcal{R(\mathbf{x})}
+\]
+or even
+\[
+    \mathcal{\mathbf{x}}^* \in \underset{\mathbf{x}\geq0}{\text{arg min }}\sum_{m=1}^M \mathcal{L}(y_m | x_m) +\sum_{m=1}^M \mathcal{R}(x_m) + \mathcal{R(\mathbf{x})}
+\]
+
+\section{Total Nuclear Variation}
+
+Suppose have \(M\) images (modalities) \(\{x_m\}_{m=1}^M\) on a \(d\)-dimensional grid of \(N\) voxels. We can denote the vector of these images as
+\[
+  \mathbf{x} = (x_1,\dots,x_M).
+\]
+We then define a linear operator \(\mathbf{J}\) that acts on the image stack \(\mathbf{x}\) to compute the finite-difference gradients for all modalities simultaneously. The output of this operator at each voxel \(j\) is the \(d\times M\) Jacobian matrix:
+\[
+ (\mathbf{J}\mathbf{x})_j \;=\; \bigl[\;\nabla x_{1,j}\;\big|\;\nabla x_{2,j}\;\big|\;\cdots\;\big|\;\nabla x_{M,j}\bigr]
+  \;\in\;\mathbb{R}^{d\times M}.
+\]
+We also have strictly positive weights, which are collected in a diagonal matrix for each voxel \(j\):
+\[
+  B_j \;=\; \diag\bigl(b_{j,1},\,b_{j,2},\,\dots,\,b_{j,M}\bigr)
+  \;\in\;\mathbb{R}^{M\times M},
+  \quad B_j \succ 0.
+\]
+The singular values of the \emph{weighted Jacobian}, \((\mathbf{J}\mathbf{x})_j B_j\), are denoted in nonincreasing order as:
+\[
+  \sigma_{j,1}\;\ge\;\sigma_{j,2}\;\ge\;\cdots\;\ge\;\sigma_{j,r}\;\ge\;0,
+  \quad
+  r = \min\{d,M\}.
+\]
+Given a scalar function \(g\in C^2([0,\infty))\) with the properties
+\[
+  g(0)=0,
+  \quad
+  g'(u)>0\;\text{for }u>0,
+\]
+the weighted \emph{smoothed TNV} penalty is defined as a sum over these singular values at every voxel:
+\[
+  \mathcal{R}(\mathbf{x})
+  \;=\;
+  \sum_{j=1}^N \sum_{\ell=1}^{r} \;g\bigl(\sigma_{j,\ell}\bigr),
+  \qquad
+  \sigma_{j,\ell} = \sigma_\ell\bigl( (\mathbf{J}\mathbf{x})_j B_j \bigr).
+\]
+This penalty can be expressed equivalently using the symmetric matrix \(A_j \in \Sym^M\),
+\[
+  A_j
+  \;=\; B_j\,\bigl((\mathbf{J}\mathbf{x})_j^{\top}\,(\mathbf{J}\mathbf{x})_j\bigr)\,B_j,
+\]
+whose eigenvalues \(\lambda_{j,1}\ge\lambda_{j,2}\ge\cdots\ge\lambda_{j,M}\ge0\) relate to the singular values by \(\sigma_{j,\ell} = \sqrt{\lambda_{j,\ell}}\). The penalty function can then be written as
+\[
+  \mathcal{R}(\mathbf{x})
+  \;=\;\sum_{j=1}^N F\bigl(A_j\bigr),
+  \qquad
+  F(A_j) \;=\;\sum_{\ell=1}^M g\left(\sqrt{\lambda_\ell(A_j)}\right).
+\]
+Since the composite function \(g\circ\sqrt{\cdot}\) is a \(C^2\) function, it follows from Lewis \& Sendov's Theorem 3.3 that \(F\) is also a \(C^2\) function on the space of symmetric matrices \(\Sym^M\).
+
+\hrulefill
+
+\subsection{TNV Reduces to TV if Only One Image Varies}
+
+Now suppose \(M>1\), but all modalities \(x_2, x_3, \dots, x_M\) are spatially constant (i.e.\ uniform), and only \(x_1\) varies.  Then for every voxel \(j\),
+\[
+  \nabla x_{m,j} \;=\; 0
+  \quad\text{for }m=2,\dots,M,
+  \qquad
+  \nabla x_{1,j}\neq 0.
+\]
+Hence the Jacobian at voxel \(j\) has the form
+\[
+  (\mathbf{J} \mathbf{x})_j 
+  \;=\; 
+  \bigl[\;\nabla x_{1,j}\;\big|\;0\;\big|\;\cdots\;\big|\;0\bigr]
+  \;\in\;\mathbb{R}^{d\times M}.
+\]
+With the weight matrix \(B_j = \diag(b_{j,1},\,b_{j,2},\,\dots,\,b_{j,M})\), the weighted Jacobian becomes
+\[
+  (\mathbf{J} \mathbf{x})_j\,B_j
+  \;=\; 
+  \bigl[\;b_{j,1}\,\nabla x_{1,j}\;\big|\;0\;\big|\;\cdots\;\big|\;0\bigr].
+\]
+Since all columns after the first are zero, \((\mathbf{J} \mathbf{x})_j\,B_j\) has rank 1.  In particular, its only nonzero singular value is
+\[
+  \sigma_{j,1}
+  \;=\; 
+  \bigl\lVert\,b_{j,1}\,\nabla x_{1,j}\bigr\rVert,
+  \quad
+  \sigma_{j,\ell}=0 \text{ for } \ell=2,\dots,r.
+\]
+Equivalently, 
+\[
+  A_j
+  \;=\; 
+  \begin{bmatrix}
+    \lVert\,b_{j,1}\,\nabla x_{1,j}\rVert^2 & 0 & \cdots & 0 \\
+    0 & 0 & \cdots & 0 \\
+    \vdots & \vdots & \ddots & \vdots \\
+    0 & 0 & \cdots & 0
+  \end{bmatrix}
+  \in\Sym^M,
+\]
+so its eigenvalues are
+\[
+  \lambda_{j,1} = \lVert\,b_{j,1}\,\nabla x_{1,j}\rVert^2,
+  \quad
+  \lambda_{j,\ell}=0 \;\;(\ell=2,\dots,M),
+  \quad
+  \sigma_{j,\ell} = \sqrt{\lambda_{j,\ell}}.
+\]
+Therefore the TNV penalty at voxel \(j\) is
+\[
+  \sum_{\ell=1}^r g\bigl(\sigma_{j,\ell}\bigr)
+  \;=\; 
+  g\bigl(\sigma_{j,1}\bigr)
+  \;=\; 
+  g\bigl(\lVert\,b_{j,1}\,\nabla x_{1,j}\rVert\bigr).
+\]
+Summing over all voxels \(j=1,\dots,N\), we recover
+\[
+  \mathcal{R}_B(\mathbf{x})
+  \;=\;
+  \sum_{j=1}^N \sum_{\ell=1}^r g\bigl(\sigma_{j,\ell}\bigr)
+  \;=\; 
+  \sum_{j=1}^N g\bigl(\lVert\,b_{j,1}\,\nabla x_{1,j}\rVert\bigr),
+\]
+which is exactly the (smoothed) total variation of \(x_1\) with per‐voxel weight \(b_{j,1}\).  In other words, when all images except \(x_1\) are uniform, TNV reduces to the standard weighted TV on \(x_1\).
+
+\hrulefill
+
+\subsubsection{Total Nuclear Variation: From First Principles to Comparative Analysis}
+
+\paragraph{Foundation: Total Variation and the Diffusivity Framework}
+
+We begin with the classical continuous Total Variation functional for a single image $u$:
+\begin{equation}
+\text{TV}(u) = \int_\Omega |\nabla x| \, dx
+\end{equation}
+
+To make this differentiable for optimization purposes, we introduce a regularization parameter $\beta > 0$ and work with the smoothed version:
+\begin{equation}
+\text{TV}_\beta(u) = \int_\Omega \sqrt{|\nabla x|^2 + \beta^2} \, dx
+\end{equation}
+
+The Gâteaux derivative of this functional takes the canonical diffusivity form:
+\begin{equation}
+D\text{TV}_\beta[u] = -\text{div}(K(\nabla x) \nabla x)
+\end{equation}
+where the diffusivity is given by:
+\begin{equation}
+K(\nabla x) = \frac{1}{\sqrt{|\nabla x|^2 + \beta^2}}
+\end{equation}
+
+This scalar diffusivity has a clear interpretation: it provides strong regularization (large diffusivity) where gradients are small, and weak regularization where gradients are already strong. The parameter $\beta$ ensures the diffusivity remains finite even when $|\nabla x| = 0$.
+
+\paragraph{Extension to Multiple Images: The Jacobian Framework}
+
+When we have multiple images $x_1$ and $x_2$ that we wish to regularize jointly, we can stack their gradients into a Jacobian matrix:
+\begin{equation}
+(\mathbf{J} \mathbf{x}) = \begin{pmatrix} \nabla x_1 \\ \nabla x_2 \end{pmatrix}
+\end{equation}
+
+This is a $2 \times d$ matrix where $d$ is the spatial dimension. The Total Nuclear Variation extends the TV concept by regularizing based on the nuclear norm (sum of singular values) of this Jacobian:
+\begin{equation}
+\text{TNV}_\beta(u,v) = \int_\Omega \sum_{\ell=1}^r \sqrt{\sigma_\ell^2(\mathbf{J}) + \beta^2} \, dx
+\end{equation}
+where $\sigma_\ell((\mathbf{J} \mathbf{x}))$ are the singular values of $\mathbf{J}$ and $r = \min(2,d)$ is the rank.
+
+\paragraph{Deriving the TNV Diffusivity Structure}
+
+To find the Gâteaux derivative, we need to differentiate the nuclear norm with respect to the Jacobian. Using the SVD $\mathbf{J} = \mathbf{U}\boldsymbol{\Sigma}\mathbf{V}^T$, the derivative of each term $\sqrt{\sigma_\ell^2 + \beta^2}$ contributes:
+\begin{equation}
+\frac{\partial}{\partial \mathbf{J}}\sqrt{\sigma_\ell^2 + \beta^2} = \frac{\sigma_\ell}{\sqrt{\sigma_\ell^2 + \beta^2}} \mathbf{u}_i \mathbf{v}_i^T
+\end{equation}
+
+Summing over all singular values, the complete gradient expression becomes:
+\begin{equation}
+\nabla \text{TNV}_\beta = -\text{div}\left(\mathbf{U} \text{diag}(g'(\sigma_\ell)) \mathbf{V}^T\right)
+\end{equation}
+where $g'(\sigma_\ell) = \frac{\sigma_\ell}{\sqrt{\sigma_\ell^2 + \beta^2}}$.
+
+\paragraph{Converting to Canonical Diffusivity Form}
+
+To express this in the standard diffusivity form:
+\begin{equation}
+D\text{TNV}_\beta[u,v] = -\text{div}\left(\mathbf{K}(\nabla x, \nabla v) \begin{pmatrix} \nabla x \\ \nabla v \end{pmatrix}\right)
+\end{equation}
+we solve for the diffusivity tensor $\mathbf{K}$. Since $\mathbf{J} \mathbf{x} = \mathbf{U}\boldsymbol{\Sigma}\mathbf{V}^T$, we have:
+\begin{equation}
+\mathbf{K}(\nabla x, \nabla v) \mathbf{J} = \mathbf{U} \text{diag}(g'(\sigma_\ell)) \mathbf{V}^T
+\end{equation}
+
+This gives us:
+\begin{equation}
+\mathbf{K}(\nabla x, \nabla v) = \mathbf{U} \text{diag}\left(\frac{g'(\sigma_\ell)}{\sigma_\ell}\right) \mathbf{U}^T = \mathbf{U} \text{diag}\left(\frac{1}{\sqrt{\sigma_\ell^2 + \beta^2}}\right) \mathbf{U}^T
+\end{equation}
+
+\paragraph{Principal Diffusivity Analysis}
+
+The diffusivity tensor $\mathbf{K}$ is symmetric and has a natural eigenvector decomposition. The eigenvectors are the columns of $\mathbf{U}$ (the left singular vectors of $\mathbf{J}$), and the eigenvalues are:
+\begin{equation}
+\lambda_i = \frac{1}{\sqrt{\sigma_\ell^2 + \beta^2}}
+\end{equation}
+
+This allows us to analyze the regularization behavior in different geometric configurations of the gradients.
+
+\textbf{Case 1: Parallel Gradients ($\nabla x \parallel \nabla v$)}
+
+When the gradients are parallel, the Jacobian has rank 1, giving us:
+\begin{align}
+\sigma_1 &= \sqrt{|\nabla x|^2 + |\nabla v|^2} \quad \text{(combined gradient strength)} \\
+\sigma_2 &= 0 \quad \text{(no information in perpendicular direction)}
+\end{align}
+
+The principal diffusivities become:
+\begin{align}
+\lambda_1 &= \frac{1}{\sqrt{\sigma_1^2 + \beta^2}} \quad \text{(moderate regularization along gradient direction)} \\
+\lambda_2 &= \frac{1}{\beta} \quad \text{(strong regularization perpendicular to gradients)}
+\end{align}
+
+This means TNV applies strong smoothing perpendicular to the shared gradient direction while preserving the edge structure along that direction.
+
+\textbf{Case 2: Perpendicular Gradients of Equal Magnitude ($\nabla x \perp \nabla v$, $|\nabla x| = |\nabla v|$)}
+
+Here we have full rank with $\sigma_1 = \sigma_2 = |\nabla x| = |\nabla v|$, giving:
+\begin{equation}
+\lambda_1 = \lambda_2 = \frac{1}{\sqrt{|\nabla x|^2 + \beta^2}}
+\end{equation}
+
+The regularization becomes isotropic, treating both gradient directions equally. This reflects that both gradients provide independent, complementary information.
+
+\textbf{Case 3: Perpendicular Gradients of Unequal Magnitude}
+
+With $\sigma_1 = \max(|\nabla x|, |\nabla v|)$ and $\sigma_2 = \min(|\nabla x|, |\nabla v|)$:
+\begin{align}
+\lambda_1 &= \frac{1}{\sqrt{\sigma_1^2 + \beta^2}} \quad \text{(weaker regularization along stronger gradient)} \\
+\lambda_2 &= \frac{1}{\sqrt{\sigma_2^2 + \beta^2}} \quad \text{(stronger regularization along weaker gradient)}
+\end{align}
+
+The regularization adapts to the relative strength of information in each direction.
+
+\paragraph{Comparison with Joint Total Variation}
+
+Joint Total Variation takes a simpler approach to multi-image regularization:
+\begin{equation}
+\text{JTV}_\beta(u,v) = \int_\Omega \sqrt{|\nabla x|^2 + |\nabla v|^2 + \beta^2} \, dx
+\end{equation}
+
+Its diffusivity structure is:
+\begin{equation}
+D\text{JTV}_\beta[u,v] = -\text{div}\left(\eta(u,v) \begin{pmatrix} \nabla x \\ \nabla v \end{pmatrix}\right)
+\end{equation}
+where $\eta(u,v) = \frac{1}{\sqrt{|\nabla x|^2 + |\nabla v|^2 + \beta^2}}$ is a scalar diffusivity applied identically to both components.
+
+\textbf{Key Differences from TNV:}
+
+\emph{Isotropy vs Anisotropy}: JTV always applies isotropic regularization---the same diffusivity in all directions. TNV adapts its regularization anisotropically based on the local gradient geometry.
+
+\emph{Gradient Relationship Sensitivity}: JTV only considers the combined magnitude $\sqrt{|\nabla x|^2 + |\nabla v|^2}$ and is insensitive to whether gradients are parallel, perpendicular, or at some intermediate angle. TNV explicitly adapts its behavior based on these geometric relationships.
+
+\emph{Principal Directions}: JTV has no preferred directions---it regularizes uniformly. TNV automatically identifies principal directions of gradient activity and adjusts regularization strength accordingly.
+
+\paragraph{Comparison with Parallel Level Sets}
+
+Parallel Level Sets (PLS) takes yet another approach, explicitly measuring the alignment between gradients:
+\begin{equation}
+\text{PLS}(u,v) = \int_\Omega d_{\varphi,\psi}(\nabla x, \nabla v) \, dx
+\end{equation}
+where $d_{\varphi,\psi}(\nabla x, \nabla v) = \varphi(\psi(|\nabla x||\nabla v|) - \psi(|\langle \nabla x, \nabla v \rangle|))$.
+
+The corresponding diffusivity structure is:
+\begin{equation}
+D\text{PLS}_\beta[u,v] = -\text{div}\left(\begin{pmatrix} \kappa(\nabla x,\nabla v) & \tau(\nabla x,\nabla v) \\ \tau(\nabla x,\nabla v) & \kappa(\nabla v,\nabla x) \end{pmatrix} \begin{pmatrix} \nabla x \\ \nabla v \end{pmatrix}\right)
+\end{equation}
+
+\textbf{Key Differences from TNV:}
+
+\emph{Cross-coupling}: PLS introduces cross-diffusivity terms $\tau$ that directly couple the diffusion of $u$ and $v$. TNV achieves coupling through its anisotropic structure but maintains a block-diagonal form.
+
+\emph{Forward vs Backward Diffusion}: PLS can exhibit backward diffusion (negative diffusivities) in certain configurations, particularly with linear parallel level sets when gradients are anti-aligned. TNV always maintains forward diffusion since all eigenvalues $\frac{1}{\sqrt{\sigma_\ell^2 + \beta^2}}$ are positive.
+
+\emph{Alignment Measure}: PLS explicitly penalizes gradient misalignment through its distance measure. TNV implicitly encourages alignment by providing stronger regularization when the Jacobian has low rank (indicating gradient alignment).
+
+\paragraph{Synthesis: The Geometric Perspective}
+
+Each approach embodies a different geometric philosophy:
+
+\textbf{JTV} treats the gradient pair $(\nabla x, \nabla v)$ as a single vector in $\mathbb{R}^{2d}$ and applies isotropic regularization based on its magnitude.
+
+\textbf{PLS} explicitly measures and penalizes deviations from perfect gradient alignment, with the regularization strength depending on how well the gradients are aligned.
+
+\textbf{TNV} views the gradient pair as defining a linear subspace through the Jacobian's column space, and adapts its regularization to the dimensionality and principal directions of this subspace.
+
+This geometric interpretation reveals why TNV provides a natural balance: it automatically adapts to the information content in the joint gradient structure, providing stronger regularization where information is redundant or weak, and preserving structure where gradients provide rich, complementary information.
+
+The always-forward nature of TNV's diffusion also makes it numerically more stable than PLS methods that can exhibit backward diffusion, while its anisotropic adaptation gives it advantages over the simpler isotropic approach of JTV in cases where the gradient geometry provides meaningful directional information.
+
+
+
+\subsection{Directional TNV}
+
+To introduce anisotropy into the penalty, we can use a structural guidance image \(v\) (e.g., a CT or MRI scan). At each voxel \(j\), we compute a normalized direction vector from the gradient of this guidance image:
+\[
+    \xi_j = \frac{\nabla v_j}{\|\nabla v_j\|_2 + \eta},
+\]
+where \(\eta > 0\) is a small constant to prevent division by zero in regions where the guidance image is flat.
+
+From this direction vector, we define a directional operator \(D_j \in \mathbb{R}^{d \times d}\), which is a projection matrix that suppresses gradients parallel to \(\xi_j\):
+\[
+    D_j = I - \gamma \xi_j \xi_j^T.
+\]
+Here, \(I\) is the \(d \times d\) identity matrix and \(\gamma \in [0,1]\) is a parameter controlling the strength of the anisotropy, which is frequently set to \(\gamma=1\).
+
+This directional operator is then used to pre-multiply the Jacobian matrix at each voxel. The \emph{smoothed directional TNV (dTNV)} penalty is thus calculated using the modified Jacobian \( D_j (\mathbf{J}\mathbf{x})_j \). The singular values are now computed from the directionally-weighted Jacobian:
+\[
+  \sigma_{j,\ell} = \sigma_\ell\bigl( D_j (\mathbf{J}\mathbf{x})_j B_j \bigr).
+\]
+Consequently, the symmetric matrix \(A_j\) becomes:
+\[
+  A_j
+  \;=\; \left( D_j (\mathbf{J}\mathbf{x})_j B_j \right)^T \left( D_j (\mathbf{J}\mathbf{x})_j B_j \right)
+  \;=\; B_j^T (\mathbf{J}\mathbf{x})_j^T D_j^2 (\mathbf{J}\mathbf{x})_j B_j.
+\]
+The final form of the penalty function \(\mathcal{R}(\mathbf{x}) = \sum_{j=1}^N F(A_j)\) remains the same, but its value is now dependent on the directionally-modified matrix \(A_j\).
+
+
+\hrulefill
+
+\subsection{Gradient and Hessian Derivation}
+
+The following section focuses on the Gradient and Hessian formulations per voxel. We drop the index, $j$, to improve readability. These are both important in reconstruction when constructing a descent direction.
+
+\subsubsection{Gradient of TNV}
+
+\paragraph{Auxiliary Function Definition}:
+We define an auxiliary function $h(u) = g(\sqrt{u})$ whose derivative is:
+\[
+h'(\lambda_\ell) = \frac{d}{d\lambda_\ell} g(\sqrt{\lambda_\ell}) = g'(\sqrt{\lambda_\ell}) \cdot \frac{1}{2\sqrt{\lambda_\ell}} = \frac{g'(\sigma_\ell)}{2\sigma_\ell}
+\]
+where $\sigma_\ell = \sqrt{\lambda_\ell}$ are the singular values.
+
+\paragraph{Gradient with Respect to $A$}:
+For a matrix $A$ with eigenvalue decomposition $A = V\Lambda V^T$, the gradient of the spectral function $F(A) = (h \circ \lambda)(A)$ is (Lewis, 1996):
+\[
+\nabla_{A} F(A) = V \,\text{diag}\left(h'(\lambda_1), \ldots, h'(\lambda_M)\right) V^T
+\]
+\[
+\nabla_{A} F(A) = V \,\text{diag}\left(\frac{g'(\sigma_1)}{2\sigma_1}, \ldots, \frac{g'(\sigma_M)}{2\sigma_M}\right) V^T
+\]
+
+\paragraph{Gradient with Respect to $\mathbf{M}$}:
+Let $\mathbf{M} = D(\mathbf{J}\mathbf{x})B$ where $D$ and $B$ are differential operators, $\mathbf{J}$ is the Jacobian, and $\mathbf{x}$ is the image.
+
+Using the chain rule and the relationship $F(\mathbf{M}) = F(\mathbf{M}^T\mathbf{M})$:
+\[
+\nabla_{\mathbf{M}} F(\mathbf{M}) = 2\mathbf{M} \nabla_A F(A)
+\]
+where $A = \mathbf{M}^T\mathbf{M}$.
+
+\paragraph{Simplification Using SVD}:
+Substituting the SVD $\mathbf{M} = U \,\text{diag}(\boldsymbol{\sigma}) V^T$:
+\[
+\nabla_{\mathbf{M}} F(\mathbf{M}) = 2 U \,\text{diag}(\boldsymbol{\sigma}) V^T \cdot V \,\text{diag}\left(\frac{g'(\sigma_\ell)}{2\sigma_\ell}\right) V^T
+\]
+
+Since $V^T V = I$, this simplifies to:
+\[
+\nabla_{\mathbf{M}} F(\mathbf{M}) = U \,\text{diag}(g'(\sigma_\ell)) V^T
+\]
+
+\paragraph{Total Gradient of the TNV Regularization}:
+The gradient of the Total Nuclear Variation (TNV) regularization across the entire image is computed using the adjoint of the directional stacked weighted gradient operation:
+\[
+\nabla \mathcal{R}(\mathbf{x}) = \mathbf{J}^T \left\{D_j^T \, U_j \,\text{diag}(g'(\sigma_{j,\ell})) V_j^T B_j\right\}_{j=1}^N
+\]
+
+where:
+\begin{itemize}
+\item The notation $\{\cdot\}_{j=1}^N$ indicates that the operation inside the braces is applied at each voxel $j$, creating a field with the same spatial structure as the image
+\item $\mathbf{J}^T$ (akin to the negative of the multiple-modality divergence) then acts on this entire field to map the gradient back to image space
+\item $U_j, V_j$ are the left and right singular vectors at voxel $j$
+\item $\sigma_{j,\ell}$ are the singular values at voxel $j$
+\item $D_j, B_j$ are the differential operators at voxel $j$
+\end{itemize}
+
+\subsubsection{Hessian of TNV}
+
+\paragraph{Hessian of $F(A)$}:
+We use the chain rule for the Hessian. If $A = \mathbf{M}^T \mathbf{M}$, then the Hessian quadratic form $\nabla_{\mathbf{M}}^2 F[H_{\mathbf{M}},H_{\mathbf{M}}]$ (where $H_{\mathbf{M}}$ is a perturbation to $\mathbf{M}$) is:
+\[
+\nabla_{\mathbf{M}}^2 F[H_{\mathbf{M}},H_{\mathbf{M}}] = \underbrace{\nabla_A^2 F(A)[dA, dA]}_{\textbf{Part 1}} + \underbrace{\tr\left((\nabla_A F(A))^T d^2A\right)}_{\textbf{Part 2}}
+\]
+Here, $A = \mathbf{M}^T \mathbf{M}$.
+The first variation of $A$ in direction $H_{\mathbf{M}}$ is $dA = H_{\mathbf{M}}^T \mathbf{M} + \mathbf{M}^T H_{\mathbf{M}}$.
+The second variation of $A$ is $d^2A = d(H_{\mathbf{M}}^T \mathbf{M} + \mathbf{M}^T H_{\mathbf{M}})[H_{\mathbf{M}}] = H_{\mathbf{M}}^T H_{\mathbf{M}} + H_{\mathbf{M}}^T H_{\mathbf{M}} = 2H_{\mathbf{M}}^T H_{\mathbf{M}}$.
+
+\paragraph{Part 1: $\nabla_A^2 F(A)[dA, dA]$}:
+For a spectral function $F(A) = \sum_\ell h(\lambda_\ell(A))$, the Hessian quadratic form is given by the formula of Lewis \& Sendov. The off-diagonal terms are defined by the divided differences of the function that defines the gradient's spectrum, which is $h'$.
+The correct formula is:
+$$\nabla_A^2 F(A)[dA, dA] = \sum_p h''(\lambda_p) (\widetilde{dA}_{pp})^2 + \sum_{p \neq q} \left(\frac{h'(\lambda_p) - h'(\lambda_q)}{\lambda_p - \lambda_q}\right) (\widetilde{dA}_{pq})^2$$
+where $A = V \diag(\boldsymbol{\lambda}) V^T$ and $\widetilde{dA} = V^T (dA) V$.
+The derivatives of $h(\lambda_\ell) = g(\sigma_\ell)$ are:
+\begin{itemize}
+    \item $h'(\lambda_\ell) = \frac{g'(\sigma_\ell)}{2\sigma_\ell}$
+    \item $h''(\lambda_\ell) = \frac{g''(\sigma_\ell)}{4\sigma_\ell^2} - \frac{g'(\sigma_\ell)}{4\sigma_\ell^3}$
+\end{itemize}
+The contribution from Part 1 is therefore:
+$$\text{Part 1} = \sum_p \left(\frac{g''(\sigma_p)}{4\sigma_p^2} - \frac{g'(\sigma_p)}{4\sigma_p^3}\right) (\widetilde{dA}_{pp})^2 + \sum_{p \neq q} \left(\frac{\frac{g'(\sigma_p)}{2\sigma_p} - \frac{g'(\sigma_q)}{2\sigma_q}}{\sigma_p^2 - \sigma_q^2}\right) (\widetilde{dA}_{pq})^2$$
+
+\paragraph{Part 2: $\tr\left((\nabla_A F(A))^T d^2A\right)$}:
+We start with the expression for Part 2:
+$$\text{Part 2} = \tr\left((\nabla_A F(A))^T d^2A\right) = 2 \tr\left( V \diag\left(\frac{g'(\sigma_\ell)}{2\sigma_\ell}\right) V^T H_{\mathbf{M}}^T H_{\mathbf{M}} \right)$$
+Using the cyclic property of the trace, $\tr(XYZ) = \tr(ZXY)$, we move $V^T$ from the right to the left of the expression inside the trace:
+\begin{align*}
+\text{Part 2} &= \tr\left( \diag\left(\frac{g'(\sigma_\ell)}{\sigma_\ell}\right) V^T H_{\mathbf{M}}^T H_{\mathbf{M}} V \right) \\
+\text{Let } H_{UV} &= U^T H_{\mathbf{M}} V \text{. Then } (H_{UV})^T = V^T H_{\mathbf{M}}^T U \text{ and } V^T H_{\mathbf{M}}^T = (H_{UV})^T U^T. \\
+&= \tr\left( \diag\left(\frac{g'(\sigma_\ell)}{\sigma_\ell}\right) V^T H_{\mathbf{M}}^T (U U^T) H_{\mathbf{M}} V \right) \\
+&= \tr\left( \diag\left(\frac{g'(\sigma_\ell)}{\sigma_\ell}\right) (V^T H_{\mathbf{M}}^T U) (U^T H_{\mathbf{M}} V) \right) \\
+&= \tr\left( \diag\left(\frac{g'(\sigma_\ell)}{\sigma_\ell}\right) (H_{UV})^T H_{UV} \right)
+\end{align*}
+The trace of a product of a diagonal matrix $D$ and a matrix $\mathbf{M}$ is $\tr(D\mathbf{M}) = \sum_p D_{pp} \mathbf{M}_{pp}$. Here, $D_{pp} = g'(\sigma_p)/\sigma_p$ and the diagonal elements of $\mathbf{M} = (H_{UV})^T H_{UV}$ are $\mathbf{M}_{pp} = \sum_q (H_{UV})_{qp}^2$.
+$$\text{Part 2} = \sum_p \left( \frac{g'(\sigma_p)}{\sigma_p} \right) \left( \sum_q (H_{UV})_{qp}^2 \right) = \sum_p \sum_q \frac{g'(\sigma_p)}{\sigma_p} ((U^T H_{\mathbf{M}} V)_{qp})^2$$
+We split this sum into diagonal ($p=q$) and off-diagonal ($p \neq q$) parts:
+$$\text{Part 2} = \sum_p \frac{g'(\sigma_p)}{\sigma_p} ((U^T H_{\mathbf{M}} V)_{pp})^2 + \sum_p \sum_{q \neq p} \frac{g'(\sigma_p)}{\sigma_p} ((U^T H_{\mathbf{M}} V)_{qp})^2$$
+
+\paragraph{Full Hessian Expression for $F(A)$ in Terms of $H_{UV}$}:
+Let $H_{UV} = U^T H_{\mathbf{M}} V$. The components of $\widetilde{dA}$ are:
+\begin{itemize}
+    \item $(\widetilde{dA})_{pp} = 2 \sigma_p(\mathbf{M}) (H_{UV})_{pp}$
+    \item $(\widetilde{dA})_{pq} = \sigma_p(\mathbf{M}) (H_{UV})_{qp} + \sigma_q(\mathbf{M}) (H_{UV})_{pq}$ for $p \neq q$
+\end{itemize}
+To get the full Hessian quadratic form, we sum the contributions from Part 1 and Part 2.
+For the diagonal terms multiplying $((U^T H_{\mathbf{M}} V)_{pp})^2$:
+\begin{itemize}
+    \item From Part 1: The coefficient is $\left(\frac{g''(\sigma_p)}{4\sigma_p^2} - \frac{g'(\sigma_p)}{4\sigma_p^3}\right) \cdot (2\sigma_p)^2 = g''(\sigma_p) - \frac{g'(\sigma_p)}{\sigma_p}$.
+    \item From Part 2: The coefficient is $\frac{g'(\sigma_p)}{\sigma_p}$.
+    \item The sum is $\left(g''(\sigma_p) - \frac{g'(\sigma_p)}{\sigma_p}\right) + \frac{g'(\sigma_p)}{\sigma_p} = g''(\sigma_p)$.
+\end{itemize}
+The total Hessian quadratic form is therefore:
+\begin{align*}
+\nabla_{\mathbf{M}}^2 F(\mathbf{M})[H_{\mathbf{M}},H_{\mathbf{M}}] = & \sum_p g''(\sigma_p(\mathbf{M})) ((U^T H_{\mathbf{M}} V)_{pp})^2 \\
+& + \sum_{p \neq q} \left(\frac{\frac{g'(\sigma_p(\mathbf{M}))}{2\sigma_p(\mathbf{M})} - \frac{g'(\sigma_q(\mathbf{M}))}{2\sigma_q(\mathbf{M})}}{\sigma_p(\mathbf{M})^2 - \sigma_q(\mathbf{M})^2}\right) (\sigma_p(\mathbf{M}) (U^T H_{\mathbf{M}} V)_{qp} + \sigma_q(\mathbf{M}) (U^T H_{\mathbf{M}} V)_{pq})^2 \\
+& + \sum_p \sum_{q \neq p} \frac{g'(\sigma_p(\mathbf{M}))}{\sigma_p(\mathbf{M})} ((U^T H_{\mathbf{M}} V)_{qp})^2
+\end{align*}
+where $\boldsymbol{\sigma}(\mathbf{M})$ are singular values of $\mathbf{M}$, and $U, V$ are its singular vectors. $(U^T H_{\mathbf{M}} V)_{ab}$ refers to the $(a,b)$-th component of the matrix $U^T H_{\mathbf{M}} V$.
+
+\subsection{Application to Image Space and Preconditioner Design}
+\paragraph{Hessian with Respect to $\mathbf{x}$}
+The full objective function is $\mathcal{R}(\mathbf{x}) = \sum_{j=1}^N F((\mathbf{M}_j(\mathbf{x}))^T\mathbf{M}_j(\mathbf{x}))$. The full Hessian is the sum of Hessians from each location $j$. For clarity, we analyze the Hessian contribution from a single location and drop the subscript $j$. The relationship between the image $\mathbf{x}$ and the matrix $\mathbf{M}$ at this voxel is $\mathbf{M} = D (\mathbf{J}\mathbf{x}) B$. For a perturbation $H_{\mathbf{x}}$ to the image, the perturbation in $\mathbf{M}$ is $H_{\mathbf{M}} = D (\mathbf{J}H_{\mathbf{x}}) B$. The Hessian quadratic form with respect to $\mathbf{x}$ is:
+$$\nabla_{\mathbf{x}}^2 \mathcal{R}(\mathbf{x})[H_{\mathbf{x}},H_{\mathbf{x}}] = \nabla_{\mathbf{M}}^2 F[H_{\mathbf{M}}, H_{\mathbf{M}}]$$
+Substituting $H_{\mathbf{M}} = D (\mathbf{J}H_{\mathbf{x}}) B$ into our result from the previous section, and letting $H_{UV} = U^T (D (\mathbf{J}H_{\mathbf{x}}) B) V$:
+\begin{align*}
+\nabla_{\mathbf{x}}^2 \mathcal{R}(\mathbf{x})[H_{\mathbf{x}},H_{\mathbf{x}}] = & \sum_p g''(\sigma_p) (H_{UV,pp})^2 \\
+& + \sum_{p \neq q} \left(\frac{\frac{g'(\sigma_p)}{2\sigma_p} - \frac{g'(\sigma_q)}{2\sigma_q}}{\sigma_p^2 - \sigma_q^2}\right) (\sigma_p H_{UV,qp} + \sigma_q H_{UV,pq})^2 \\
+& + \sum_p \sum_{q \neq p} \frac{g'(\sigma_p)}{\sigma_p} (H_{UV,qp})^2
+\end{align*}
+
+\paragraph{Deriving a Practical diagonal Preconditioner}
+The full Hessian is too complex to invert. For practical optimization, we desire a preconditioner that is a diagonal matrix. Within a single voxel $j$, this corresponds to a diagonal matrix of size $M \times M$. We derive this through two sequential approximations.
+
+\textbf{Approximation 1: Ignore Off-diagonal Terms in the SVD Basis}
+
+First, we approximate the Hessian contribution from a single voxel by retaining only the terms corresponding to perturbations along the principal axes defined by the singular vectors.
+\begin{equation}
+    \nabla_{\mathbf{x}}^2 \mathcal{R}(\mathbf{x})[H_{\mathbf{x}},H_{\mathbf{x}}] \approx \sum_p g''(\sigma_p(\mathbf{M})) \left( \left(U^T D (\mathbf{J} H_{\mathbf{x}}) B V\right)_{pp} \right)^2
+\end{equation}
+To express this in a quadratic form $H_{\mathbf{x}}^T P_{\mathbf{x}} H_{\mathbf{x}}$, we first define the scalar term inside the sum as $c_p$. We can express $c_p$ using the Frobenius inner product, $\langle A, C \rangle = \tr(A^T C)$, and find the operator that acts on $H_{\mathbf{x}}$. We start by defining the matrix perturbation $H_{\mathbf{M}} = D ((\mathbf{J} H_{\mathbf{x}}) B)$ and expressing the scalar as $c_p = \langle U_p V_p^T, H_{\mathbf{M}} \rangle$. Applying the adjoint property, which moves operators from one side of the inner product to the other ($\langle A, L(C) \rangle = \langle L^*(A), C \rangle$), we derive the operator on $H_{\mathbf{x}}$:
+\begin{align*}
+    c_p &= \langle U_p V_p^T, \; D (\mathbf{J} H_{\mathbf{x}}) B \rangle \\
+    %
+    &= \langle (U_p V_p^T) B^T, \; D (\mathbf{J} H_{\mathbf{x}}) \rangle 
+    && \text{(Adjoint of right-multiply by $B$ is right-multiply by $B^T$)} \\
+    %
+    &= \langle D^T (U_p V_p^T B^T), \; (\mathbf{J} H_{\mathbf{x}}) \rangle
+    && \text{(Adjoint of left-multiply by $D$ is left-multiply by $D^T$)} \\
+    %
+    &= \langle \mathbf{J}^T (D^T U_p V_p^T B^T), \; H_{\mathbf{x}} \rangle
+    && \text{(Adjoint of operator $\mathbf{J}$ is $\mathbf{J}^T$)}
+\end{align*}
+This shows that $c_p = v_p^T H_{\mathbf{x}}$, where the row vector operator $v_p^T$ is given by:
+\begin{equation}
+    v_p^T = \mathbf{J}^T D^T U_p V_p^T B^T
+\end{equation}
+The squared scalar term is therefore equivalent to the rank-1 quadratic form $H_{\mathbf{x}}^T (v_p v_p^T) H_{\mathbf{x}}$. Substituting this into the Hessian approximation yields:
+\begin{align*}
+    \nabla_{\mathbf{x}}^2 \mathcal{R}(\mathbf{x})[H_{\mathbf{x}},H_{\mathbf{x}}] &\approx \sum_p g''(\sigma_p) H_{\mathbf{x}}^T \left(v_p v_p^T\right) H_{\mathbf{x}} = H_{\mathbf{x}}^T \left( \sum_p g''(\sigma_p) v_p v_p^T \right) H_{\mathbf{x}}
+\end{align*}
+From this, the operator $P_{\mathbf{x}}$ is identified as the sum of the rank-1 matrices $v_p v_p^T$:
+\begin{equation}
+    P_{\mathbf{x}} = \sum_p g''(\sigma_p) (B V_p U_p^T D \mathbf{J}) (\mathbf{J}^T D^T U_p V_p^T B^T )
+\end{equation}
+This operator $P_{\mathbf{x}}$ is generally a dense $M \times M$ matrix.
+
+\textbf{Approximation 2: Taking the diagonal of the Operator}
+
+To obtain our final, simple preconditioner, we make a second approximation: we approximate the operator $P_{\mathbf{x}}$ by its own diagonal. A diagonal preconditioner for each voxel, which we denote $P_{\text{diag}}$, is an $M \times M$ diagonal matrix whose entries $p_{m}$ are the diagonal entries of $P_{\mathbf{x}}$.
+\[P_{\text{diag}} = \text{diag}( p_{1},\, p_{2},\, \dots,\, p_{M} )\]
+The $m$-th diagonal entry $p_{m}$ is given by $(P_{\mathbf{x}})_{mm}$. To compute this from the expression $P_{\mathbf{x}} = \sum_p g''(\sigma_p) (B V_p U_p^T D \mathbf{J}) (\mathbf{J}^T D^T U_p V_p^T B^T)$, we first identify the column vector part of the outer product. Let the column vector $v_p \in \mathbb{R}^M$ be defined as:
+\[v_p = B V_p U_p^T D \mathbf{J}\]
+The operator $P_{\mathbf{x}}$ is thus a sum of rank-1 outer products, $P_{\mathbf{x}} = \sum_p g''(\sigma_p) v_p v_p^T$. The diagonal elements of $P_{\mathbf{x}}$ are found by summing the diagonal elements from each term in the series:
+\begin{align*}
+p_{m} = (P_{\mathbf{x}})_{mm} &= \left( \sum_p g''(\sigma_p) v_p v_p^T \right)_{mm} \\
+&= \sum_p g''(\sigma_p) (v_p v_p^T)_{mm}
+\end{align*}
+The $m$-th diagonal element of the outer product $v_p v_p^T$ is simply the square of the $m$-th element of the vector $v_p$:
+\[ (v_p v_p^T)_{mm} = (v_p)_m (v_p)_m = \left((v_p)_m\right)^2 \]
+Therefore, the formula for the diagonal entries of our preconditioner at voxel $j$ is:
+\[p_{j,m} = \sum_p g''(\sigma_{j,p}) \left( (B_j V_{j,p} U_{j,p}^T D_j \mathbf{J}_j)_m \right)^2\]
+where $( \cdot )_m$ denotes the $m$-th component of the vector, corresponding to the $m$-th modality. This provides a direct recipe for computing the $M$ diagonal preconditioner weights for each voxel.
+
+\paragraph{Invertibility and Application}
+The resulting full preconditioner is a block diagonal matrix, where each block $P_{\text{diag},j}$ is an $M \times M$ diagonal matrix for each voxel $j$. This full preconditioner is trivially invertible by taking the reciprocal of each diagonal element:
+$$ (P_{\text{diag},j}^{-1})_{mm} = 1/p_{j,m} $$
+This is well-defined provided $p_{j,m} \neq 0$. Since $g''(\sigma_p)$ is typically positive for convex smoothing functions and the formula sums squared terms, the entries $p_{j,m}$ are non-negative. In practice, a small stabilization parameter can be added to the denominator to prevent division by zero.
+
+In an iterative optimization algorithm (like Preconditioned Gradient Descent), the update step for the $m$-th modality at the $j$-th voxel becomes:
+\begin{enumerate}
+    \item Compute gradient for all voxels and modalities: $\mathbf{g}^{(k)}= \nabla \mathcal{R}(\mathbf{x}^{(k)})$
+    \item Compute preconditioner weights: $p_{j,m}$ for all $j, m$, evaluated at $\mathbf{x}^{(k)}$.
+    \item Apply inverse preconditioner: $z^{(k)}_{j,m} = \frac{1}{p_{j,m}} g_{j,m}^{(k)}$ for all $j,m$.
+    \item Update estimate: $\mathbf{x}^{(k+1)} = \mathbf{x}^{(k)} - \alpha^{(k)} \mathbf{z}^{(k)}$ (where $\alpha^{(k)}$ is a step size).
+\end{enumerate}
+This approach provides a simple, easily invertible, and theoretically-grounded preconditioner derived directly from the Hessian.
+
+\paragraph{A Preconditioner for Joint Data Fidelity and Regularization Updates}
+
+For optimization algorithms that require preconditioners capable of handling updates containing gradients from both data fidelity and regularization terms (such as in SVRG methods), we propose the Clamped Harmonic Mean Preconditioner (CHAMP). 
+
+Let $\mathbf{P}_{\mathcal{D}}$ denote the diagonal preconditioner derived from the Hessian approximation of the data fidelity terms, and $\mathbf{P}_{\mathcal{R}}$ denote the diagonal preconditioner from the regularization terms (as derived in the previous subsection). The CHAMP preconditioner combines these component preconditioners using the harmonic mean:
+
+\[
+    P_{\text{HM},j,m} = \frac{2 \cdot P_{\mathcal{D},j,m} \cdot P_{\mathcal{R},j,m}}{P_{\mathcal{D},j,m} + P_{\mathcal{R},j,m}}
+\]
+
+where $P_{\text{HM},j,m}$, $P_{\mathcal{D},j,m}$, and $P_{\mathcal{R},j,m}$ represent the diagonal entries for the $m$-th modality at the $j$-th voxel for the combined, data fidelity, and regularization preconditioners, respectively.
+
+The harmonic mean formulation provides:
+\begin{enumerate}
+    \item Conservative scaling dominated by the smaller of the two component preconditioners
+    \item Numerical stability when one component approaches zero (the combined preconditioner also approaches zero)
+    \item Well-conditioned behavior when both components are positive
+\end{enumerate}
+
+For numerical stability, we implement a clamped version that additionally ensures the preconditioner is never larger than either component preconditioner:
+\[
+    P_{\text{CHAMP},j,m} = \min\left(P_{\mathcal{D},j,m},\; P_{\mathcal{R},j,m},\; \frac{2 \cdot P_{\mathcal{D},j,m} \cdot P_{\mathcal{R},j,m}}{P_{\mathcal{D},j,m} + P_{\mathcal{R},j,m}}\right)
+\]
+
+Applying the inverse preconditioner, we get:
+\[
+    z^{(k)}_{j,m} = \frac{1}{P_{\text{CHAMP},j,m}} g_{j,m}^{(k)}
+\]
+where the gradient, $g_{j,m}^{(k)}$ may contain contributions from both data fidelity and regularization gradient terms, depending on the specific optimization algorithm employed.

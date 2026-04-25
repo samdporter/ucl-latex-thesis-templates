@@ -6,19 +6,23 @@
 % \renewcommand {\@degree@string} {Master of Things}
 % \makeatother
 
-\title{A Thesis Title}
-\author{Author Name}
-\department{Department of Something}
+\title{Exploiting Structural Synergy in post-SIRT imaging: Anatomically Guided Joint Variational Reconstruction of Yttrium-90 PET/SPECT/CT}
+\author{Sam Porter}
+\department{The institute of Nuclear Medicine, Division of Medicine}
 
 \maketitle
 \makedeclaration
 
 \begin{abstract} % 300 word limit
-My research is about stuff.
+Selective Internal Radiotherapy (SIRT) uses Yttrium-90 ($^{90}Y$) microspheres to treat unresectable liver tumours. Accurate post-treatment imaging is required to verify microsphere distribution and perform dosimetric evaluations. However, imaging with $^{90}Y$ presents unique challenges. Bremsstrahlung SPECT offers high count statistics but suffers from poor spatial resolution and difficulties in correcting for scatter and other additive terms. $^{90}Y$ PET offers superior resolution, but suffers from high noise due to the extremely low internal pair branching ratio ($\sim 0.0003\%$). Traditional reconstruction fails to exploit complementary information in these paired datasets.
 
-It begins with a study of some stuff, and then some other stuff and things.
+This thesis proposes a synergistic framework that uses anatomically guided joint variational regularisation to exploit shared underlying structure. We introduce the Directional Total Nuclear Variation Prior, which promotes edge alignment between PET and SPECT without enforcing intensity correlation, while incorporating CT edge-guidance and suppressing unwanted noise.
 
-There is a 300-word limit on your abstract.
+Further to this, we introduce a simple method of bremsstrahlung range modelling approach and residual correction routine to improve quantification. 
+
+To ensure computational efficiency, we propose a synergy-aware preconditioner which, in conjunction with a variance reduced stochastic gradient algorithms, results in fast convergence.
+
+We validate our method against the state-of-the-art sequential hybrid kernel expectation maximisation scheme (HKEM). We demonstrate that dTNV shows improved quantitative accuracy and increased reproducibility over noise realisations compared to existing methods.
 \end{abstract}
 
 \begin{impactstatement}
@@ -55,7 +59,13 @@ academia please see \url{https://www.ucl.ac.uk/impact/}. For thousands more exam
 \end{impactstatement}
 
 \begin{acknowledgements}
-Acknowledge all the things!
+So, it turns out that a PhD is quite an undertaking. It's been a long old journey, but the end is in sight!
+
+I've had an extraordinary four years and would like to thank some extraordinary people. Firstly, I'd like to thank my supervisors, Kris, Daniel, and Simon, who have been a near-bottomless source of knowledge, inspiration and ideas. Secondly, my colleagues in the INM, especially my fellow students. This would have been a very difficult (and much lonelier) few years without you all. I'm so grateful for our conversations in and out of the workplace. I'd like to also thank all of my colleagues in the scientific and medical spheres, whom I've found to be endlessly generous with their time and patience.
+
+I'd like to thank my parents and my sister, Alice, for all your support over the past four years and the many years before. There's no way that any of this would have heppened without you all. Thank you.
+
+Most of all, I want to express my deep gratitude to my newly minted wife, Kate. Sorry for all the late evenings and weekends spent working. Thank you so much for going through this with me. I love you.
 \end{acknowledgements}
 
 \setcounter{tocdepth}{2} 
@@ -66,3 +76,9 @@ Acknowledge all the things!
 \listoffigures
 \listoftables
 
+\cleardoublepage
+
+\printglossary[type=\acronymtype,title={List of Abbreviations}]
+\printglossary[type=symbols,title={Notation}]
+
+\cleardoublepage
