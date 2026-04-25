@@ -42,23 +42,23 @@ The rest mass energy of the pair ($2 \times 511$ keV) is converted into two\foot
 
 \subsection{Coincidence Detection and Data Acquisition}\label{subsec:pet:acquisition}
 
-\gls{pet} detectors are typically assembled into modular detector blocks, which are then arranged circumferentially to form a ring around the patient. Modern clinical systems comprise multiple such rings stacked along the axial direction, increasing axial coverage and sensitivity by enlarging the axial field-of-view (FoV). Figure~\ref{fig:pet_rings} illustrates this geometry showing a single ring in the axial view, and multiple rings in the sagittal view.
+\gls{pet} detectors are typically assembled into modular detector blocks, which are then arranged circumferentially to form a ring around the patient. Modern clinical systems comprise multiple such rings stacked along the axial direction, increasing axial coverage and sensitivity by enlarging the axial \gls{fov}. Figure~\ref{fig:pet_rings} illustrates this geometry showing a single ring in the axial view, and multiple rings in the sagittal view.
 
 %Really shite quality images. Shoudl delete. Not sure if Ir eall need these, anyway
 \begin{figure*}[t!]
     \centering
     \begin{subfigure}[t]{0.5\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{figures/Chapter1/\gls{pet}_axial.drawio.png}
+        \includegraphics[width=\linewidth]{figures/Chapter1/PET_axial.drawio.png}
         \label{subfig:pet_rings_axial}
     \end{subfigure}%
     \hspace{2cm}
     \begin{subfigure}[t]{0.12\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{figures/Chapter1/\gls{pet}_sagittal.drawio.png}
+        \includegraphics[width=\linewidth]{figures/Chapter1/PET_sagittal.drawio.png}
         \label{subfig:pet_rings_sagittal}
     \end{subfigure}
-    \caption{Simple diagram of a \gls{pet} scanner. Left, axial view showing detectors arranged in a ring. Right, sagittal/coronal view showing multiple rings forming the axial FoV.}
+    \caption{Simple diagram of a \gls{pet} scanner. Left, axial view showing detectors arranged in a ring. Right, sagittal/coronal view showing multiple rings forming the axial \glsentryshort{fov}.}
 \label{fig:pet_rings}
 \end{figure*}
 
@@ -72,14 +72,14 @@ where $t_{ij}$ represents true coincidences (Figure~\ref{subfig:pet_true_scatter
     \centering
     \begin{subfigure}[t]{0.5\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{figures/Chapter1/\gls{pet}_diagram.drawio.png}
+        \includegraphics[width=\linewidth]{figures/Chapter1/PET_diagram.drawio.png}
         \caption{}
         \label{subfig:pet_true_scatter}
     \end{subfigure}%
     ~ 
     \begin{subfigure}[t]{0.5\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{figures/Chapter1/\gls{pet}_rand_diagram.drawio.png}
+        \includegraphics[width=\linewidth]{figures/Chapter1/PET_rand_diagram.drawio.png}
         \caption{}
         \label{subfig:pet_randoms}
     \end{subfigure}
@@ -99,7 +99,7 @@ In \gls{pet}, the system matrix may be factorised as
 \begin{equation}
     A = A_{\mathrm{det,sens}}\,A_{\mathrm{det,blur}}\,A_{\mathrm{att}}\,A_{\mathrm{geom}}\,A_{\mathrm{ToF}}\,A_{\mathrm{positron}}.
 \end{equation}
-Here, $A_{\mathrm{positron}}$ models positron-range blurring, $A_{\mathrm{ToF}}$ models the timing localisation accuracy for \gls{tof} \gls{pet} (and is omitted for non-\gls{tof} \gls), $A_{\mathrm{geom}}$ is the geometric projection operator mapping voxels to lines of response in the absence of attenuation, $A_{\mathrm{att}}$ is a diagonal operator containing attenuation factors along each line of response, $A_{\mathrm{det,blur}}$ models detector-related resolution effects in reporting the true line-of-response positions, and $A_{\mathrm{det,sens}}$ is a diagonal sensitivity factor incorporating multiplicative effects such as detector efficiencies and normalisation. The additive term is commonly written as $b=s+r$, corresponding to scatter and randoms, respectively.
+Here, $A_{\mathrm{positron}}$ models positron-range blurring, $A_{\mathrm{ToF}}$ models the timing localisation accuracy for \gls{tof} \gls{pet} (and is omitted for non-\gls{tof} \gls{pet}), $A_{\mathrm{geom}}$ is the geometric projection operator mapping voxels to lines of response in the absence of attenuation, $A_{\mathrm{att}}$ is a diagonal operator containing attenuation factors along each line of response, $A_{\mathrm{det,blur}}$ models detector-related resolution effects in reporting the true line-of-response positions, and $A_{\mathrm{det,sens}}$ is a diagonal sensitivity factor incorporating multiplicative effects such as detector efficiencies and normalisation. The additive term is commonly written as $b=s+r$, corresponding to scatter and randoms, respectively.
 
 \section{Single Photon Emission Computed Tomography (\gls{spect})}
 
@@ -107,7 +107,7 @@ Here, $A_{\mathrm{positron}}$ models positron-range blurring, $A_{\mathrm{ToF}}$
 
 \begin{figure}
     \centering
-    \makebox[0pt][c]{\hspace*{-3.5cm}\includegraphics[width=0.7\textwidth]{figures/Chapter1/\gls{spect}_diagram.drawio.png}}
+    \makebox[0pt][c]{\hspace*{-3.5cm}\includegraphics[width=0.7\textwidth]{figures/Chapter1/SPECT_diagram.drawio.png}}
     \caption{Left, non-parallel photon rejected by physical collimation. Right, photon parallel to the collimator can be detected, giving a line of response containing the emission source.}
     \label{fig:spect}
 \end{figure}
@@ -136,7 +136,7 @@ where $l$ is the physical hole length and $\mu_{\mathrm{Pb}}(E)$ is the linear a
 \section{Yttrium-90 Radioembolisation (\gls{sirt})}
 \label{sec:y90}
 
-\Gls{sirt} uses \gls{y90} microspheres for the locoregional treatment of hepatic malignancies. It is is an established treatment for unresectable \gls{hcc} and liver metastases \cite{sundram_selective_2017}, recommended by NICE for unresectable HCC and used for neuroendocrine and colorectal liver metastases in the UK \cite{national_institute_for_health_and_care_excellence_nice_selective_2021,national_institute_for_health_and_care_excellence_nice_selective_2024}.The reconstruction of post-\gls{sirt} microsphere distribution presents a severe inverse problem, as \gls{y90} is designed for therapy, not imaging.
+\Gls{sirt} uses \gls{y90} microspheres for the locoregional treatment of hepatic malignancies. It is an established treatment for unresectable \gls{hcc} and liver metastases \cite{sundram_selective_2017}, recommended by NICE for unresectable \glsentryshort{hcc} and used for neuroendocrine and colorectal liver metastases in the UK \cite{national_institute_for_health_and_care_excellence_nice_selective_2021,national_institute_for_health_and_care_excellence_nice_selective_2024}. The reconstruction of post-\gls{sirt} microsphere distribution presents a severe inverse problem, as \gls{y90} is designed for therapy, not imaging.
 
 \subsection{Decay Characteristics}
 \gls{y90} is, approximately, a pure $\beta^-$ emitter decaying to the stable ground state of \gls{zr90} with a half-life of 64.1 hours:
@@ -189,7 +189,7 @@ The resulting positron annihilates to produce standard 511 keV photon pairs \cit
 
 \begin{figure}
     \centering
-    \includegraphics[width=\linewidth]{figures/Chapter1/\gls{pet}_profile.png}
+    \includegraphics[width=\linewidth]{figures/Chapter1/PET_profile.png}
     \caption{Tangential profile of measured prompt counts and estimated additive terms (randoms+scatter), with the corresponding corrected prompts for an \gls{y90} \gls{pet} scan. The data are summed over all views and segments, leaving counts per tangential bin.}
     \label{fig:pet_y90_profile}
 \end{figure}
@@ -200,15 +200,15 @@ In this work, \gls{ct} is used primarily to provide anatomical context and atten
 
 Reconstructed \gls{ct} images are typically reported in \gls{hu}, calibrated such that water is 0~\gls{hu} and air is $-1000$~\gls{hu}. The high spatial resolution of \gls{ct} provides structurally reliable edge information (e.g.\ liver boundaries and lesion margins) that can be used to guide regularisation in the ill-posed reconstruction of post-\gls{sirt} \gls{y90} \gls{pet} and \gls{spect}.
 
-In addition, \gls{ct} is routinely used for \gls{ct}-based attenuation correction (\gls{ct}AC) in both \gls{pet} and \gls{spect}. The reconstructed \gls{hu} image is first converted to an estimate of the linear attenuation coefficient map $\mu(E)\in\mathbb{R}_+^J$ at the relevant photon energy $E$ (e.g.\ $E=$~\SI{511}{\kilo\elevtronvolt} for \gls{pet}, or the photopeak energy for \gls{spect}). For a given line of response (\gls{pet}) or collimator ray (\gls{spect}) indexed by $i$, the corresponding attenuation factor is then modelled as
+In addition, \gls{ct} is routinely used for \gls{ctac} in both \gls{pet} and \gls{spect}. The reconstructed \gls{hu} image is first converted to an estimate of the linear attenuation coefficient map $\mu(E)\in\mathbb{R}_+^J$ at the relevant photon energy $E$ (e.g.\ $E=$~\SI{511}{\kilo\electronvolt} for \gls{pet}, or the photopeak energy for \gls{spect}). For a given line of response (\glsentryshort{pet}) or collimator ray (\glsentryshort{spect}) indexed by $i$, the corresponding attenuation factor is then modelled as
 \begin{equation}
     a_i(E)
     \;=\;
-    \exp\!\left(-\int_{\mathrm{\gls{lor}}_i} \mu(\mathbf{x},E)\,\mathrm{d}s\right)
+    \exp\!\left(-\int_{\text{\glsentryshort{lor}}_i} \mu(\mathbf{x},E)\,\mathrm{d}s\right)
     \;\approx\;
     \exp\!\left(-\sum_{j=1}^{J} l_{ij}\,\mu_j(E)\right),
 \end{equation}
-where $\mu_j(E)$ denotes the attenuation coefficient in voxel $j$ and $l_{ij}\ge 0$ is the intersection length of $\mathrm{\gls{lor}}_i$ with voxel $j$. This is incorporated either directly into the system matrix (as part of $A_{\mathrm{geom,att}}$) or applied as a multiplicative correction in projection space ($A_{att})$. In \gls{pet}, this typically involves mapping \gls{ct}-derived attenuation from effective X-ray energies to 511~keV. Misregistration (e.g.\ respiratory motion), metal artefacts, and beam-hardening residuals can all propagate into \gls{ct}AC and bias quantitative \gls{pet}/\gls{spect} activity estimates \cite{singh_attenuation_2007, patton_spectct_2008}.
+where $\mu_j(E)$ denotes the attenuation coefficient in voxel $j$ and $l_{ij}\ge 0$ is the intersection length of $\text{\glsentryshort{lor}}_i$ with voxel $j$. This is incorporated either directly into the system matrix (as part of $A_{\mathrm{geom,att}}$) or applied as a multiplicative correction in projection space ($A_{\mathrm{att}}$). In \gls{pet}, this typically involves mapping \gls{ct}-derived attenuation from effective X-ray energies to 511~keV. Misregistration (e.g.\ respiratory motion), metal artefacts, and beam-hardening residuals can all propagate into \glsentryshort{ctac} and bias quantitative \gls{pet}/\gls{spect} activity estimates \cite{singh_attenuation_2007, patton_spectct_2008}.
 
 
 \printbibliography[heading=subbibliography,title={References}]

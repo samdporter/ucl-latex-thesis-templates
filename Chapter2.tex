@@ -91,51 +91,51 @@ The choice of $\mathcal{R}(x)$ determines the texture and quantitative character
 \subsection{Image-based Regularisation}
 One of the simplest forms of regularisation is Tikhonov regularisation, which imposes an $\ell_2$-norm penalty on local voxel-wise differences. This yields the quadratic prior
 \begin{equation}
-    \mathcal{R}_{\text{Quad}}(x)
+    \mathcal{R}_{\mathrm{Quad}}(x)
     = \sum_{j=1}^J \sum_{k \in \mathcal{N}_j} w_{jk}\, (x_j - x_k)^2,
 \end{equation}
 where $\mathcal{N}_j$ denotes a local neighbourhood of voxel $j$ (e.g.\ 6, 18, or 26-connected in 3D) and $w_{jk}\ge 0$ are weights (often distance-based and symmetric). While strictly convex and computationally efficient, the quadratic penalty strongly discourages large local differences, which tends to oversmooth edges and suppress high-contrast structures \cite{geman_stochastic_1984}.
 
-To better preserve edges, \gls{tv} \cite{rudin_nonlinear_1992} replaces the squared penalty with an $\ell_1$-type penalty on local differences. A neighbourhood-difference form that makes the connection to $\mathcal{R}_{\text{Quad}}$ explicit is
+To better preserve edges, \gls{tv} \cite{rudin_nonlinear_1992} replaces the squared penalty with an $\ell_1$-type penalty on local differences. A neighbourhood-difference form that makes the connection to $\mathcal{R}_{\mathrm{Quad}}$ explicit is
 \begin{equation}
-    \mathcal{R}_{\text{TV}}(x)
+    \mathcal{R}_{\mathrm{TV}}(x)
     = \sum_{j=1}^J \sum_{k \in \mathcal{N}_j} w_{jk}\, |x_j - x_k|.
 \end{equation}
-Relative to $\mathcal{R}_{\text{Quad}}$, the linear growth of $|x_j-x_k|$ reduces the marginal cost of large voxel-wise jumps in intensity, thereby promoting piecewise-constant reconstructions with sharper edges.
+Relative to $\mathcal{R}_{\mathrm{Quad}}$, the linear growth of $|x_j-x_k|$ reduces the marginal cost of large voxel-wise jumps in intensity, thereby promoting piecewise-constant reconstructions with sharper edges.
 
-In much of the imaging literature, \gls{tv} is instead written in terms of a discrete gradient operator. Defining $(D x)_j \in \mathbb{R}^d$ to collect finite differences at voxel $j$ along the $D$ coordinate directions, a common choice on a regular grid is
+In much of the imaging literature, \gls{tv} is instead written in terms of a discrete gradient operator. Defining $(D x)_j \in \mathbb{R}^d$ to collect finite differences at voxel $j$ along the $d$ coordinate directions, a common choice on a regular grid is
 % Replace your Eq.~\eqref{eq:finite_difference} block with:
 \begin{equation}
-    \big((D x)_j\big)^{(l)}
-    = \frac{x_{j+\delta_l} - x_{j}}{\Delta_{l}},
+    \big((D x)_j\big)^{(\ell)}
+    = \frac{x_{j+\delta_\ell} - x_{j}}{\Delta_{\ell}},
     \qquad \ell=1,\dots,d,
     \label{eq:finite_difference}
 \end{equation}
-where $\Delta_l$ denotes the Euclidean distance between voxels $j+\delta_l$ and $j$. The discrete TV functional is then
+where $\Delta_\ell$ denotes the Euclidean distance between voxels $j+\delta_\ell$ and $j$. The discrete TV functional is then
 \begin{equation}
-    \mathcal{R}_{\text{TV}}(x)
+    \mathcal{R}_{\mathrm{TV}}(x)
     = \sum_{j=1}^J |(D x)_j|,
 \end{equation}
 with an isotropic alternative, more common in emission tomography \cite{jonsson_total_1998, panin_total_1999},
-\begin{equation}
-        \mathcal{R}_{\text{TV}}(x)
+\begin{equation}\label{eq:tv}
+        \mathcal{R}_{\mathrm{TV}}(x)
     = \sum_{j=1}^J \|(D x)_j\|_2.
 \end{equation}
 
 For optimisation, it is common to use a smooth approximation to avoid nondifferentiability at zero, for example
 \begin{equation}
-    \tilde{\mathcal{R}}_{\text{TV}}(x)
+    \tilde{\mathcal{R}}_{\mathrm{TV}}(x)
     = \sum_{j=1}^J \sqrt{\|(D x)_j\|_2^2 + \epsilon^2},
     \qquad \epsilon>0.
 \end{equation}
 
 In clinical practice, adaptable edge-preserving priors are often preferred. The \gls{rdp} \cite{nuyts_concave_2002}, the core component of the GE ``Q.Clear'' algorithm, modifies the penalty to depend on the absolute intensity sums, penalising relative differences, as opposed to absolute ones.
 \begin{equation}
-    \mathcal{R}_{\text{\gls{rdp}}}(x)
+    \mathcal{R}_{\mathrm{RDP}}(x)
     = \sum_{j=1}^J \sum_{k \in \mathcal{N}_j} w_{jk}
     \frac{(x_j-x_k)^2}{(x_j+x_k) + \gamma|x_j-x_k|},
 \end{equation}
-with $\gamma$ controlling the amount of edge preservation. Note that if $(x_j+x_k)\gg \gamma|x_j-x_k|$ then $\mathcal R_{\mathrm{\gls{rdp}}}$ behaves like a relative quadratic prior,
+with $\gamma$ controlling the amount of edge preservation. Note that if $(x_j+x_k)\gg \gamma|x_j-x_k|$ then $\mathcal R_{\mathrm{RDP}}$ behaves like a relative quadratic prior,
 whereas if $\gamma|x_j-x_k|\gg (x_j+x_k)$ it behaves like an anisotropic \gls{tv} penalty (up to the factor $1/\gamma$).
 
 \subsection{Anatomically Guided Regularisation}
@@ -147,14 +147,14 @@ Geometric Alignment methods assume that if an edge exists in the emission image,
 \end{equation}
 and sets $\mathcal{B}_j(u)$ to be the indices of the $B$ smallest values of $d_{jk}(u)$. Regularisation is then applied only over this anatomically consistent subset, for example via a quadratic penalty
 \begin{equation}
-    \mathcal{R}_{\text{Bow}}(x;u)
+    \mathcal{R}_{\mathrm{Bow}}(x;u)
     = \sum_{j=1}^J \sum_{k\in \mathcal{B}_j(u)} w_{jk}\,(x_j-x_k)^2,
 \end{equation}
 (or an alternative edge-preserving potential). By restricting the penalty to neighbours that are locally homogeneous in $u$, the prior encourages smoothing within anatomical regions while reducing smoothing across anatomical edges, thereby allowing sharp boundaries to form in $x$ when they are supported by the guidance image.
 
 An even more geometric framework is \gls{pls} \cite{ehrhardt_vector-valued_2014}. These methods encourage structural consistency by enforcing the gradient vectors of the emission image and the guidance image to be aligned, i.e.\ $D x_j \parallel D u_j$. A common formulation (often termed \gls{pls}1) penalises the magnitude of the the component of $D x_j$ orthogonal to $D u_j$, which is proportional to the sine of the enclosed angle $\theta_j$:
 \begin{equation}
-    R_{\text{PLS1}}(x,u)
+    R_{\mathrm{PLS1}}(x,u)
     = \sum_{j=1}^J \|D x_j\|_2\,\|D u_j\|_2\,|\sin\theta_j|.
 \end{equation}
 This term vanishes when $D x_j$ and $D u_j$ are parallel (or when either gradient is zero), and increases with the component of $D x_j$ orthogonal to $D u_j$. While numerically stable, \gls{pls}1 scales with $\|D u_j\|_2$ and therefore inherits the spatially varying gradient magnitude of the anatomical image, which can lead to over-weighting at strong anatomical edges and under-weighting in low-contrast regions.
@@ -170,10 +170,10 @@ where $\eta>0$ is a small stabilisation parameter that prevents division by zero
 \end{equation}
 where $I$ is the $d\times d$ identity matrix and $\gamma_j\in[0,1]$ controls the strength of directional guidance. The resulting \gls{dtv} prior is
 \begin{equation}\label{eq:dtv_defn}
-    R_{\text{dTV}}(x;u)
+    R_{\mathrm{dTV}}(x;u)
     = \sum_{j=1}^J \| \Pi_j D x_j \|_2,
 \end{equation}
-which penalises predominantly the gradient component orthogonal to the anatomical level-set direction, thereby encouraging edges in $x$ to align with edges in $u$. In regions where $u$ is locally flat (so $\xi_j \approx 0$), $P_j \approx I$ and \gls{dtv} reduces to standard isotropic \gls{tv}.
+which penalises predominantly the gradient component orthogonal to the anatomical level-set direction, thereby encouraging edges in $x$ to align with edges in $u$. In regions where $u$ is locally flat (so $\xi_j \approx 0$), $\Pi_j \approx I$ and \gls{dtv} reduces to standard isotropic \gls{tv}.
 
 Regularisation strategies also exist outside the standard Bayesian (penalised-likelihood) framework. A prominent example is the \gls{kem}, in which prior information is encoded directly in the image representation rather than through an explicit penalty term. Following Wang and Qi \cite{wang_pet_2015} and its anatomically-aided extension \cite{hutchcroft_anatomically-aided_2016}, the emission image is modelled as a linear combination of kernel-derived basis functions:
 \begin{equation}
@@ -210,25 +210,25 @@ Kernel approaches extend naturally to multiple guidance sources by enlarging the
 
 If multiple modalities are available that depict the same underlying anatomy or functional distribution, it can be advantageous to reconstruct them synergistically, allowing information to be shared across modalities throughout the reconstruction process. A prerequisite for such coupling is that the images are defined in a common spatial coordinate system. In practice, this requires geometric registration between modalities and resampling onto a common reconstruction grid, so that voxel index $n$ refers to the same physical location across all channels.
 
-When the native modalities are acquired on different grids or coordinate frames, we introduce spatial transforms $W_m$ (registration + resampling operators) and define the co-registered images on a shared grid $W_m: \mathbb{R}_+^{J_m} \rightarrow \mathbb{R}^N_+$
+When the native modalities are acquired on different grids or coordinate frames, we introduce spatial transforms $W_m$ (registration + resampling operators) and define the co-registered images on a shared grid, with $W_m: \mathbb{R}_+^{J_m} \rightarrow \mathbb{R}_+^N$:
 \begin{equation}
-    z_m \coloneqq W_m x_m \in \mathbb{R}^{N}, \qquad m=1,\dots,M,
+    z_m \coloneqq W_m x_m \in \mathbb{R}_+^{N}, \qquad m=1,\dots,M,
 \end{equation}
-and collect them as columns in
+and collect them as the modality tuple
 \begin{equation}
-    \mathbf{z} \coloneqq [\,z_1\mid z_2 \mid \cdots \mid z_M\,] \in \mathbb{R}^{N\times M}.
+    \bm{z} \coloneqq (z_1,\dots,z_M).
 \end{equation}
-Coupling priors are then naturally expressed in terms of $\mathbf{z}$, since neighbourhoods, gradients, and voxel-wise comparisons are only meaningful when images are spatially aligned.
+Coupling priors are then naturally expressed in terms of $\bm{z}$, since neighbourhoods, gradients, and voxel-wise comparisons are only meaningful when images are spatially aligned.
 
 In the Bayesian  setting, a generic multi-modality reconstruction is given by
 \begin{equation}
-    \hat{\mathbf{x}} \in \arg\min_{\mathbf{x}\in\mathcal{C}}
+    \hat{\bm{x}} \in \arg\min_{\bm{x}\in\mathcal{C}}
     \left\{
         \sum_{m=1}^M \mathcal{L}_m(x_m)
-        + \beta\,\mathcal{R}(\mathbf{z})
+        + \beta\,\mathcal{R}(\bm{z})
     \right\},
 \end{equation}
-where $\mathbf{x}\coloneqq(x_1,\dots,x_M)$, $\mathbf{z}=\mathbf{W}\mathbf{x}$ with $\mathbf{W}\coloneqq\mathrm{diag}(W_1,\dots,W_M)$, and $\mathcal{R}(\mathbf{z})$ promotes cross-modality consistency (e.g.\ co-located edges or shared support) in the co-registered domain.
+where $\bm{x}\coloneqq(x_1,\dots,x_M)$, $\bm{z}=\bm{W}\bm{x}$ with $\bm{W}\coloneqq\mathrm{diag}(W_1,\dots,W_M)$, and $\mathcal{R}(\bm{z})$ promotes cross-modality consistency (e.g.\ co-located edges or shared support) in the co-registered domain.
 
 A practical way to exploit multiple modalities without solving a fully joint inverse problem is sequential reconstruction, in which one modality is first reconstructed, and the resulting image is then used as side-information to guide the reconstruction of another modality. In the Bayesian regime, this is
 \begin{equation}
@@ -244,15 +244,15 @@ Deidda \emph{et al.} have previously investigated a similar method for \isotope[
         \mathcal{L}_m\!\left(W_{m\leftarrow(m-1)}\,K_m\alpha_m\right)
     \right\}.
 \end{equation}
-The paper reports that this sequential design is particularly beneficial for low-count \gls{y90} \gls{pet}: \gls{spect} provides complementary denoising/uptake support within \gls{pet}--\gls{spect}-consistent regions, while 'gls{CT} contributes primarily through resolution/edge information injected at the \gls{spect} stage, and the \gls{pet} image-update features reduce suppression of \gls{pet}-unique structures and mitigate inter-modality mismatch.
+The paper reports that this sequential design is particularly beneficial for low-count \gls{y90} \gls{pet}: \gls{spect} provides complementary denoising/uptake support within \gls{pet}--\gls{spect}-consistent regions, while \glsentryshort{ct} contributes primarily through resolution/edge information injected at the \gls{spect} stage, and the \gls{pet} image-update features reduce suppression of \gls{pet}-unique structures and mitigate inter-modality mismatch.
 
 Sequential guidance is limited by one-way dependency: errors in $u$ may propagate directly to $x$ and the shared information may not be fully utilised. Truly synergistic reconstruction estimates both images simultaneously, allowing information to flow bi-directionally. Perhaps the most obvious way to extend single modality regularisation to achieve a synergistic regulariser is \gls{jtv} \cite{blomgren_color_1998}, a simple extension of TV which sums gradient magnitudes:
 \begin{equation}
-    \mathcal{R}_{\text{\gls{jtv}}}(\mathbf{z}) = \sum_{n=1}^N \sqrt{ \|D z_{1,n}\|^2 + \|D z_{2,n}\|^2 + \dots +\|D z_{M,n}\|^2 }.
+    \mathcal{R}_{\mathrm{JTV}}(\bm{z}) = \sum_{n=1}^N \sqrt{ \|D z_{1,n}\|^2 + \|D z_{2,n}\|^2 + \dots +\|D z_{M,n}\|^2 }.
 \end{equation}
 This encourages joint sparsity, encouraging co-located edges. A convenient way to formalise multi-modality edge co-localisation is to view the set of images as a vector-valued field.  For each voxel $n$, the voxel-wise Jacobian is defined by stacking image gradients (Equation \ref{eq:finite_difference}) in columns:
 \begin{equation}\label{eq:jacobian}
-\mathcal{G}_n(\mathbf{z})
+\mathcal{G}_n(\bm{z})
 \;\coloneqq\;
 \begin{bmatrix}
 D z_{1,n} & D z_{2,n} & \cdots & D z_{M,n}
@@ -261,7 +261,7 @@ D z_{1,n} & D z_{2,n} & \cdots & D z_{M,n}
 \end{equation}
 When viewed in this way, \gls{jtv} can be redefined as a Schatten $2$-norm (also known as a Frobenius norm) applied to this jacobian \cite{holt_total_2014},
 \begin{equation}\label{eq:jtv}
-    \mathcal{R}_{\text{\gls{jtv}}}(\mathbf{z}) = \sum_{n=1}^N  \|\mathcal{G}_n(\mathbf{z})\|_F
+    \mathcal{R}_{\mathrm{JTV}}(\bm{z}) = \sum_{n=1}^N  \|\mathcal{G}_n(\bm{z})\|_F
 \end{equation}
 where the Schatten $p$-norm is defined as
 \begin{equation}\label{eq:schatten}
@@ -272,8 +272,8 @@ for singular values $\sigma_\ell(Y)$ of a rank-$R$ matrix $Y$. Note that $R=\min
     \|Y\|_* = \sum_{r=1}^{R}\sigma_r(Y).
 \end{equation}
 The nuclear norm is the convex envelope of the Rank function. Applied to the voxel-wise jacobians, this promotes singular value sparsity and has the effect of either driving functionally misaligned gradients to zero or parallel/anti-parallel, promoting edge-alignment. Applying this nuclear norm to the voxel-wise jacobians is known as \gls{tnv} \cite{holt_total_2014, rigie_joint_2015}. 
-\begin{equation}\label{eqtnv}
-    \mathcal{R}_{\text{TNV}}(\mathbf{z}) = \sum_{n=1}^N  \|\mathcal{G}_n(\mathbf{z})\|_*
+\begin{equation}\label{eq:tnv}
+    \mathcal{R}_{\mathrm{TNV}}(\bm{z}) = \sum_{n=1}^N  \|\mathcal{G}_n(\bm{z})\|_*
 \end{equation}
 It has been applied to synergistic \gls{pet}/MR reconstruction through its extended variant, total generalised nuclear variation \cite{knoll_joint_2017}.
 
@@ -290,7 +290,7 @@ Total Nuclear variation will form the basis for the synergistic prior demonstrat
 
 \section{Optimisation Algorithms}\label{sec:optimisation}
 
-The reconstruction of \gls{map} (and, even more so, synergistic images) requires more nuanced algorithms. MLEM can be relatively simply extended for penalised reconstruction via Green's one-step-late-method \cite{green_bayesian_1990}. The one-step-late method constructs an EM-type multiplicative update by evaluating the penalty derivative  at the current iterate $x^{(n)}$ rather than at $x^{(n+1)}$. The resulting OSL-\gls{map} update is
+The reconstruction of \gls{map} (and, even more so, synergistic images) requires more nuanced algorithms. \gls{mlem} can be relatively simply extended for penalised reconstruction via Green's one-step-late-method \cite{green_bayesian_1990}. The one-step-late method constructs an EM-type multiplicative update by evaluating the penalty derivative  at the current iterate $x^{(n)}$ rather than at $x^{(n+1)}$. The resulting OSL-\gls{map} update is
 \begin{equation}
     x^{(n+1)}_j
     =
@@ -301,9 +301,9 @@ The reconstruction of \gls{map} (and, even more so, synergistic images) requires
     \frac{y_i}{\bar y_i\!\left(x^{(n)}\right)},
     \qquad j=1,\dots,J,
 \end{equation}
-The term $\left.\frac{\partial R}{\partial x_j}\right|_{x^{(n)}}$ acts as an iteration-dependent modification of the MLEM denominator, yielding an algorithm that is typically simple to implement for a broad class of differentiable priors. Unfortunately, the one-step-late method is not convergent and special attention must be paid to initialisation conditions for a reasonable reconstruction \cite{zeng_greens_2019}.
+The term $\left.\frac{\partial R}{\partial x_j}\right|_{x^{(n)}}$ acts as an iteration-dependent modification of the \glsentryshort{mlem} denominator, yielding an algorithm that is typically simple to implement for a broad class of differentiable priors. Unfortunately, the one-step-late method is not convergent and special attention must be paid to initialisation conditions for a reasonable reconstruction \cite{zeng_greens_2019}.
 
-Although too fragile for low count / synergistic reconstruction, the one-step-late algorithm has some useful takeaways. Primarily the joint update of data and prior functions with some kind of voxel-wise scaling. This is otherwise known as a preconditioner. MLEM has the multiplicative update equation for iteration $k$:
+Although too fragile for low count / synergistic reconstruction, the one-step-late algorithm has some useful takeaways. Primarily the joint update of data and prior functions with some kind of voxel-wise scaling. This is otherwise known as a preconditioner. \glsentryshort{mlem} has the multiplicative update equation for iteration $k$:
 \begin{equation}
     x^{(k+1)}
     =
@@ -339,7 +339,7 @@ This can be rearranged to form the additive update equation
     \operatorname{diag}\!\left(\frac{x^{(k)}}{A^{\mathsf T}\mathbf{1}_I}\right)
         D \mathcal{L}(x^{(k)}).
 \end{align}
-where $\mathbf{1}_J\in\mathbb{R}^{J}$ is an all-ones vector. This form highlights that the MLEM update can be interpreted as a preconditioned gradient descent algorithm with preconditioner $P_{EM}^{(k)}=\operatorname{diag}\!\left(\frac{x^{(k)}}{A^{\mathsf T}\mathbf{1}_I}\right)$, i.e.
+where $\mathbf{1}_J\in\mathbb{R}^{J}$ is an all-ones vector. This form highlights that the \glsentryshort{mlem} update can be interpreted as a preconditioned gradient descent algorithm with preconditioner $P_{EM}^{(k)}=\operatorname{diag}\!\left(\frac{x^{(k)}}{A^{\mathsf T}\mathbf{1}_I}\right)$, i.e.
 \begin{align}
     x^{(k+1)} = x^{(k)} - \varsigma P_{EM}^{(k)} D_x \mathcal{L}(x^{(k)}),
 \end{align}
@@ -385,7 +385,7 @@ a generic subset (stochastic / incremental) scaled-gradient update takes the for
     =
     x^{(k)} - \varsigma\,\mathbf{P}^{(k)}\,D_x \mathcal{L}_{s}\!\left(x^{(k)}\right).
 \end{equation}
-If multiple subsets are used per iteration, $D_x \mathcal{L}_{s}$ is replaced by an average (or sum) over the chosen subset indices. The most common algorithm found in clinical systems is the ordered subsets expectation maximisation (OSEM) algorithm. For subset $s$ at iteration $k$, a standard OSEM update can be written as
+If multiple subsets are used per iteration, $D_x \mathcal{L}_{s}$ is replaced by an average (or sum) over the chosen subset indices. The most common algorithm found in clinical systems is the \gls{osem} algorithm. For subset $s$ at iteration $k$, a standard \glsentryshort{osem} update can be written as
 \begin{equation}
 x^{(k+1)}
 =
@@ -394,7 +394,7 @@ A_s^{\mathsf T}\!\left(\frac{y_s}{\bar{y}_s\!\left(x^{(k)}\right)}\right),
 \end{equation}
 where $A_s$ denotes the system matrix and data restricted to subset $s$.
 
-OSEM typically shows a marked improvement in early-stage convergence by providing a cheaper, higher-variance approximation of the full-data EM update. However, because the subset gradient is only an approximation to the full gradient, OSEM is not, in general, a convergent algorithm for the maximum-likelihood problem: as the iterates approach a solution, the stochasticity introduced by cycling through subsets can dominate, leading to limit-cycle behaviour in which successive subset updates fail to settle to a fixed point (Figure~\ref{fig:osem_limit_cycle}).
+\glsentryshort{osem} typically shows a marked improvement in early-stage convergence by providing a cheaper, higher-variance approximation of the full-data \glsentryshort{em} update. However, because the subset gradient is only an approximation to the full gradient, \glsentryshort{osem} is not, in general, a convergent algorithm for the maximum-likelihood problem: as the iterates approach a solution, the stochasticity introduced by cycling through subsets can dominate, leading to limit-cycle behaviour in which successive subset updates fail to settle to a fixed point (Figure~\ref{fig:osem_limit_cycle}).
 
 \begin{figure}[htbp]
     \centering
@@ -403,7 +403,7 @@ OSEM typically shows a marked improvement in early-stage convergence by providin
     \label{fig:osem_limit_cycle}
 \end{figure}
 
-We seek a fast and convergent algorithm for \gls{map} reconstruction. A widely used approach is the (modified) block-sequential regularised expectation maximisation (BSREM) framework \cite{ahn_globally_2002}, which combines EM-type preconditioning and subset acceleration with a relaxation (diminishing step-size) to recover convergence while incorporating an explicit penalty. In a scaled-gradient form, a generic BSREM-type update can be written as
+We seek a fast and convergent algorithm for \gls{map} reconstruction. A widely used approach is the (modified) \gls{bsrem} framework \cite{ahn_globally_2002}, which combines \glsentryshort{em}-type preconditioning and subset acceleration with a relaxation (diminishing step-size) to recover convergence while incorporating an explicit penalty. In a scaled-gradient form, a generic \glsentryshort{bsrem}-type update can be written as
 \begin{equation}
     x^{(k+1)}
     =
@@ -488,21 +488,21 @@ A practical limitation of vanilla L-BFGS-B in emission tomography is its sensiti
 
 \section{Summary and Research Gap}
 
-This chapter reviewed the statistical and algorithmic foundations of emission tomography reconstruction under a Poisson measurement model. Starting from maximum-likelihood estimation, we motivated penalised-likelihood (\gls{map}) formulations as a principled alternative to early stopping, particularly in low-count and quantitatively demanding settings. We then surveyed regularisation strategies ranging from quadratic smoothness and total variation to clinically deployed edge-preserving models such as the relative difference prior, before focusing on anatomically guided approaches (e.g.\ Bowsher, PLS/DTV) and kernelised representations that incorporate structural side-information through the image model.
+This chapter reviewed the statistical and algorithmic foundations of emission tomography reconstruction under a Poisson measurement model. Starting from maximum-likelihood estimation, we motivated penalised-likelihood (\gls{map}) formulations as a principled alternative to early stopping, particularly in low-count and quantitatively demanding settings. We then surveyed regularisation strategies ranging from quadratic smoothness and total variation to clinically deployed edge-preserving models such as the relative difference prior, before focusing on anatomically guided approaches (e.g.\ Bowsher, \glsentryshort{pls}/\glsentryshort{dtv}) and kernelised representations that incorporate structural side-information through the image model.
 
-A central theme in modern \gls{pet}/\gls{spect} practice is the availability of multiple co-registered modalities. While sequential (one-way) guidance can be effective, it is inherently limited by asymmetric information flow and by the risk of propagating errors or mismatches from the guidance image into the emission reconstruction. This motivates synergistic reconstruction, in which modalities are coupled through joint priors. In this setting, Jacobian-based penalties such as joint TV and total nuclear variation provide a natural mechanism to promote co-located, directionally consistent edges across modalities while allowing modality-specific contrast.
+A central theme in modern \gls{pet}/\gls{spect} practice is the availability of multiple co-registered modalities. While sequential (one-way) guidance can be effective, it is inherently limited by asymmetric information flow and by the risk of propagating errors or mismatches from the guidance image into the emission reconstruction. This motivates synergistic reconstruction, in which modalities are coupled through joint priors. In this setting, Jacobian-based penalties such as \glsentryshort{jtv} and \glsentryshort{tnv} provide a natural mechanism to promote co-located, directionally consistent edges across modalities while allowing modality-specific contrast.
 
 From an optimisation perspective, clinical subset-accelerated EM methods achieve fast early progress but can exhibit limit-cycle behaviour and lack convergence guarantees in penalised problems without relaxation. Convergent frameworks such as BSREM recover stability via diminishing step sizes, but may converge slowly when the curvature induced by strong, spatially varying priors dominates the data term. Variance-reduced subset methods (e.g.\ \gls{saga}/\gls{svrg}) offer a promising compromise, retaining low per-iteration cost while suppressing subset-induced stochasticity. However, their practical performance depends critically on effective preconditioning.
 
 \paragraph{Research gap.}
 Despite substantial progress in both synergistic regularisation and variance-reduced optimisation, two gaps remain directly relevant to quantitative \isotope[90]{Y} imaging:
 \begin{enumerate}
-    \item \textbf{Synergistic, anatomy-informed coupling:} existing Jacobian-based priors (e.g.\ \gls{tnv}) are typically formulated to promote cross-modality edge consistency, but are not routinely combined with explicit directional guidance derived from high-resolution CT edges in a way that remains robust in low-count regimes.
+    \item \textbf{Synergistic, anatomy-informed coupling:} existing Jacobian-based priors (e.g.\ \gls{tnv}) are typically formulated to promote cross-modality edge consistency, but are not routinely combined with explicit directional guidance derived from high-resolution \glsentryshort{ct} edges in a way that remains robust in low-count regimes.
     \item \textbf{Synergy-aware optimisation:} variance-reduced subset algorithms and prior-aware diagonal preconditioners have mainly been studied in single-modality \gls{pet} with clinically popular priors (e.g.\ \gls{rdp}). Their extension to synergistic \gls{map} reconstruction, where cross-modality coupling induces strong and spatially heterogeneous curvature, is comparatively underexplored.
 \end{enumerate}
 
 \paragraph{Thesis direction.}
-Motivated by these gaps, the remainder of this thesis develops a directionally guided, differentiable total nuclear variation prior that uses CT-derived edge information while coupling functional modalities through voxel-wise Jacobians. We then design and evaluate a variance-reduced subset optimisation scheme (\gls{svrg}-type) equipped with a synergy-aware preconditioner that accounts for both data fidelity and coupled prior curvature, targeting fast, stable convergence in low-count \isotope[90]{Y} reconstruction.
+Motivated by these gaps, the remainder of this thesis develops a directionally guided, differentiable total nuclear variation prior that uses \glsentryshort{ct}-derived edge information while coupling functional modalities through voxel-wise Jacobians. We then design and evaluate a variance-reduced subset optimisation scheme (\gls{svrg}-type) equipped with a synergy-aware preconditioner that accounts for both data fidelity and coupled prior curvature, targeting fast, stable convergence in low-count \isotope[90]{Y} reconstruction.
 
 \printbibliography[heading=subbibliography,title={References}]
 \end{refsection}

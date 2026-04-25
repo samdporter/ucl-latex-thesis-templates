@@ -14,7 +14,7 @@
 \makedeclaration
 
 \begin{abstract} % 300 word limit
-Selective Internal Radiotherapy (SIRT) uses Yttrium-90 ($^{90}Y$) microspheres to treat unresectable liver tumours. Accurate post-treatment imaging is required to verify microsphere distribution and perform dosimetric evaluations. However, imaging with $^{90}Y$ presents unique challenges. Bremsstrahlung SPECT offers high count statistics but suffers from poor spatial resolution and difficulties in correcting for scatter and other additive terms. $^{90}Y$ PET offers superior resolution, but suffers from high noise due to the extremely low internal pair branching ratio ($\sim 0.0003\%$). Traditional reconstruction fails to exploit complementary information in these paired datasets.
+Selective Internal Radiotherapy (SIRT) uses Yttrium-90 ($^{90}Y$) microspheres to treat unresectable liver tumours. Accurate post-treatment imaging is required to verify microsphere distribution and perform dosimetric evaluations. However, imaging with $^{90}Y$ presents unique challenges. Bremsstrahlung SPECT offers high count statistics but suffers from poor spatial resolution and difficulties in correcting for scatter and other additive terms. $^{90}Y$ PET offers superior resolution, but suffers from high noise due to the extremely low internal pair branching ratio ($\sim 0.003\%$). Traditional reconstruction fails to exploit complementary information in these paired datasets.
 
 This thesis proposes a synergistic framework that uses anatomically guided joint variational regularisation to exploit shared underlying structure. We introduce the Directional Total Nuclear Variation Prior, which promotes edge alignment between PET and SPECT without enforcing intensity correlation, while incorporating CT edge-guidance and suppressing unwanted noise.
 
@@ -78,6 +78,8 @@ Most of all, I want to express my deep gratitude to my newly minted wife, Kate. 
 
 \cleardoublepage
 
+\glsadd{sym:x}
+\glsadd{sym:y}
 \printglossary[type=\acronymtype,title={List of Abbreviations}]
 \printglossary[type=symbols,title={Notation}]
 

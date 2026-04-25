@@ -28,7 +28,7 @@ As introduced in Section~\ref{sec:y90}, unlike diagnostic radionuclides such as 
 
 To overcome these limitations, optimisation must occur at both the acquisition and reconstruction stages. While hardware choices, such as the preference for Medium Energy General Purpose (MEGP) or High Energy General Purpose (HEGP) collimators, can mitigate septal penetration \cite{taherparvar_evaluation_2019, kim_effects_2019, ince_collimator_2021}, substantial gains in quantitative accuracy are achieved through advanced computational modeling \cite{dewaraja_improved_2017}.
 
-Monte Carlo (MC) simulation codes, such as SIMIND \cite{ljungberg_-_2012} and GATE (Geant4 Application for Tomographic Emission) \cite{jan_gate_2004, rault_fast_2010}, play a pivotal role in this optimisation. These tools allow for the generation of accurate scatter kernels, as well as other effects that are specific to the continuous \isotope[90]{Y} spectrum. Some methods have integrated modelling of the spatial offset between the $\beta$-decay location and the point of Bremsstrahlung emission—into Monte Carlo forward projectors to refine the system matrix \cite{rong_development_2012}.
+\gls{mc} simulation codes, such as SIMIND \cite{ljungberg_-_2012} and \gls{gate} \cite{jan_gate_2004, rault_fast_2010}, play a pivotal role in this optimisation. These tools allow for the generation of accurate scatter kernels, as well as other effects that are specific to the continuous \isotope[90]{Y} spectrum. Some methods have integrated modelling of the spatial offset between the $\beta$-decay location and the point of Bremsstrahlung emission into \glsentryshort{mc} forward projectors to refine the system matrix \cite{rong_development_2012}.
 
 Furthermore, novel reconstruction techniques such as Joint Spectral Reconstruction (JSR) have been proposed to exploit the information contained across multiple energy windows, rather than relying on a single wide integration window \cite{chun_algorithms_2019}. By combining multi-band acquisition with accurate Monte Carlo-based forward modeling, it is possible to improve the precision of activity estimation and contrast recovery in post-SIRT dosimetry \textcolor{red}{Can I fit this in somehow? Probably not... No time}.
 
@@ -42,17 +42,17 @@ A key difficulty in quantitative \isotope[90]{Y} Bremsstrahlung SPECT is that a 
 
 \subsection{Statistical model with an additive background term}
 
-Let $y \in \mathbb{N}^{M}$ denote the measured projection data (all bins across all views) and let $x \in \mathbb{R}_{+}^{N}$ denote the unknown activity image. We use the standard Poisson model
+Let $y \in \mathbb{N}^{I}$ denote the measured projection data (all bins across all views) and let $x \in \mathbb{R}_{+}^{J}$ denote the unknown activity image. We use the standard Poisson model
 \begin{equation}
-y_i \sim \mathrm{Poisson}\!\left( (A x)_i + b_i \right), \qquad i = 1,\dots,M,
+y_i \sim \mathrm{Poisson}\!\left( (A x)_i + b_i \right), \qquad i = 1,\dots,I,
 \end{equation}
-where $A$ is the system matrix modelling the (primary) detection process (including attenuation and detector response as implemented in our reconstruction pipeline), and $b \in \mathbb{R}_{+}^{M}$ is an \emph{additive} component. In Bremsstrahlung SPECT, $b$ is typically dominated by Compton-scattered photons, with additional contributions possible from other backgrounds (e.g.\ stray radiation or modelling mismatch). The role of additive correction is therefore to provide an estimate of $b$ that is consistent with the acquisition protocol and reconstruction model.
+where $A$ is the system matrix modelling the (primary) detection process (including attenuation and detector response as implemented in our reconstruction pipeline), and $b \in \mathbb{R}_{+}^{I}$ is an \emph{additive} component. In Bremsstrahlung SPECT, $b$ is typically dominated by Compton-scattered photons, with additional contributions possible from other backgrounds (e.g.\ stray radiation or modelling mismatch). The role of additive correction is therefore to provide an estimate of $b$ that is consistent with the acquisition protocol and reconstruction model.
 
-Given a \emph{fixed} $b$, ordered-subsets expectation maximisation (OSEM) yields an approximate maximum-likelihood estimate of $x$ under this Poisson model. However, in \isotope[90]{Y} Bremsstrahlung imaging, $b$ is large and difficult to estimate from energy-window tricks, motivating model-based strategies.
+Given a \emph{fixed} $b$, \glsentryshort{osem} yields an approximate maximum-likelihood estimate of $x$ under this Poisson model. However, in \isotope[90]{Y} Bremsstrahlung imaging, $b$ is large and difficult to estimate from energy-window tricks, motivating model-based strategies.
 
 \subsection{Initial scatter estimate via a pre-trained deep network}
 
-To initialise $b$ we use a deep-learning scatter estimator that predicts scatter projections directly from the measured emission projections (and CT-derived attenuation information), following the general approach of training a convolutional neural network to regress Monte-Carlo-derived ``true'' scatter \cite{xiang_deep_2020}.
+To initialise $b$ we use a deep-learning scatter estimator that predicts scatter projections directly from the measured emission projections (and \glsentryshort{ct}-derived attenuation information), following the general approach of training a convolutional neural network to regress \glsentryshort{mc}-derived ``true'' scatter \cite{xiang_deep_2020}.
 
 In our case this initialisation is explicitly heuristic: the available pre-trained network was developed and trained under a different hardware/protocol configuration (scanner, collimation, energy windowing, and number of views) than the Siemens and Mediso datasets used in this thesis \cite{xiang_deep_2020}. In particular, the network was trained on data acquired on a Symbia Intevo SPECT/CT system with high-energy collimation and a 105--195~keV window with 80 projections, whereas our reconstructions were performed on Siemens or Mediso systems with different energy windows and either MEGP (Siemens) or MLEGP (Mediso) collimation. Despite this domain shift, we found that the predicted scatter term fits the measured data sufficiently well to provide a sensible starting point for subsequent model-based refinement (Figure \ref{fig:nema_scatter_est}). 
 
@@ -61,7 +61,7 @@ In our case this initialisation is explicitly heuristic: the available pre-train
 Starting from the deep-learning initialisation $b^{(0)}$, we then refine the additive term using an alternating procedure:
 \begin{enumerate}
     \item \textbf{Reconstruction step:} perform an OSEM update of $x$ using the current additive estimate $b^{(k)}$. We used 12 subsets and 5 epochs (total 60 subiterations)
-    \item \textbf{Regularisation of the intermediate image:} apply an isotropic Gaussian post-smoothing of 5~mm FWHM to the intermediate reconstruction (used only for the subsequent scatter simulation step).
+    \item \textbf{Regularisation of the intermediate image:} apply an isotropic Gaussian post-smoothing of 5~mm \gls{fwhm} to the intermediate reconstruction (used only for the subsequent scatter simulation step).
     \item \textbf{Scatter simulation step:} run a SIMIND-based Monte Carlo scatter simulation using the (smoothed) current activity estimate to produce a new scatter estimate $\widehat{b}^{(k+1)}$.
 \end{enumerate}
 We repeat this OSEM $\rightarrow$ SIMIND $\rightarrow$ OSEM$+$5~mm smoothing $\rightarrow \dots$ loop for 10 outer iterations. The 5~mm smoothing is used to suppress high-frequency noise that would otherwise be amplified by repeatedly re-simulating scatter from noisy intermediate reconstructions.
@@ -125,14 +125,14 @@ Overall, these offline/online and replacement/damping variants provide a practic
     \label{fig:gaussian_bremss_range}
 \end{figure}
 
-In \isotope[90]{Y} Bremsstrahlung SPECT, detected photons are not emitted at the \isotope[90]{Y} decay site: Bremsstrahlung photons are generated along the $\beta$-particle track, inducing an additional \emph{range blur} that is absent in photopeak imaging. Several Monte Carlo (MC) frameworks can model this effect using detailed, energy-dependent probability density functions (PDFs) for the displacement between the decay location and the photon emission location. However, in practice, most general-purpose reconstruction toolkits are not designed to ingest arbitrary, precomputed displacement PDFs within the forward projector.
+In \isotope[90]{Y} Bremsstrahlung SPECT, detected photons are not emitted at the \isotope[90]{Y} decay site: Bremsstrahlung photons are generated along the $\beta$-particle track, inducing an additional \emph{range blur} that is absent in photopeak imaging. Several \glsentryshort{mc} frameworks can model this effect using detailed, energy-dependent \glspl{pdf} for the displacement between the decay location and the photon emission location. However, in practice, most general-purpose reconstruction toolkits are not designed to ingest arbitrary, precomputed displacement \glspl{pdf} within the forward projector.
 
-Here we adopt a pragmatic approximation: for clinically relevant energy windows and in water-equivalent tissue, the marginal displacement distribution is observed to be close to Gaussian. We therefore model the Bremsstrahlung range blur as an \emph{isotropic image-space Gaussian} whose variance is selected to match MC-derived displacement statistics (Figure~\ref{fig:gaussian_bremss_range}). This is simple to implement (a single 3D Gaussian smoothing) and is compatible with standard projector architectures.
+Here we adopt a pragmatic approximation: for clinically relevant energy windows and in water-equivalent tissue, the marginal displacement distribution is observed to be close to Gaussian. We therefore model the Bremsstrahlung range blur as an \emph{isotropic image-space Gaussian} whose variance is selected to match \glsentryshort{mc}-derived displacement statistics (Figure~\ref{fig:gaussian_bremss_range}). This is simple to implement (a single 3D Gaussian smoothing) and is compatible with standard projector architectures.
 
 \subsection{Projector point-spread function}
 \label{subsec:projector_psf}
 
-We model the collimator--detector response (CDR) by an approximately Gaussian point-spread function (PSF) whose width increases with the source--collimator distance $h$ and depends on energy $E$. In the projector we represent the depth-dependent blur by a spatially variant isotropic Gaussian with standard deviation
+We model the collimator--detector response (CDR) by an approximately Gaussian \gls{psf} whose width increases with the source--collimator distance $h$ and depends on energy $E$. In the projector we represent the depth-dependent blur by a spatially variant isotropic Gaussian with standard deviation
 \begin{equation}
 \sigma_{\mathrm{lin}}(h;E) = c_0(E) + c_1(E)\, h.
 \label{eq:sigma_lin_def}
@@ -204,7 +204,7 @@ Let $\Delta$ denote the displacement between the \isotope[90]{Y} decay location 
 =\mathcal N\!\left(\mathbf r;\ \mathbf 0,\ \sigma_{\mathrm{brem}}^2(E)\,\mathbf I\right).
 \label{eq:brem}
 \end{equation}
-For each clinical energy window, $\sigma_{\mathrm{brem}}(E)$ is obtained from a coarse look-up table (LUT) by fitting a zero-mean Gaussian proxy to MC displacement curves for \isotope[90]{Y} Bremsstrahlung in water from GATE fast-simulation studies \cite{rault_fast_2010} (Figure~\ref{fig:gaussian_bremss_range}).
+For each clinical energy window, $\sigma_{\mathrm{brem}}(E)$ is obtained from a coarse \gls{lut} by fitting a zero-mean Gaussian proxy to \glsentryshort{mc} displacement curves for \isotope[90]{Y} Bremsstrahlung in water from \glsentryshort{gate} fast-simulation studies \cite{rault_fast_2010} (Figure~\ref{fig:gaussian_bremss_range}).
 
 \paragraph{Composite energy windows.}
 For a set of energy windows $\mathcal S$ combined into a single projection dataset, we collapse the corresponding Gaussian mixture by second-moment matching:
@@ -317,7 +317,7 @@ where $\Phi_{A_{\star}}(x)$ is the negative Poisson log-likelihood (up to consta
 \begin{equation}
 \Phi_{A_{\star}}(x)
 =
-\sum_{i=1}^{M}
+\sum_{i=1}^{I}
 \left[
 (A_{\star}x)_i + b_{E,i}
 -

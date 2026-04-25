@@ -8,13 +8,13 @@
 
 Chapter~\ref{chapter:reconstruction} established the penalised-likelihood (MAP) framework for emission tomography, reviewed representative priors (including anatomically guided and kernelised models), and motivated optimisation strategies that remain stable under regularisation. The core of this thesis concerns regularised and synergistic reconstruction under the full Poisson forward model $\bar y(x)=Ax+b$, where the ill-conditioning of $A$ and the low-count regime make both prior design, preconditioning and choice of optimisation algorithm critical.
 
-In this chapter we consider a deliberately simplified, image-domain inverse problem: post-reconstruction partial volume correction (PVC) via deconvolution with an estimated point spread function (PSF). Although this is not a substitute for incorporating resolution modelling within reconstruction, it provides a controlled sandbox in which the effects of anatomical guidance and regularisation can be studied without confounding factors such as subset noise, projector modelling error, and complex system geometry. In particular, the chapter serves two main purposes within the broader narrative:
+In this chapter we consider a deliberately simplified, image-domain inverse problem: post-reconstruction \gls{pvc} via deconvolution with an estimated \gls{psf}. Although this is not a substitute for incorporating resolution modelling within reconstruction, it provides a controlled sandbox in which the effects of anatomical guidance and regularisation can be studied without confounding factors such as subset noise, projector modelling error, and complex system geometry. In particular, the chapter serves two main purposes within the broader narrative:
 \begin{enumerate}
     \item it connects the priors reviewed in Chapter~\ref{chapter:reconstruction} (kernel methods, directional regularisation) to a tractable inverse problem where their qualitative behaviour is easily interpreted;
-    \item it provides a practical PVC baseline that is straightforward to deploy on retrospectively reconstructed images.
+    \item it provides a practical \glsentryshort{pvc} baseline that is straightforward to deploy on retrospectively reconstructed images.
 \end{enumerate}
 
-Richardson--Lucy (RL) deconvolution \cite{fish_blind_1995} can be viewed as the image-domain analogue of MLEM under the Poisson model $\bar y(x)=Cx+b$: it is the same EM update, with the system matrix $A$ replaced by the PSF convolution operator $C$. In this setting the ``sensitivity image'' simplifies substantially, since for a unit-sum PSF one has $C^{\mathsf T}\mathbf{1}\approx \mathbf{1}$, so the usual MLEM normalisation by $A^{\mathsf T}\mathbf{1}$ becomes trivial. As in Chapter~\ref{chapter:reconstruction}, our aim is not to use early stopping as the sole stabilisation mechanism, but to introduce explicit anatomical regularisation in ways that mirror the MAP and kernel constructions already developed for full reconstruction. Specifically, we extend RL to a penalised deconvolution regime by incorporating a directional total variation prior (Equation \ref{eq:dtv_defn}), and we construct kernelised deconvolution updates by substituting the kernel image model $x=K\alpha$, exactly as in KEM/HKEM. The resulting anatomy-aware deconvolution variants are referred to throughout as kernelised RL (KRL), hybrid kernelised RL (HKRL), and RL with directional total variation (RL--DTV); their basic update equations are derived in the following sections.
+Richardson--Lucy (RL) deconvolution \cite{fish_blind_1995} can be viewed as the image-domain analogue of \glsentryshort{mlem} under the Poisson model $\bar y(x)=Cx+b$: it is the same \glsentryshort{em} update, with the system matrix $A$ replaced by the \glsentryshort{psf} convolution operator $C$. In this setting the ``sensitivity image'' simplifies substantially, since for a unit-sum \glsentryshort{psf} one has $C^{\mathsf T}\mathbf{1}\approx \mathbf{1}$, so the usual \glsentryshort{mlem} normalisation by $A^{\mathsf T}\mathbf{1}$ becomes trivial. As in Chapter~\ref{chapter:reconstruction}, our aim is not to use early stopping as the sole stabilisation mechanism, but to introduce explicit anatomical regularisation in ways that mirror the MAP and kernel constructions already developed for full reconstruction. Specifically, we extend RL to a penalised deconvolution regime by incorporating a directional total variation prior (Equation \ref{eq:dtv_defn}), and we construct kernelised deconvolution updates by substituting the kernel image model $x=K\alpha$, exactly as in KEM/HKEM. The resulting anatomy-aware deconvolution variants are referred to throughout as kernelised RL (KRL), hybrid kernelised RL (HKRL), and RL with directional total variation (RL--DTV); their basic update equations are derived in the following sections.
 
 \section{Image-domain inverse problem and objective}
 \label{sec:deconv_model}
@@ -27,7 +27,7 @@ Let $x\in\mathbb{R}^J_+$ denote the unknown (sharper) PET activity image on a vo
     \qquad j=1,\dots,J,
     \label{eq:deconv_forward_model}
 \end{equation}
-where $C\in\mathbb{R}_+^{J\times J}$ is a discretised convolution operator representing a space-invariant PSF, and $b\in\mathbb{R}^J_+$ is an optional additive background term (set to $0$ in the experiments unless stated otherwise). The operator $C$ plays the same role as the system matrix $A$ in \eqref{eq:forward_model}, but in the image domain.
+where $C\in\mathbb{R}_+^{J\times J}$ is a discretised convolution operator representing a space-invariant \glsentryshort{psf}, and $b\in\mathbb{R}^J_+$ is an optional additive background term (set to $0$ in the experiments unless stated otherwise). The operator $C$ plays the same role as the system matrix $A$ in \eqref{eq:forward_model}, but in the image domain.
 
 Assuming independence across voxels in the image-domain observation model, the Poisson negative log-likelihood is
 \begin{equation}
@@ -55,9 +55,9 @@ A MAP (penalised-likelihood) deconvolution estimate is then
     \mathcal{C}=\mathbb{R}_+^J,
     \label{eq:deconv_map}
 \end{equation}
-with $\beta>0$ and an appropriate regulariser $\mathcal{R}$. This chapter considers both implicit regularisation via kernelised image models ($x=K\alpha$) and explicit regularisation via a directional TV penalty $\mathcal{R}(x)=R_{\mathrm{DTV}}(x;u)$ guided by a co-registered anatomical image $u$.
+with $\beta>0$ and an appropriate regulariser $\mathcal{R}$. This chapter considers both implicit regularisation via kernelised image models ($x=K\alpha$) and explicit regularisation via a directional TV penalty $\mathcal{R}(x)=R_{\mathrm{dTV}}(x;u)$ guided by a co-registered anatomical image $u$.
 
-Throughout, $C$ is non-negative and (approximately) intensity preserving: for a unit-sum PSF kernel and negligible boundary effects, $C\mathbf{1}\approx \mathbf{1}$. The adjoint $C^{\mathsf T}$ corresponds to convolution with the flipped PSF; for symmetric PSFs common in PET, $C^{\mathsf T}\approx C$.
+Throughout, $C$ is non-negative and (approximately) intensity preserving: for a unit-sum \glsentryshort{psf} kernel and negligible boundary effects, $C\mathbf{1}\approx \mathbf{1}$. The adjoint $C^{\mathsf T}$ corresponds to convolution with the flipped \glsentryshort{psf}; for symmetric \glspl{psf} common in PET, $C^{\mathsf T}\approx C$.
 
 \section{Baseline: Richardson--Lucy deconvolution}
 \label{sec:deconv_rl}
@@ -70,7 +70,7 @@ The RL algorithm is the EM algorithm for the Poisson model \eqref{eq:deconv_forw
         C^{\mathsf T}\!\left( y \oslash (C x^{(k)}) \right).
     \label{eq:rl_update}
 \end{equation}
-As with MLEM/OSEM under the full forward model, RL iterations tend to sharpen edges rapidly but amplify high-frequency noise as $k$ increases. Consequently, unregularised RL is typically used with early stopping, which acts as an implicit regulariser but yields iteration-dependent bias.
+As with \glsentryshort{mlem}/\glsentryshort{osem} under the full forward model, RL iterations tend to sharpen edges rapidly but amplify high-frequency noise as $k$ increases. Consequently, unregularised RL is typically used with early stopping, which acts as an implicit regulariser but yields iteration-dependent bias.
 
 \subsection{Scaled-gradient interpretation and EM-type preconditioning}
 \label{sec:deconv_precond}
@@ -84,7 +84,7 @@ To connect with Chapter~\ref{chapter:reconstruction}, we rewrite \eqref{eq:rl_up
     \right).
     \label{eq:deconv_nll_grad}
 \end{equation}
-Using the same rearrangement as for MLEM in Chapter~\ref{chapter:reconstruction}, one obtains
+Using the same rearrangement as for \glsentryshort{mlem} in Chapter~\ref{chapter:reconstruction}, one obtains
 \begin{equation}
     x^{(k+1)}
     =
@@ -105,7 +105,7 @@ Kernel methods were reviewed in Chapter~\ref{chapter:reconstruction} as an impli
 \subsection{Kernel image model}
 \label{sec:deconv_kernel_model}
 
-Let $u$ be a co-registered anatomical guidance image (MR or CT), resampled to the PET grid. We represent
+Let $u$ be a co-registered anatomical guidance image (\gls{mr} or \gls{ct}), resampled to the PET grid. We represent
 \begin{equation}
     x = K\alpha,
     \qquad
