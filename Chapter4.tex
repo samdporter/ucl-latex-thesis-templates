@@ -1,8 +1,6 @@
 \chapter{Anatomy-informed deconvolution for PET partial volume correction}
 \label{chapter:deconvolution_pvc}
 
-\begin{refsection}
-
 \section{Introduction and relationship to the thesis}
 \label{sec:deconv_intro}
 
@@ -400,7 +398,3 @@ The behaviours observed here anticipate challenges in the full reconstruction se
 \label{sec:deconv_summary}
 
 This chapter formulated post-reconstruction PET PVC as an image-domain Poisson inverse problem $\bar y(x)=Cx+b$ and studied RL deconvolution and three anatomy-aware regularised variants. KRL and HKRL implement implicit regularisation through kernelised image models, consistent with the kernel framework reviewed in Chapter~\ref{chapter:reconstruction} \cite{wang_pet_2015,hutchcroft_anatomically-aided_2016,deidda_hybrid_2019}. RL--DTV implements explicit anatomically guided regularisation via a DTV penalty \cite{ehrhardt_pet_2016} using the same directional notation as Chapter~\ref{chapter:reconstruction}. Together, these methods provide a practical PVC baseline and a controlled setting in which to diagnose guidance-driven bias and noise amplification, informing the design choices for the synergistic priors and optimisation algorithms developed in subsequent chapters.
-
-\printbibliography[heading=subbibliography,title={References}]
-
-\end{refsection}

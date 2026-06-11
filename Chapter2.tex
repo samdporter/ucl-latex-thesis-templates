@@ -1,8 +1,6 @@
 \chapter{Penalised-Likelihood Reconstruction: Priors and Optimisation Algorithms}
 \label{chapter:reconstruction}
 
-\begin{refsection}
-
 Emission tomography reconstruction is an ill-posed inverse problem: the unknown activity must be inferred from noisy Poisson count data through a highly smoothing and poorly conditioned forward operator. While \gls{ml} approaches remain the clinical workhorse \cite{dempster_maximum_1977, shepp_maximum_1982}, their practical success relies heavily on early stopping, which acts as an implicit regulariser but can introduce iteration-dependent bias and compromise quantification \cite{veklerov_stopping_1987, wu_convergence_1983}. For quantitative, low-count, and multi-modality settings, precisely those that arise in modern \gls{pet}/\gls{spect} practice, explicit regularisation and fast, robust optimisation become essential.
 
 This chapter reviews the modelling and algorithmic foundations that underpin the remainder of the thesis. We first formalise the Poisson statistical model and the penalised-likelihood reconstruction objective (often termed \gls{map}), highlighting where ill-conditioning and noise amplification enter the problem. We then present some regularisation strategies used in emission tomography: from classical quadratic smoothness priors and \gls{tv} \cite{rudin_nonlinear_1992}, through clinically deployed edge-preserving models such as the \gls{rdp} \cite{nuyts_concave_2002}, to anatomically guided methods that use aligned structural images (e.g.\ Bowsher \cite{bowsher_utilizing_2004}, \gls{pls} \cite{ehrhardt_vector-valued_2014}, and kernelised representations \cite{wang_pet_2015, hutchcroft_anatomically-aided_2016}. We then focus on synergistic regularisation, where multiple co-registered modalities are coupled during reconstruction, and motivate Jacobian-based vectorial priors such as joint TV and total nuclear variation \cite{holt_total_2014, rigie_joint_2015, knoll_joint_2017}, which will form the basis of the synergistic models developed later in the thesis.
@@ -502,6 +500,3 @@ Despite substantial progress in both synergistic regularisation and variance-red
 
 \paragraph{Thesis direction.}
 Motivated by these gaps, the remainder of this thesis develops a directionally guided, differentiable total nuclear variation prior that uses \glsentryshort{ct}-derived edge information while coupling functional modalities through voxel-wise Jacobians. We then design and evaluate a variance-reduced subset optimisation scheme (\gls{svrg}-type) equipped with a synergy-aware preconditioner that accounts for both data fidelity and coupled prior curvature, targeting fast, stable convergence in low-count \isotope[90]{Y} reconstruction.
-
-\printbibliography[heading=subbibliography,title={References}]
-\end{refsection}

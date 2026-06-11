@@ -1,8 +1,6 @@
 \chapter{Weighted Directional Total Nuclear Variation for Joint $^{90}$Y PET/SPECT Reconstruction}
 \label{chapter:paper}
 
-\begin{refsection}
-
 This chapter applies the weighted directional Total Nuclear Variation ($w$-$d$TNV) prior developed in Chapter~\ref{chapter:wdtnv} to the clinically relevant problem of post-treatment $^{90}$Y activity imaging after \glsentryshort{sirt}. We consider joint reconstruction of low-count $^{90}$Y \glsentryshort{pet} and bremsstrahlung \glsentryshort{spect}, using \gls{ctac} information directionally (via the \glsentryshort{ctac}-derived attenuation map $\mu$) to stabilise edge geometry without enforcing intensity correlation.
 
 Relative to Chapter~\ref{chapter:wdtnv}, the focus here is validation and comparison with other methods: we specify modality-dependent forward models, co-registration operators, practical normalisation for heterogeneous \glsentryshort{pet}/\glsentryshort{spect} scales, and a reproducible evaluation protocol on a \gls{nema} \gls{iec} phantom with \glsentryshort{pet} bootstrapping and on a post-\glsentryshort{sirt} patient cohort.
@@ -622,6 +620,3 @@ To preserve direct comparability with SHKEM, regularisation weights were selecte
 This chapter validated the $w$-$d$TNV prior of Chapter~\ref{chapter:wdtnv} in joint $^{90}$Y PET/SPECT reconstruction with CTAC-derived directional guidance. The key modelling choice is to use CTAC information directionally (via $\Pi_{m,n}$) while preserving a two-modality Jacobian, retaining the computational advantages of the $2\times 2$ Gram structure (Chapter~\ref{chapter:wdtnv}) and avoiding unstable intensity coupling to CT.
 
 On a bootstrapped NEMA IEC phantom, \wdtnv improves small-object recovery relative to \wtnv, \dtv, and a sequential hybrid kernel baseline at a matched noise operating point. In a post-SIRT patient cohort, \wdtnv yields higher lesion TBR than the comparators, with background noise differences depending on method. Overall, these findings support CTAC-guided synergistic variational coupling as a practical route towards more reliable post-SIRT $^{90}$Y activity imaging for personalised dosimetry.
-
-\printbibliography[heading=subbibliography,title={References}]
-\end{refsection}
