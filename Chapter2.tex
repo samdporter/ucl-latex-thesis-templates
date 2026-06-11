@@ -5,7 +5,7 @@
 
 Emission tomography reconstruction is an ill-posed inverse problem: the unknown activity must be inferred from noisy Poisson count data through a highly smoothing and poorly conditioned forward operator. While \gls{ml} approaches remain the clinical workhorse \cite{dempster_maximum_1977, shepp_maximum_1982}, their practical success relies heavily on early stopping, which acts as an implicit regulariser but can introduce iteration-dependent bias and compromise quantification \cite{veklerov_stopping_1987, wu_convergence_1983}. For quantitative, low-count, and multi-modality settings, precisely those that arise in modern \gls{pet}/\gls{spect} practice, explicit regularisation and fast, robust optimisation become essential.
 
-This chapter reviews the modelling and algorithmic foundations that underpin the remainder of the thesis. We first formalise the Poisson statistical model and the penalised-likelihood reconstruction objective (often termed \gls{map}), highlighting where ill-conditioning and noise amplification enter the problem. We then present some regularisation strategies used in emission tomography: from classical quadratic smoothness priors and \gls{tv} \cite{rudin_nonlinear_1992}, through clinically deployed edge-preserving models such as the \gls{rdp} \cite{nuyts_concave_2002}, to anatomically guided methods that use aligned structural images (e.g.\ Bowsher \cite{bowsher_utilizing_2004}, \gls{pls} \cite{ehrhardt_vector-valued_2014}, and kernelised representations \cite{wang_-     pet_2015, hutchcroft_anatomically-aided_2016}. We then focus on synergistic regularisation, where multiple co-registered modalities are coupled during reconstruction, and motivate Jacobian-based vectorial priors such as joint TV and total nuclear variation \cite{holt_total_2014, rigie_joint_2015, knoll_joint_2017}, which will form the basis of the synergistic models developed later in the thesis.
+This chapter reviews the modelling and algorithmic foundations that underpin the remainder of the thesis. We first formalise the Poisson statistical model and the penalised-likelihood reconstruction objective (often termed \gls{map}), highlighting where ill-conditioning and noise amplification enter the problem. We then present some regularisation strategies used in emission tomography: from classical quadratic smoothness priors and \gls{tv} \cite{rudin_nonlinear_1992}, through clinically deployed edge-preserving models such as the \gls{rdp} \cite{nuyts_concave_2002}, to anatomically guided methods that use aligned structural images (e.g.\ Bowsher \cite{bowsher_utilizing_2004}, \gls{pls} \cite{ehrhardt_vector-valued_2014}, and kernelised representations \cite{wang_pet_2015, hutchcroft_anatomically-aided_2016}. We then focus on synergistic regularisation, where multiple co-registered modalities are coupled during reconstruction, and motivate Jacobian-based vectorial priors such as joint TV and total nuclear variation \cite{holt_total_2014, rigie_joint_2015, knoll_joint_2017}, which will form the basis of the synergistic models developed later in the thesis.
 
 Finally, we review optimisation algorithms suitable for large-scale \gls{map} reconstruction. After discussing EM-type updates and their subset-accelerated variants, we highlight why subset methods can exhibit limit-cycle behaviour and why convergent penalised algorithms typically require relaxation (e.g.\ BSREM \cite{ahn_globally_2002}). We then introduce variance-reduced subset methods (e.g.\ \gls{saga}/\gls{svrg}) as a mechanism to retain low per-iteration cost while suppressing subset-induced stochasticity, and discuss the role of preconditioning, including ``prior-aware'' diagonal curvature approximations, in accelerating and stabilising convergence \cite{ehrhardt_fast_2025, twyman_investigation_2022}.
 
@@ -13,7 +13,7 @@ Finally, we review optimisation algorithms suitable for large-scale \gls{map} re
 \section{The Inverse Problem in Emission Tomography}
 \label{sec:recon_basics}
 
-To discretely represent the spatial distribution of tracer concentration within a patient, the continuous activity distribution $f(r)$ is approximated using a basis expansion $f(r) \approx \sum_{j=1}^J x_j h_j(r)$. Typically, $\{h_j\}$ are chosen to be indicator functions on uniform cubic voxels, yielding a non-negative activity image vector $x = (x_1,\dots,x_J)^\top \in \mathbb{R}_+^{J}$.
+To discretely represent the spatial distribution of tracer concentration within a patient, the continuous activity distribution $f(r)$ is approximated using a basis expansion $f(r) \approx \sum_{j=1}^J x_j h_j(r)$. Typically, $\{h_j\}$ are chosen to be indicator functions on uniform cuboid voxels. In that case, it is customary to use a non-negative activity image vector $x = (x_1,\dots,x_J)^\top \in \mathbb{R}_+^{J}$.
 
 The measured data consist of coincidence counts along lines of response (\gls{pet}) or projection bins (\gls{spect}). We denote the observed count in bin $i$ as $y_i$, and model it as a realisation of a Poisson counting process,
 \begin{equation}
@@ -21,17 +21,16 @@ The measured data consist of coincidence counts along lines of response (\gls{pe
     \qquad i=1,\dots,I,
 \end{equation}
 \noindent
-where $Y_i=\mathbb E[y_i]$ is the (unknown) mean count, which we model as $Y_i \approx \bar y_i(x)$ with $\bar y(x)=Ax+b$.
+where $Y_i=\mathbb E[y_i]$ is the (unknown) mean count, which we model as $Y_i \approx \bar y_i(x)$ with
 
 \begin{align}
-\bar y_i(x) = \sum_{j=1}^{J} a_{ij} x_j + b_i, \qquad i=1,\dots,I,
+\bar y_i(x) = \sum_{j=1}^{J} a_{ij} x_j + b_i, \qquad i=1,\dots,I.
 \end{align}
-where $A=[a_{ij}] \in \mathbb R_+^{I\times J}$ and $b\in\mathbb R_+^{I}$.
 For notational simplicity, we will use the vector form
 \begin{align}\label{eq:forward_model}
 \bar y(x) = A x + b, \quad \quad \bar y_i(x) = (A x + b)_i,
 \end{align}
-so that $\bar y_i(x)$ serves as a model-based approximation to the (unknown) Poisson mean of $Y_i$. Assuming independence of measurement bins, we obtain
+where $A=[a_{ij}] \in \mathbb R_+^{I\times J}$ and $b\in\mathbb R_+^{I}$. Assuming independence of measurement bins, we obtain
 \begin{equation}
 p(y\mid x)
 = \prod_{i=1}^I \frac{\bar{y}_i(x)^{y_i}\exp\!\left(-\bar{y}_i(x)\right)}{y_i!}.
@@ -41,7 +40,7 @@ Taking logarithms yields the Poisson log-likelihood
 \log p(y\mid x)
 = \sum_{i=1}^I \left( y_i \log \bar{y}_i(x) - \bar{y}_i(x) - \log(y_i!) \right).
 \end{equation}
-Since the term $\sum_{i=1}^I \log(y_i!)$ does not depend on $x$, it can be dropped for optimisation purposes. Thus, up to an additive constant independent of $x$, maximising the likelihood is equivalent to minimising the negative log-likelihood
+Since the term $\sum_{i=1}^I \log(y_i!)$ does not depend on $x$, it can be dropped for optimisation purposes. Thus, maximising the likelihood w.r.t.\~$x$ is equivalent to minimising
 \begin{equation}
 \mathcal{L}(x)
 \coloneqq -\log p(y\mid x) + \mathrm{const}
@@ -80,9 +79,9 @@ p(x) \propto \exp\!\left(-\beta\,\mathcal{R}(x)\right),
 where $\mathcal{R}(x)$ is a regularisation functional and $\beta>0$ controls the strength of the prior. Substituting this into the \gls{map} objective yields the penalised-likelihood form
 \begin{equation}
 \hat{x}_{\mathrm{\gls{map}}} \in \arg\min_{x\in\mathcal{C}}
-\left\{\mathcal{L}(x) + \beta\,\mathcal{R}(x)\right\},
+\left\{\mathcal{L}(x) + \beta\,\mathcal{R}(x)\right\}.
 \end{equation}
-where $\mathcal{L}(x) \coloneqq -\log p(y\mid x)+\mathrm{const}$ is the Poisson negative log-likelihood derived above.
+
 
 \section{Regularisation Strategies}
 
@@ -94,7 +93,7 @@ One of the simplest forms of regularisation is Tikhonov regularisation, which im
     \mathcal{R}_{\mathrm{Quad}}(x)
     = \sum_{j=1}^J \sum_{k \in \mathcal{N}_j} w_{jk}\, (x_j - x_k)^2,
 \end{equation}
-where $\mathcal{N}_j$ denotes a local neighbourhood of voxel $j$ (e.g.\ 6, 18, or 26-connected in 3D) and $w_{jk}\ge 0$ are weights (often distance-based and symmetric). While strictly convex and computationally efficient, the quadratic penalty strongly discourages large local differences, which tends to oversmooth edges and suppress high-contrast structures \cite{geman_stochastic_1984}.
+where $\mathcal{N}_j$ denotes a local neighbourhood of voxel $j$ (e.g.\ 6, 18, or 26-connected in 3D) and $w_{jk}\ge 0$ are weights (often distance-based and symmetric). While strongly convex and computationally efficient, the quadratic penalty strongly discourages large local differences, which tends to oversmooth edges and suppress high-contrast structures \cite{geman_stochastic_1984}.
 
 To better preserve edges, \gls{tv} \cite{rudin_nonlinear_1992} replaces the squared penalty with an $\ell_1$-type penalty on local differences. A neighbourhood-difference form that makes the connection to $\mathcal{R}_{\mathrm{Quad}}$ explicit is
 \begin{equation}

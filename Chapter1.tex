@@ -9,10 +9,9 @@ We first summarise the detection physics of \gls{pet} and \gls{spect} and presen
 
 \section{Principles of Emission Tomography}
 
-\gls{et} fundamentally differs from functional modalities such as \gls{ct}. Rather than mapping the structural properties, \gls{et} measures the spatio-temporal distribution of a radiolabelled substance introduced into the physiological system. A representative example is \gls{fdg}\cite{boellaard_fdg_2015}. \gls{fdg} is a glucose-analogue, meaning energy-hungry cells take up an increased amount of the radionuclide. Cells are unable to metabolise, meaning it accumulates. The distribution of \gls{fdg} can be imaged using a \gls{pet} scanner, giving a functional view of glucose metabolism and highlighting any unusual uptake caused by overactive cells such as cancer.
+\gls{et} fundamentally differs from functional modalities such as \gls{ct}. Rather than mapping the structural properties, \gls{et} measures the spatio-temporal distribution of a radiolabelled substance introduced into the physiological system. A representative example is \gls{fdg}\cite{boellaard_fdg_2015}. \gls{fdg} is a glucose-analogue, meaning energy-hungry cells take up an increased amount of the molecules, and therefore radionuclide. Cells are unable to metabolise \gls{fdg}, meaning it accumulates. The distribution of \gls{fdg} can be imaged using a \gls{pet} scanner, giving a functional view of glucose metabolism and highlighting any unusual uptake caused by overactive cells such as cancer.
 
 While the instrumentation differs between Single Photon Emission Computed Tomography (\gls{spect}) and \gls{pet}, both solve a similar inverse problem: estimating the activity concentration from a set of projection measurements that are corrupted by Poisson noise, attenuation, and scatter. In practice, the continuous activity distribution is represented on a finite voxel grid, producing an unknown non-negative image vector, $x \in \mathbb{R}^J_+$. This discretisation allows the acquisition physics to be expressed as a linear operator mapping the image to expected measurement counts, $A :  \mathbb{R}^J_+ \rightarrow \mathbb{R}^I_+$. 
-
 The precise discretisation and statistical modelling are introduced later. For now, we present a simple model of the physical acquisition process, including scanner geometry, photon attenuation, and unwanted background contributions. To do this, we using an affine forward model,
 \begin{equation}
     \bar{y} = Ax + b,
@@ -25,7 +24,7 @@ where $\bar{y}=\mathbb{E}[y]$ denotes the expected measurement counts, $A$ is th
 \begin{equation}
     p \rightarrow n + e^+ + \nu_e.
 \end{equation}
-The decay energy is shared between the positron and the neutrino, resulting in a continuous positron energy spectrum. This positron traverses the tissue losing kinetic energy via Coulomb interactions (a distance known as the positron range—before) before thermalising. This range imposes an effective blurring limit on spatial resolution, with an effective positron range of approximately 0.5–0.7 mm for $^{18}$F and several millimetres for high-energy emitters such as $^{82}$Rb \cite{cherry_physics_2003}.
+The decay energy is shared between the positron and the neutrino, resulting in a continuous positron energy spectrum. This positron traverses the tissue losing kinetic energy via Coulomb interactions (a distance known as the positron range) before thermalising. This range imposes an effective blurring limit on spatial resolution, with an effective positron range of approximately 0.5–0.7 mm for $^{18}$F and several millimetres for high-energy emitters such as $^{82}$Rb \cite{cherry_physics_2003}.
 
 Upon thermalisation, the positron interacts with an electron to form positronium, which rapidly decays via annihilation:
 \begin{equation}
@@ -103,7 +102,7 @@ Here, $A_{\mathrm{positron}}$ models positron-range blurring, $A_{\mathrm{ToF}}$
 
 \section{Single Photon Emission Computed Tomography (\gls{spect})}
 
-\Gls{spect} imaging relies on isotropic single gamma emissions. As there is no coincident pair to define the \gls{lor}, physical collimation is required. A lead collimator, typically a parallel-hole geometry, allows only photons travelling perpendicular to the detector. A single (or multiple, most often a dual-head system) collimated gamma camera is rotated around the patient (Figure~\ref{fig:spect}).
+\Gls{spect} imaging relies on isotropic single gamma emissions. As there is no coincident pair to define the \gls{lor}, physical collimation is required. A lead collimator, typically a parallel-hole geometry, allows only photons travelling through the collimator holes. A single (or multiple, most often a dual-head system) collimated gamma camera is rotated around the patient (Figure~\ref{fig:spect}).
 
 \begin{figure}
     \centering
@@ -127,7 +126,7 @@ For \gls{spect}, a convenient factorisation is
 \end{equation}
 where $A_{\mathrm{det,sens}}$ collects multiplicative sensitivity factors (e.g.\ detector efficiency and calibration/normalisation terms), $A_{\mathrm{det,blur}}$ represents intrinsic resolution effects within the gamma camera, and $A_{\mathrm{geom,att}}$ is the geometric projection operator that encapsulates collimator effects (including depth-dependent resolution) together with depth- and view-dependent attenuation. The operator $A_{\mathrm{bremss}}$ is specific to bremsstrahlung \gls{spect} and models the additional blurring associated with bremsstrahlung range (discussed in Section~\ref{subsec:bremss}).
 
-For a parallel-hole collimator, septal penetration is often incorporated via an energy-dependent effective hole length,
+For a parallel-hole collimator, septal penetration can be incorporated via an energy-dependent effective hole length,
 \begin{equation}
     L_e(E) \;=\; l \;-\; \frac{2}{\mu_{\mathrm{Pb}}(E)},
 \end{equation}
@@ -139,20 +138,20 @@ where $l$ is the physical hole length and $\mu_{\mathrm{Pb}}(E)$ is the linear a
 \Gls{sirt} uses \gls{y90} microspheres for the locoregional treatment of hepatic malignancies. It is an established treatment for unresectable \gls{hcc} and liver metastases \cite{sundram_selective_2017}, recommended by NICE for unresectable \glsentryshort{hcc} and used for neuroendocrine and colorectal liver metastases in the UK \cite{national_institute_for_health_and_care_excellence_nice_selective_2021,national_institute_for_health_and_care_excellence_nice_selective_2024}. The reconstruction of post-\gls{sirt} microsphere distribution presents a severe inverse problem, as \gls{y90} is designed for therapy, not imaging.
 
 \subsection{Decay Characteristics}
-\gls{y90} is, approximately, a pure $\beta^-$ emitter decaying to the stable ground state of \gls{zr90} with a half-life of 64.1 hours:
+\gls{y90} is an almost pure $\beta^-$ emitter decaying to the stable ground state of \gls{zr90} with a half-life of 64.1 hours:
 \begin{equation}
     ^{90}\text{Y} \rightarrow ^{90}\text{Zr} + e^- + \bar{\nu}_e
 \end{equation}
-The electrons have a high endpoint energy of 2.28 MeV \SI{2.28}{\mega\electronvolt}. The primary challenge for quantification is the absence of primary gamma photons. Imaging must therefore exploit two secondary, low-probability physical interactions.
+The electrons have a high endpoint energy of \SI{2.28}{\mega\electronvolt}. The primary challenge for quantitative imaging n is the absence of primary gamma photons. Imaging must therefore exploit two secondary, low-probability physical interactions.
 
 \subsection{Bremsstrahlung \gls{spect}}
 \label{subsec:bremss}
-As high-energy $\beta^-$ particles decelerate in tissue through Coloumbic interactions with charged particles, they emit Bremsstrahlung x-rays. These of photons can be imaged with \gls{spect} systems. However, the continuous spectrum of photons (Figure~\ref{fig:brems_emission}) hugely reduces the suitability of traditional energy window scatter correction methods and bremsstrahlung range blurring (Figure~\ref{fig:bremsstrahlung} reduces resolution. Consequently, Bremsstrahlung \gls{spect} is often characterised by poor spatial resolution and limited quantitative accuracy \cite{simpkin_spatial_1992}.
+As high-energy $\beta^-$ particles decelerate in tissue through Coulomb interactions with charged particles, they emit Bremsstrahlung photons. These photons can be imaged with \gls{spect} systems. However, the continuous spectrum of Bremsstrahlung photons (Figure~\ref{fig:brems_emission}) hugely reduces the suitability of traditional energy window scatter correction methods and Bremsstrahlung range blurring (Figure~\ref{fig:bremsstrahlung} reduces resolution. Consequently, Bremsstrahlung \gls{spect} is often characterised by poor spatial resolution and limited quantitative accuracy \cite{simpkin_spatial_1992}.
 
 \begin{figure}
     \centering
     \includegraphics[width=0.5\linewidth]{figures/Chapter1/bremsstrahlung.drawio.png}
-    \caption{Representative diagram of bremsstrahlung production in tissue for an emitted beta particle.}
+    \caption{Representative diagram of bremsstrahlung production in tissue for an emitted $\beta^{-}$ particle.}
     \label{fig:bremsstrahlung}
 \end{figure}
 
@@ -194,7 +193,7 @@ The resulting positron annihilates to produce standard 511 keV photon pairs \cit
     \label{fig:pet_y90_profile}
 \end{figure}
 
-\section{\gls{ct} for Anatomical Guidance}
+\section{X-ray \gls{ct}}
 
 In this work, \gls{ct} is used primarily to provide anatomical context and attenuation information for emission tomography reconstruction. X-ray \gls{ct} measures the transmitted intensity of a photon beam after passage through an object or patient. In an ideal monoenergetic setting, transmission follows the Beer--Lambert law, so that the log-normalised measurements are proportional to line integrals of the linear attenuation coefficient. In practice, polychromaticity introduces effects such as beam hardening, which are mitigated by scanner calibration and correction steps to yield images that approximate an attenuation map.
 
@@ -208,7 +207,7 @@ In addition, \gls{ct} is routinely used for \gls{ctac} in both \gls{pet} and \gl
     \;\approx\;
     \exp\!\left(-\sum_{j=1}^{J} l_{ij}\,\mu_j(E)\right),
 \end{equation}
-where $\mu_j(E)$ denotes the attenuation coefficient in voxel $j$ and $l_{ij}\ge 0$ is the intersection length of $\text{\glsentryshort{lor}}_i$ with voxel $j$. This is incorporated either directly into the system matrix (as part of $A_{\mathrm{geom,att}}$) or applied as a multiplicative correction in projection space ($A_{\mathrm{att}}$). In \gls{pet}, this typically involves mapping \gls{ct}-derived attenuation from effective X-ray energies to 511~keV. Misregistration (e.g.\ respiratory motion), metal artefacts, and beam-hardening residuals can all propagate into \glsentryshort{ctac} and bias quantitative \gls{pet}/\gls{spect} activity estimates \cite{singh_attenuation_2007, patton_spectct_2008}.
+where $\mu_j(E)$ denotes the attenuation coefficient in voxel $j$ and $l_{ij}\ge 0$ is the intersection length of $\text{\glsentryshort{lor}}_i$ with voxel $j$. This is incorporated either directly into the system matrix (as part of $A_{\mathrm{geom,att}}$) or applied as a multiplicative correction in projection space ($A_{\mathrm{att}}$). Misregistration (e.g.\ respiratory motion), metal artefacts, and beam-hardening residuals can all propagate into \glsentryshort{ctac} and therefore bias quantitative \gls{pet}/\gls{spect} activity estimates \cite{singh_attenuation_2007, patton_spectct_2008}.
 
 
 \printbibliography[heading=subbibliography,title={References}]
