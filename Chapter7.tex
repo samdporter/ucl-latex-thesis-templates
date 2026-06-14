@@ -262,7 +262,7 @@ We compare against the sequential hybrid kernel expectation--maximisation (SHKEM
 \subsection{Software implementation}
 \label{subsec:90y_software}
 
-All reconstructions were implemented in the Synergistic Reconstruction Framework (SIRF) \cite{ovtchinnikov_sirf_2017} using Software for Tomographic Image Reconstruction (STIR) projector backends \cite{thielemans_stir_2012, schramm_parallelprojopen-source_2024, fuster_integration_2013} and the Core Imaging Library \cite{jorgensen_core_2021}, with custom code for the proposed regulariser. The SHKEM implementation follows \cite{deidda_triple_2023}, extended here to the same joint multi-bed PET reconstruction setting used by the variational methods.
+All reconstructions were implemented in the \acrfull{sirf} \cite{ovtchinnikov_sirf_2017} using \acrfull{stir} projector backends \cite{thielemans_stir_2012, schramm_parallelprojopen-source_2024, fuster_integration_2013} and the Core Imaging Library \cite{jorgensen_core_2021}, with custom code for the proposed regulariser. The SHKEM implementation follows \cite{deidda_triple_2023}, extended here to the same joint multi-bed PET reconstruction setting used by the variational methods.
 
 \section{Forward models, corrections, and co-registration}
 \label{sec:90y_forward_models}
@@ -283,7 +283,7 @@ For bremsstrahlung SPECT we use a geometric projector with an analytic collimato
 
 The collimator response is modelled as a depth-dependent Gaussian with linearly varying width, obtained by fitting an analytic collimator model \cite{anger_sensitivity_1966}. Bremsstrahlung blur is modelled as an isotropic Gaussian with energy-dependent width fitted to $^{90}$Y range simulations \cite{rault_fast_2010}; where multiple energy windows are used, effective blur parameters are obtained by count-weighted averaging across windows.
 
-Scatter and septal penetration are incorporated via an additive term estimated by an outer reconstruct--simulate loop using SIMIND \cite{ljungberg_simind_2015, rong_development_2012}. We initialise this additive term using a learned estimate from a neural network \cite{xiang_deep_2020}. The additive estimate is then refined by alternating reconstruction and SIMIND simulation for 10 outer iterations, using a damped update
+Scatter and septal penetration are incorporated via an additive term estimated by an outer reconstruct--simulate loop using \gls{simind} \cite{ljungberg_simind_2015, rong_development_2012}. We initialise this additive term using a learned estimate from a neural network \cite{xiang_deep_2020}. The additive estimate is then refined by alternating reconstruction and \glsentryshort{simind} simulation for 10 outer iterations, using a damped update
 \begin{equation}
 b^{(k+1)}=\nu\,\hat b^{(k+1)}+(1-\nu)b^{(k)},
 \qquad
@@ -298,7 +298,7 @@ SPECT projection data are partitioned into staggered subsets, with $S=12$ for bo
 
 \glsentryshort{ctac} provides the anatomical reference for co-registration and for guidance via the $\mu$-map. The shared reconstruction grid is the PET grid. The PET CTAC is therefore downsampled to the PET reconstruction grid and used both to define the attenuation map $\mu$ and as the anatomical reference space for the coupled prior, so $W_1$ is the identity on the shared grid.
 
-The PET and SPECT CTAC volumes were retained in their native acquisition grids before registration. Since patient arm positioning differed between modalities (arms down in PET, arms up in SPECT), registration was restricted to the trunk. A trunk mask was obtained automatically from each CTAC using TotalSegmentator \cite{TODO_totalsegmentator_2023}, and the native-grid SPECT CTAC was registered to the PET CTAC using a rigid transformation followed by deformable registration initialised from the rigid solution. The resulting native-SPECT-to-PET deformation defines $W_2$. The corresponding operator $W_2^\ast$ in the data-fidelity term is the discrete adjoint of this resampling operator, not merely a matrix transpose; linear interpolation was used so that the forward and adjoint warp pair were implemented consistently.
+The PET and SPECT CTAC volumes were retained in their native acquisition grids before registration. Since patient arm positioning differed between modalities (arms down in PET, arms up in SPECT), registration was restricted to the trunk. A trunk mask was obtained automatically from each CTAC using TotalSegmentator \cite{TODO_totalsegmentator_2023}\TODO{Zenodo-managed bibliography entry pending for TotalSegmentator; replace \texttt{TODO\_totalsegmentator\_2023} once imported.}, and the native-grid SPECT CTAC was registered to the PET CTAC using a rigid transformation followed by deformable registration initialised from the rigid solution. The resulting native-SPECT-to-PET deformation defines $W_2$. The corresponding operator $W_2^\ast$ in the data-fidelity term is the discrete adjoint of this resampling operator, not merely a matrix transpose; linear interpolation was used so that the forward and adjoint warp pair were implemented consistently.
 
 \section{Data and evaluation protocol}
 \label{sec:90y_data_eval}
@@ -310,7 +310,7 @@ All quantitative image analysis is performed on PET reconstructions to preserve 
 
 A \glsentryshort{nema} \glsentryshort{iec} Body Phantom with a sphere-to-background ratio of 8 was scanned at The Christie Hospital using a Siemens Biograph mCT PET/CT system and a GE Discovery 670 SPECT/CT system. \glsentryshort{pet} was acquired over \SI{15}{\hour} and \glsentryshort{spect} over \SI{15}{\minute}. From the \SI{15}{\hour} \glsentryshort{pet} acquisition, $B=20$ statistically independent \glsentryshort{pet} datasets equivalent to \SI{15}{\minute} were generated by sinogram bootstrapping \cite{markiewicz_assessment_2014}. The SPECT energy window was $39.84$--$128.16~\mathrm{keV}$.
 
-We quantify \glsentryshort{pet} reproducibility across bootstraps via voxel-wise coefficient of variation (CoV), and \glsentryshort{pet} quantification via recovery coefficients (RC) for spheres of diameters \SI{10}{mm}, \SI{13}{mm}, \SI{22}{mm}, \SI{28}{mm}, and \SI{37}{mm}. Three \glspl{voi} were defined (Figure~\ref{fig:90y_nema_bootstrap_overview}): a high-count (HC) VOI comprising five filled spheres (one sphere was excluded due to filling issues), a warm-background (BG) VOI comprising the phantom volume excluding the spheres plus a \SI{10}{mm} margin and excluding the lung insert plus a \SI{5}{mm} margin, and the cold lung insert (LI).
+We quantify \glsentryshort{pet} reproducibility across bootstraps via voxel-wise \acrfull{cov}, and \glsentryshort{pet} quantification via \acrfullpl{rc} for spheres of diameters \SI{10}{mm}, \SI{13}{mm}, \SI{22}{mm}, \SI{28}{mm}, and \SI{37}{mm}. Three \glspl{voi} were defined (Figure~\ref{fig:90y_nema_bootstrap_overview}): a high-count (HC) VOI comprising five filled spheres (one sphere was excluded due to filling issues), a warm-background (BG) VOI comprising the phantom volume excluding the spheres plus a \SI{10}{mm} margin and excluding the lung insert plus a \SI{5}{mm} margin, and the cold lung insert (LI).
 
 \begin{figure}[htbp]
     \centering
@@ -353,7 +353,7 @@ p =
 \frac{1+\sum_{i=1}^{N_{\mathrm{perm}}}\mathbf{1}\!\left(|\Delta_{\mathrm{perm},i}|\ge |\Delta|\right)}
 {N_{\mathrm{perm}}+1},
 \end{equation}
-with Benjamini--Hochberg adjustment across methods within each VOI\@. No thresholding was applied to exclude near-zero voxels, so CoV estimates in the cold lung insert should be interpreted as a noise-realisation stability measure rather than a conventional percentage variability around a substantial mean signal.
+with \acrfull{bh} adjustment across methods within each VOI\@. No thresholding was applied to exclude near-zero voxels, so CoV estimates in the cold lung insert should be interpreted as a noise-realisation stability measure rather than a conventional percentage variability around a substantial mean signal.
 
 Inference for RC uses a linear mixed model on
 \begin{equation}
@@ -411,7 +411,7 @@ Tumour \glspl{voi} were delineated once per patient on the vendor Q.Clear $\beta
     \label{fig:90y_sirt3_rois}
 \end{figure}
 
-For patient $p$, lesion $l$, and method $r$, define tumour-to-background ratio
+For patient $p$, lesion $l$, and method $r$, define \acrfull{tbr}
 \begin{equation}
 \mathrm{TBR}_{p,l,r}=\frac{\bar{C}_{p,l,r}}{\bar{C}_{p,\mathrm{bkg},r}},
 \end{equation}
@@ -443,7 +443,7 @@ u_p &\overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2_{\mathrm{p,CoV}}),
 \varepsilon_{p,r} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\psi^2).
 \end{aligned}
 \end{equation}
-Planned many-to-one contrasts compare \dtv, \wtnv, and SHKEM to \wdtnv, with Benjamini--Hochberg adjustment across the three comparisons within each endpoint. Results are reported as ratios $\exp(\Delta)$ on the original scale, where values below one indicate lower TBR or lower background CoV than \wdtnv.
+Planned many-to-one contrasts compare \dtv, \wtnv, and SHKEM to \wdtnv, with \glsentryshort{bh} adjustment across the three comparisons within each endpoint. Results are reported as ratios $\exp(\Delta)$ on the original scale, where values below one indicate lower TBR or lower background CoV than \wdtnv.
 
 \section{Results}
 \label{sec:90y_results}

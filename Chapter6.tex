@@ -3,7 +3,7 @@
 
 Chapter~\ref{chapter:wdtnv} defined the smoothed weighted directional total nuclear variation prior. This chapter describes the optimisation machinery used to apply that prior in large-scale PET/SPECT reconstruction experiments. The emphasis is methodological: the experiments described here compare preconditioners and subset-selection strategies, but no numerical results are reported in this chapter.
 
-The implementation inspected for this chapter is the current SETR codebase. This is important because the active preconditioner-combination path has changed relative to the application study in Chapter~\ref{chapter:paper}: the paper reconstructions use a local diagonal \wdtnv{} curvature approximation combined with a floor-regularised Lehmer mean, whereas the current optimisation experiments use Hessian-sum inversion for the prior-aware preconditioners.
+The implementation inspected for this chapter is the current reconstruction codebase. This is important because the active preconditioner-combination path has changed relative to the application study in Chapter~\ref{chapter:paper}: the paper reconstructions use a local diagonal \wdtnv{} curvature approximation combined with a floor-regularised Lehmer mean, whereas the current optimisation experiments use Hessian-sum inversion for the prior-aware preconditioners.
 
 \section{Stochastic MAP Optimisation}
 \label{sec:optimisation_svrg}
@@ -67,7 +67,7 @@ for the preconditioner and subset-selection experiments described below.
 \label{sec:optimisation_preconditioners}
 \label{subsec:preconditioning}
 
-Preconditioning is critical for subset-based MAP reconstruction because the data term and the edge-preserving prior can have very different local curvature scales \cite{clinthorne_preconditioning_1993,ahn_globally_2002,de_pierro_fast_2001,ehrhardt_fast_2025}. The current SETR experiments compare data-only BSREM scaling with several prior-aware curvature surrogates for $\wdtnv$.
+Preconditioning is critical for subset-based MAP reconstruction because the data term and the edge-preserving prior can have very different local curvature scales \cite{clinthorne_preconditioning_1993,ahn_globally_2002,de_pierro_fast_2001,ehrhardt_fast_2025}. The current experiments compare data-only BSREM scaling with several prior-aware curvature surrogates for $\wdtnv$.
 
 \subsection{Data Curvature}
 \label{subsec:optimisation_data_preconditioning}
@@ -98,7 +98,7 @@ The implementation optionally smooths the numerator image used in the EM precond
 \subsection{Current \texorpdfstring{$\wdtnv$}{w-dTNV} Prior Curvature}
 \label{subsec:optimisation_prior_preconditioning}
 
-The current prior-aware preconditioners use the MM/IRLS curvature implied by the smoothed spectral penalty. At voxel $n$, let
+The current prior-aware preconditioners use the \acrfull{mm}/\acrfull{irls} curvature implied by the smoothed spectral penalty. At voxel $n$, let
 \begin{equation}
     Y_n
     =
@@ -109,7 +109,7 @@ The current prior-aware preconditioners use the MM/IRLS curvature implied by the
     \right]\in\mathbb{R}^{d\times2}
     \label{eq:optimisation_weighted_jacobian}
 \end{equation}
-be the weighted directional Jacobian from Chapter~\ref{chapter:wdtnv}. The active code forms the modality-space MM weight
+be the weighted directional Jacobian from Chapter~\ref{chapter:wdtnv}. The active code forms the modality-space \glsentryshort{mm} weight
 \begin{equation}
     C_n
     =
@@ -131,7 +131,7 @@ For diagonal preconditioning, the finite-difference stencil and directional proj
     \beta_{m,n}^2\,c_{mm,n}\,\tau_{m,n}.
     \label{eq:diag_tight_preconditioner}
 \end{equation}
-This is the diagonal extraction of the local MM curvature surrogate, and is therefore an approximation rather than a strict Loewner majoriser in general. The Gershgorin diagonal majoriser inflates the modality-space diagonal by the absolute off-diagonal coupling,
+This is the diagonal extraction of the local \glsentryshort{mm} curvature surrogate, and is therefore an approximation rather than a strict Loewner majoriser in general. The Gershgorin diagonal majoriser inflates the modality-space diagonal by the absolute off-diagonal coupling,
 \begin{equation}
     \widehat H_{\mathcal R,1,n}^{\mathrm{diag\text{-}G}}
     =
@@ -218,9 +218,9 @@ The preconditioner is updated once per epoch in the experiments unless an explic
 Preconditioner setting & Prior curvature model & Combination used in sweep\\
 \midrule
 Data-only EM/BSREM scaling & none & none\\
-Local diagonal \wdtnv{} curvature approximation & diagonal extraction of local MM curvature & Hessian-sum inversion\\
+Local diagonal \wdtnv{} curvature approximation & diagonal extraction of local \glsentryshort{mm} curvature & Hessian-sum inversion\\
 Gershgorin diagonal \wdtnv{} curvature majoriser & diagonal majoriser including cross-modal coupling & Hessian-sum inversion\\
-Local voxel-block \wdtnv{} curvature approximation & voxel-wise $2\times2$ local MM curvature & Hessian-sum inversion\\
+Local voxel-block \wdtnv{} curvature approximation & voxel-wise $2\times2$ local \glsentryshort{mm} curvature & Hessian-sum inversion\\
 Conservative voxel-block \wdtnv{} curvature majoriser & voxel-wise $2\times2$ conservative majoriser & reference runs\\
 \bottomrule
 \end{tabular}
@@ -238,7 +238,7 @@ Experiments are configured for a single-bed anthropomorphic phantom dataset and 
 \section{Subset Selection}
 \label{sec:optimisation_subset_selection}
 
-Subset methods accelerate early iterations in emission tomography by replacing full data passes with stochastic or ordered blocks of projection data \cite{hudson_accelerated_1994}. In synergistic PET/SPECT reconstruction there is an additional design choice: PET, SPECT, and the coupled prior can be grouped together or sampled separately. Previous work on synergistic subset selection \cite{porter_optimising_2024} motivated a more systematic comparison of these choices under the current SVRG and preconditioning implementation.
+Subset methods accelerate early iterations in emission tomography by replacing full data passes with stochastic or ordered blocks of projection data \cite{hudson_accelerated_1994}. In synergistic PET/SPECT reconstruction there is an additional design choice: PET, SPECT, and the coupled prior can be grouped together or sampled separately. Previous work on synergistic subset selection \cite{porter_optimising_2024}\TODO{Zenodo-managed bibliography entry pending for \texttt{porter\_optimising\_2024}; IEEE Xplore document 10654962.} motivated a more systematic comparison of these choices under the current SVRG and preconditioning implementation.
 
 \subsection{Data-Subset Organisation}
 \label{subsec:subset_data_organisation}
@@ -320,10 +320,6 @@ Long-run reference reconstructions are generated using separate subset organisat
 
 The subset-selection and application experiments include PET acquisitions spanning multiple partially overlapping bed positions. This material is part of the optimisation chapter because it changes the data-fidelity organisation and the preconditioner sensitivity image, while the prior remains the same shared-grid $\wdtnv$ prior.
 
-% TODO: Add Zenodo-managed BibTeX entries for porter_optimising_2024
-% (IEEE Xplore document 10654962) and porter_simultaneous_2025
-% (The PET is Wonderful multi-bed MAP reconstruction abstract).
-
 \subsection{Notation}
 \label{subsec:multibed_notation}
 
@@ -372,7 +368,7 @@ This sensitivity is used in the EM/BSREM data curvature term in exactly the same
 \subsection{Why Not Stitch Independent Reconstructions?}
 \label{subsec:stitching_failure}
 
-A common practical alternative is to reconstruct each PET bed independently and fuse the resulting images using sensitivity-weighted stitching in the overlap region. This is benign for some early-stopped or weakly regularised reconstructions, but it is problematic with edge-preserving priors. The prior is then evaluated separately on each bed image, so noise patterns and anatomical edge decisions in the overlap are made independently before fusion. This can create abrupt intensity changes or inconsistent edge placement across the bed boundary \cite{porter_simultaneous_2025}.
+A common practical alternative is to reconstruct each PET bed independently and fuse the resulting images using sensitivity-weighted stitching in the overlap region. This is benign for some early-stopped or weakly regularised reconstructions, but it is problematic with edge-preserving priors. The prior is then evaluated separately on each bed image, so noise patterns and anatomical edge decisions in the overlap are made independently before fusion. This can create abrupt intensity changes or inconsistent edge placement across the bed boundary \cite{porter_simultaneous_2025}\TODO{Zenodo-managed bibliography entry pending for \texttt{porter\_simultaneous\_2025}; The PET is Wonderful multi-bed MAP reconstruction abstract.}.
 
 The joint formulation in Equation~\eqref{eq:multibed_data_term} avoids this by estimating a single combined PET image. Each bed contributes its own projection data and sensitivity, while the image-domain prior is evaluated once over the combined field of view.
 
@@ -384,4 +380,4 @@ In the two-bed subset-selection experiments, each bed position is partitioned in
 \section{Conclusion}
 \label{sec:optimisation_conclusion}
 
-This chapter has separated the optimisation machinery from the definition of the $\wdtnv$ prior itself. The current preconditioner experiments compare BSREM scaling with MM-derived prior-aware diagonal and block curvature surrogates, combined through Hessian-sum inversion in the active SETR code. The subset-selection experiments independently vary modality grouping and prior sampling, including a two-bed PET setting where the data term is evaluated jointly over bed positions. These methods provide the framework into which numerical convergence and image-quality results can be inserted once available.
+This chapter has separated the optimisation machinery from the definition of the $\wdtnv$ prior itself. The current preconditioner experiments compare BSREM scaling with \glsentryshort{mm}-derived prior-aware diagonal and block curvature surrogates, combined through Hessian-sum inversion in the active reconstruction code. The subset-selection experiments independently vary modality grouping and prior sampling, including a two-bed PET setting where the data term is evaluated jointly over bed positions. These methods provide the framework into which numerical convergence and image-quality results can be inserted once available.

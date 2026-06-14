@@ -13,7 +13,8 @@ all: Main.pdf
 
 Main.pdf: $(LaTeXSources)
 	lualatex --halt-on-error $(basename $@).tex
-	bibtex $(basename $@)
+	biber $(basename $@)
+	makeglossaries $(basename $@)
 	lualatex --halt-on-error $(basename $@).tex
 	lualatex --halt-on-error $(basename $@).tex
 
@@ -24,7 +25,8 @@ test: $(TestCases)
 $(TestCases): $(LaTeXSources)
 	export OPTIONS=$(subst .pdf,,$@); sed -e s/phd,a4paper,oneside/$$OPTIONS/ Main.tex >$(basename $@).tex
 	lualatex --halt-on-error $(basename $@).tex
-	bibtex $(basename $@)
+	biber $(basename $@)
+	makeglossaries $(basename $@)
 	lualatex --halt-on-error $(basename $@).tex
 	lualatex --halt-on-error $(basename $@).tex
 
@@ -37,4 +39,3 @@ superclean: clean
 
 testclean: clean superclean
 	-@rm $(TestCases) $(TestCases:.pdf=.tex)
-

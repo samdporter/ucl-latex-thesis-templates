@@ -58,9 +58,10 @@
 \usepackage{subcaption}
 \usepackage{isotope}
 \usepackage{siunitx}
+\usepackage{xcolor}
 \usepackage[backend=biber,style=numeric,sorting=none]{biblatex}
 \usepackage{amsmath,amssymb}
-\usepackage{hyperref}
+\usepackage[hidelinks]{hyperref}
 \usepackage[nameinlink,noabbrev]{cleveref}
 \usepackage{mathtools}
 \usepackage{comment}
@@ -78,9 +79,10 @@
 \theoremstyle{remark} % upright body, usually smaller
 \newtheorem{remark}[theorem]{Remark}
 \newcommand{\cmmnt}[1]{\ignorespaces}
-\DeclareMathOperator{\wtnv}{w\text{-}TNV}
-\DeclareMathOperator{\wdtnv}{w\text{-}dTNV}
-\DeclareMathOperator{\dtv}{dTV}
+\newcommand{\wtnv}{\ensuremath{w\text{-}\mathrm{TNV}}}
+\newcommand{\wdtnv}{\ensuremath{w\text{-}\mathrm{dTNV}}}
+\newcommand{\dtv}{\ensuremath{\mathrm{dTV}}}
+\newcommand{\TODO}[1]{\textcolor{red}{\textbf{TODO:} #1}}
 
 % Package configuration:
 %  LaTeX uses "packages" to add extra commands and features.
