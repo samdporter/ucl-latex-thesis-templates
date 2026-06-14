@@ -38,7 +38,7 @@ Taking logarithms yields the Poisson log-likelihood
 \log p(y\mid x)
 = \sum_{i=1}^I \left( y_i \log \bar{y}_i(x) - \bar{y}_i(x) - \log(y_i!) \right).
 \end{equation}
-Since the term $\sum_{i=1}^I \log(y_i!)$ does not depend on $x$, it can be dropped for optimisation purposes. Thus, maximising the likelihood w.r.t.\~$x$ is equivalent to minimising
+Since the term $\sum_{i=1}^I \log(y_i!)$ does not depend on $x$, it can be dropped for optimisation purposes. Thus, maximising the likelihood w.r.t.~$x$ is equivalent to minimising
 \begin{equation}
 \mathcal{L}(x)
 \coloneqq -\log p(y\mid x) + \mathrm{const}
@@ -149,7 +149,7 @@ and sets $\mathcal{B}_j(u)$ to be the indices of the $B$ smallest values of $d_{
 \end{equation}
 (or an alternative edge-preserving potential). By restricting the penalty to neighbours that are locally homogeneous in $u$, the prior encourages smoothing within anatomical regions while reducing smoothing across anatomical edges, thereby allowing sharp boundaries to form in $x$ when they are supported by the guidance image.
 
-An even more geometric framework is \gls{pls} \cite{ehrhardt_vector-valued_2014}. These methods encourage structural consistency by enforcing the gradient vectors of the emission image and the guidance image to be aligned, i.e.\ $D x_j \parallel D u_j$. A common formulation (often termed \gls{pls}1) penalises the magnitude of the the component of $D x_j$ orthogonal to $D u_j$, which is proportional to the sine of the enclosed angle $\theta_j$:
+An even more geometric framework is \gls{pls} \cite{ehrhardt_vector-valued_2014}. These methods encourage structural consistency by encouraging the gradient vectors of the emission image and the guidance image to be aligned, i.e.\ $D x_j \parallel D u_j$. A common formulation (often termed \gls{pls}1) penalises the magnitude of the component of $D x_j$ orthogonal to $D u_j$, which is proportional to the sine of the enclosed angle $\theta_j$:
 \begin{equation}
     R_{\mathrm{PLS1}}(x,u)
     = \sum_{j=1}^J \|D x_j\|_2\,\|D u_j\|_2\,|\sin\theta_j|.
@@ -234,7 +234,7 @@ A practical way to exploit multiple modalities without solving a fully joint inv
 \end{equation}
 where $W_{m\leftarrow(m-1)}$ maps the previous-stage estimate $\hat{x}_{m-1}$ into the spatial grid of modality $m$.
 
-Deidda \emph{et al.} have previously investigated a similar method for \isotope[90]{Y} bremsstrahlung \gls{spect}--informed \gls{pet} reconstructions\cite{deidda_triple_2023}. Bremsstrahlung \gls{spect} images are first reconstructed using \gls{hkem} with \gls{ct} and \gls{spect} image-update information to obtain an enhanced \gls{spect} estimate. This \gls{spect} image is then resampled to the \gls{pet} grid and used as functional guidance for \gls{pet} reconstruction. 
+Deidda \emph{et al.}~have previously investigated a similar method for \isotope[90]{Y} bremsstrahlung \gls{spect}--informed \gls{pet} reconstructions \cite{deidda_triple_2023}. Bremsstrahlung \gls{spect} images are first reconstructed using \gls{hkem} with \gls{ct} and \gls{spect} image-update information to obtain an enhanced \gls{spect} estimate. This \gls{spect} image is then resampled to the \gls{pet} grid and used as functional guidance for \gls{pet} reconstruction. 
 \begin{equation}
     \hat{\alpha}_m \in \arg\min_{\alpha_m\in\mathcal{C}}
     \left\{
@@ -268,7 +268,7 @@ for singular values $\sigma_\ell(Y)$ of a rank-$R$ matrix $Y$. Note that $R=\min
 \begin{equation}
     \|Y\|_* = \sum_{r=1}^{R}\sigma_r(Y).
 \end{equation}
-The nuclear norm is the convex envelope of the Rank function. Applied to the voxel-wise jacobians, this promotes singular value sparsity and has the effect of either driving functionally misaligned gradients to zero or parallel/anti-parallel, promoting edge-alignment. Applying this nuclear norm to the voxel-wise jacobians is known as \gls{tnv} \cite{holt_total_2014, rigie_joint_2015}. 
+The nuclear norm is the convex envelope of the Rank function. Applied to the voxel-wise jacobians, it promotes singular value sparsity and has the effect of either driving functionally misaligned gradients to zero or parallel/anti-parallel, promoting edge-alignment. Applying this nuclear norm to the voxel-wise jacobians is known as \gls{tnv} \cite{holt_total_2014, rigie_joint_2015}. 
 \begin{equation}\label{eq:tnv}
     \mathcal{R}_{\mathrm{TNV}}(\bm{z}) = \sum_{n=1}^N  \|\mathcal{G}_n(\bm{z})\|_*
 \end{equation}
@@ -342,7 +342,7 @@ where $\mathbf{1}_J\in\mathbb{R}^{J}$ is an all-ones vector. This form highlight
 \end{align}
 with a step size $\varsigma=1$.
 
-A preconditioner aims to recondition the reconstruction space so that gradient steps are appropriately scaled across voxels, improving numerical conditioning and convergence. Intuitively, we seek larger steps in poorly sensitive directions and smaller steps in highly sensitive directions, thereby approximating curvature information. Since curvature is governed by the inverse Hessian, we ideally approximate it in a diagonal form for computational efficiency.
+A preconditioner aims to recondition the reconstruction space so that gradient steps are appropriately scaled across voxels, improving numerical conditioning and convergence. Intuitively, we seek larger steps in poorly sensitive directions and smaller steps in highly sensitive directions, thereby approximating curvature information. Since curvature is governed by the inverse Hessian, it is often approximated in a diagonal form for computational efficiency.
 
 For the Poisson negative log-likelihood, the expected Hessian (Fisher information) is
 \begin{equation}
@@ -424,7 +424,7 @@ However, we can do better. Variance-reduced subset methods have become increasin
 A generic subset (stochastic) scaled-gradient step uses $g_{s_k}(x^{(k)})$ in place of $\nabla \mathcal{L}(x^{(k)})=\sum_s g_s(x^{(k)})$, i.e.
 \begin{equation}
     x^{(k+1)}
-    = x^{(k)} - \varsigma\,\mathbf{P}^{(k)}
+    = x^{(k)} - \varsigma_k\,\mathbf{P}^{(k)}
     \Big(g_{s_k}(x^{(k)}) + \beta r(x^{(k)})\Big),
 \end{equation}
 which is cheap but noisy. Variance reduction augments this step by incorporating additional information (stored gradients or periodic full-gradient computations) to form a corrected estimator $\tilde g_k$ with reduced variance. Two widely used examples are \gls{saga} and \gls{svrg}:
@@ -478,7 +478,7 @@ A widely used alternative to \gls{em}-type and subset-gradient schemes is the li
 \(
 \min_{x\in\mathcal C}\{\mathcal{L}(x)+\beta\mathcal{R}(x)\}
 \)
-by iteratively building a low-rank approximation to the inverse Hessian from successive iterate and gradient differences. The “limited-memory” construction stores only a small number of correction pairs, making it viable for high-dimensional images, while the “B” variant enforces simple bounds (e.g.\ non-negativity) via an active-set strategy and projected search directions. In practice, L-BFGS-B can exhibit rapid local convergence on smooth penalised objectives, but each iteration requires one or more full objective and gradient evaluations (typically coupled with a line search), which is computationally burdensome in large-scale emission tomography when the likelihood is evaluated over all subsets. For this reason it is not used in the main reconstruction experiments; nevertheless, it provides a useful reference optimiser and is employed later for a small demonstrative deconvolution problem in Chapter~\ref{chapter:deconvolution_pvc}.
+by iteratively building a low-rank approximation to the inverse Hessian from successive iterate and gradient differences. The “limited-memory” construction stores only a small number of correction pairs, making it viable for high-dimensional images, while the “B” variant enforces simple bounds (e.g.\ non-negativity) via an active-set strategy and projected search directions. In practice, L-BFGS-B can exhibit rapid local convergence on smooth penalised objectives, but each iteration requires one or more full objective and gradient evaluations (coupled with a line search), which is computationally burdensome in large-scale emission tomography when the likelihood is evaluated over all subsets. For this reason it is not used in the main reconstruction experiments in this thesis; nevertheless, it provides a useful reference optimiser and is employed later for a small demonstrative deconvolution problem in Chapter~\ref{chapter:deconvolution_pvc}.
 
 A practical limitation of vanilla L-BFGS-B in emission tomography is its sensitivity to poor variable scaling: the line search and the quasi-Newton curvature updates can be dominated by a small subset of high-sensitivity voxels, leading to slow progress. Tsai \textit{et al.}\ propose a diagonally preconditioned variant (L-BFGS-B-PC) that embeds analytic curvature information into the optimisation via a change of variables \cite{tsai_fast_2018}. We can choose a diagonal preconditioner $D$ from a cheap curvature surrogate (e.g.\ an \gls{em}-type diagonal approximation of the Hessian), and run L-BFGS-B on the transformed problem $Dx$). This rescales the objective so that gradients are more isotropic in the transformed coordinates, while bound constraints are preserved by transforming the box constraints accordingly. The resulting method combines low-cost, problem-specific diagonal curvature (from $D$) with the low-rank curvature learned by L-BFGS-B, typically yielding substantially faster and more robust convergence than unpreconditioned L-BFGS-B in penalised reconstructions.
 
