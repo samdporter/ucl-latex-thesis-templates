@@ -1,9 +1,9 @@
-\chapter{Weighted Directional Total Nuclear Variation}
+\chapter{Introduction to Weighted Directional Total Nuclear Variation}
 \label{chapter:wdtnv}
 
-In this chapter, we introduce a smoothed \acrfull{wdtnv} prior. We establish differentiability of the resulting spectral functional and derive a synergy-aware family of diagonal preconditioners.
+In this chapter, we introduce a smoothed \acrfull{wdtnv} prior for synergistic emission tomography. The chapter focuses on the regulariser itself: its relationship to total nuclear variation, its differentiability after singular-value smoothing, the use of anatomical information through directional operators, and the modality-wise weighting needed when coupling heterogeneous emission images.
 
-We then investigate the performance of these diagonal preconditioners, together with an optimal subset-selection strategy for $\wdtnv$ reconstruction using a \acrfull{svrg} method.
+The optimisation machinery used to apply this prior in large-scale PET/SPECT reconstruction, including prior-aware preconditioning, subset selection, and multi-bed PET handling, is developed separately in Chapter~\ref{chapter:optimisation}.
 
 \section{Total Nuclear Variation Revisited}
 \label{sec:tv_to_tnv}
@@ -35,11 +35,10 @@ This section builds on the definitions in Section~\ref{subsec:synergistic_recon}
     \]
 \end{itemize}
 
-
 \subsection{Mathematical properties and differentiability}
 \label{subsec:tnv_differentiability}
 
-Briefly revisiting total variation, optimisation of $\mathcal{R}_{\mathrm{TV}}$ (cf.\ \eqref{eq:tv}) is inconvenient in gradient-based methods because these functionals are not globally smooth (the TV gradient is undefined when $(D x_m)_j=0$). A standard remedy is to introduce a small smoothing parameter $\epsilon>0$.
+Briefly revisiting total variation, optimisation of $\mathcal{R}_{\mathrm{TV}}$ (cf.\ \eqref{eq:tv}) is inconvenient in gradient-based methods because these functionals are not globally smooth: the TV gradient is undefined when $(D x_m)_j=0$. A standard remedy is to introduce a small smoothing parameter $\epsilon>0$.
 
 If we define
 \begin{equation}
@@ -47,9 +46,9 @@ If we define
 \;:=\;
 \sum_{j=1}^{J_m} \|(D x_m)_j\|_{2,\epsilon},
 \qquad
-\|v\|_{2,\epsilon}:=\sqrt{\|v\|_2^2+\epsilon^2}.
+\|v\|_{2,\epsilon}:=\sqrt{\|v\|_2^2+\epsilon^2},
 \end{equation}
-Then the image-space gradient is
+then the image-space gradient is
 \begin{equation}
 \nabla_{x_m}\tilde{\mathcal{R}}_{\mathrm{TV}}(x_m)
 \;=\;
@@ -57,17 +56,17 @@ Then the image-space gradient is
 \end{equation}
 where the division is understood pointwise over voxels.
 
-For nuclear-norm VTV, the (unsmoothed) singular-value map is not differentiable at zero singular values, and hence the corresponding nuclear norm is not $C^1$ at rank-deficient points. We therefore consider the smoothed nuclear norm obtained by applying the Charbonnier function to the singular values, defined as
-
+For nuclear-norm VTV, the unsmoothed singular-value map is not differentiable at zero singular values, and hence the corresponding nuclear norm is not $C^1$ at rank-deficient points. We therefore apply the Charbonnier function to the singular values:
 \begin{equation}\label{eq:charbonnier_g}
-g(s)=\sqrt{s^2+\epsilon^2},
+g(s)=\sqrt{s^2+\epsilon^2}-\epsilon,
 \qquad
 g'(s) = \frac{s}{\sqrt{s^2+\epsilon^2}},
 \qquad
 g''(s)=\frac{\epsilon^2}{(s^2+\epsilon^2)^{3/2}}.
 \end{equation}
+The constant $-\epsilon$ matches the implemented objective value and does not affect gradients or optimisation.
 
-The nuclear norm is (orthogonally) unitarily invariant. i.e. for any orthogonal $U\in\mathbb{R}^{d\times d}$ and $V\in\mathbb{R}^{M\times M}$,
+The nuclear norm is orthogonally invariant: for any orthogonal $U\in\mathbb{R}^{d\times d}$ and $V\in\mathbb{R}^{M\times M}$,
 \begin{equation}
 \|Y\|_* \;=\; \|U Y V^\top\|_*.
 \end{equation}
@@ -80,16 +79,16 @@ f(s)=\sum_{\ell=1}^{r} g(s_\ell),
 r=\min\{d,M\},
 \end{equation}
 is orthogonally invariant and depends on $Y$ only through its singular values $\sigma(Y)=(\sigma_1(Y),\dots,\sigma_r(Y))$.
-Since $g\in C^\infty([0,\infty))$ for $\epsilon>0$, the symmetric function $f$ is $C^\infty$ and hence $\phi$ is $C^2$ with a gradient given by the standard formula for orthogonally invariant matrix functions \cite{lewis_convex_1995,lewis_derivatives_1996}).
+Since $g\in C^\infty([0,\infty))$ for $\epsilon>0$, the symmetric function $f$ is smooth and hence $\phi$ is differentiable, with gradient given by the standard formula for orthogonally invariant matrix functions \cite{lewis_convex_1995,lewis_derivatives_1996}.
 
 \paragraph{Jacobian-space gradient.}
-Let $\phi(\mathcal{G})=\sum_{\ell=1}^{\min(d,M)} g(\sigma_\ell(\mathcal{G}))$ with $g(s)=\sqrt{s^2+\epsilon^2}$, where $\sigma_\ell(\mathcal{G})$ are the singular values of the voxel-wise Jacobian matrix $\mathcal{G}\in\mathbb{R}^{d\times M}$. A thin SVD
+Let $\phi(\mathcal{G})=\sum_{\ell=1}^{\min(d,M)} g(\sigma_\ell(\mathcal{G}))$, where $\sigma_\ell(\mathcal{G})$ are the singular values of the voxel-wise Jacobian matrix $\mathcal{G}\in\mathbb{R}^{d\times M}$. A thin SVD
 \begin{equation}
 \mathcal{G} \;=\; U\,\Sigma\,V^\top,
 \qquad
 U\in\mathbb{R}^{d\times r},\ \Sigma=\mathrm{diag}(\sigma)\in\mathbb{R}^{r\times r},\ V\in\mathbb{R}^{M\times r},
 \end{equation}
-with $r=\min\{d,M\}$ gives the standard spectral-gradient expression
+with $r=\min\{d,M\}$ gives
 \begin{equation}\label{eq:phi_grad_svd}
 \nabla_{\mathcal{G}} \phi(\mathcal{G})
 \;=\;
@@ -98,18 +97,18 @@ U\,\mathrm{diag}\!\bigl(g'(\sigma)\bigr)\,V^\top,
 g'(\sigma_\ell)=\frac{\sigma_\ell}{\sqrt{\sigma_\ell^2+\epsilon^2}}.
 \end{equation}
 
-In practice, it is unnecessary to form $U$ (or even to compute an SVD) if we exploit the small Gram matrix
+In practice, it is unnecessary to form $U$ if we exploit the small Gram matrix
 \begin{equation}
 G := \mathcal{G}^\top \mathcal{G}\in\mathbb{R}^{M\times M},
 \qquad G\succeq 0.
 \end{equation}
-Let $G=V\Lambda V^\top$ with $\Lambda=\mathrm{diag}(\lambda_1,\dots,\lambda_M)$. Then $\lambda_\ell=\sigma_\ell^2$ for the nonzero spectrum and $V$ coincides with the right singular vectors of $\mathcal{G}$. Moreover, on the range of $\mathcal{G}$ we have $U=\mathcal{G}V\Sigma^{-1}$, so substituting into~\eqref{eq:phi_grad_svd} yields
+Let $G=V\Lambda V^\top$ with $\Lambda=\mathrm{diag}(\lambda_1,\dots,\lambda_M)$. Then $\lambda_\ell=\sigma_\ell^2$ for the nonzero spectrum and $V$ coincides with the right singular vectors of $\mathcal{G}$. On the range of $\mathcal{G}$ we have $U=\mathcal{G}V\Sigma^{-1}$, so substituting into~\eqref{eq:phi_grad_svd} yields
 \begin{equation}\label{eq:phi_grad_gram}
 \nabla_{\mathcal{G}} \phi(\mathcal{G})
 \;=\;
 \mathcal{G}\,V\,\mathrm{diag}\!\left(\frac{g'(\sigma_\ell)}{\sigma_\ell}\right)\,V^\top,
 \end{equation}
-with the continuous extension at $\sigma_\ell=0$. For the Charbonnier-type smoothing,
+with the continuous extension at $\sigma_\ell=0$. For Charbonnier smoothing,
 \begin{equation}
 \frac{g'(\sigma_\ell)}{\sigma_\ell}
 =
@@ -125,9 +124,9 @@ hence
 \;=\;
 \mathcal{G}\,(G+\epsilon^2 I)^{-1/2}.
 \end{equation}
-Equation~\eqref{eq:phi_grad_inv_sqrt} shows that the Jacobian-space gradient is obtained by applying the inverse square-root of the $M\times M$ SPD matrix $G+\epsilon^2 I$ to the columns of $\mathcal{G}$. This reduces the per-voxel computation from an SVD of a $d\times M$ matrix to evaluating a matrix function of dimension $M$, which is particularly advantageous when $M\ll d$.
+Equation~\eqref{eq:phi_grad_inv_sqrt} shows that the Jacobian-space gradient is obtained by applying the inverse square-root of the $M\times M$ SPD matrix $G+\epsilon^2 I$ to the columns of $\mathcal{G}$.
 
-For $M=2$ modalities, even an eigendecomposition of $G$ can be avoided: $(G+\epsilon^2 I)^{-1/2}$ admits a closed-form expression in terms of scalar invariants. Writing
+For $M=2$ modalities, even an eigendecomposition of $G$ can be avoided. Writing
 \begin{equation}
 G=
 \begin{pmatrix}
@@ -143,7 +142,7 @@ t:=\mathrm{tr}(S)=s_{11}+s_{22},
 \qquad
 s:=\sqrt{\det(S)}=\sqrt{s_{11}s_{22}-s_{12}^2}.
 \end{equation}
-Since $\epsilon>0$ implies $S\succ 0$, we have $\det(S)>0$ and the following identity holds for $2\times2$ SPD matrices:
+Since $\epsilon>0$ implies $S\succ 0$, the following identity holds for $2\times2$ SPD matrices:
 \begin{equation}\label{eq:inv_sqrt_2x2}
 S^{-1/2}
 =
@@ -162,7 +161,7 @@ Therefore, for two modalities the Jacobian-space gradient can be evaluated via
 \mathcal{G}\,S^{-1/2},
 \qquad S=G+\epsilon^2 I,
 \end{equation}
-using only dot products and scalar square-roots per voxel, without an explicit SVD or eigendecomposition.
+using only dot products and scalar square-roots per voxel.
 
 \paragraph{Image-space gradient.}
 Define voxel-wise
@@ -176,29 +175,29 @@ and let $Q=\{Q_n\}_{n=1}^N$. Applying the chain rule through the linear map $\bm
 =
 \sum_{n=1}^N \left\langle Q_n,\ (D\,\delta \bm{z})_n \right\rangle_F
 =
-\left\langle Q,\ D\,\delta \bm{z} \right\rangle,
+\left\langle Q,\ D\,\delta \bm{z} \right\rangle.
 \end{equation}
-where $\langle\cdot,\cdot\rangle$ denotes the discrete $\ell^2$ inner product over voxels combined with the Frobenius inner product over the $(d\times M)$ blocks. By definition of the adjoint $D^\ast$,
+By definition of the adjoint $D^\ast$,
 \begin{equation}
 \left\langle Q,\ D\,\delta \bm{z} \right\rangle
 =
 \left\langle D^\ast Q,\ \delta \bm{z} \right\rangle.
 \end{equation}
-It is standard to define the discrete divergence as $\operatorname{div}:=-D^\ast$, hence
+Defining the discrete divergence as $\operatorname{div}:=-D^\ast$, we obtain
 \begin{equation}
 \nabla_{\bm{z}} \tilde{\mathcal{R}}_{\mathrm{TNV}}(\bm{z})
 =
 -\,\operatorname{div} Q,
 \end{equation}
-where $\operatorname{div}$ acts column-wise on $Q\in\mathbb{R}^{N\times d\times M}$ (i.e.\ separately for each modality).
+where $\operatorname{div}$ acts column-wise on $Q$.
 
 \section{Weighted Directional Total Nuclear Variation ($\wdtnv$)}
 \label{sec:wdtnv}
 
-This section extends Total Nuclear Variation (TNV) \cite{rigie_joint_2015, holt_total_2014} in two orthogonal ways:
+This section extends TNV \cite{rigie_joint_2015, holt_total_2014} in two orthogonal ways:
 \begin{itemize}
-    \item We incorporate high-resolution anatomical guidance directionally (rather than as an additional coupled channel)
-    \item We introduce a voxel-wise, modality-wise diagonal weighting that compensates for heterogeneous scaling and spatially varying reliability across modalities.
+    \item high-resolution anatomical information is incorporated directionally rather than as an additional coupled intensity channel;
+    \item voxel-wise, modality-wise diagonal weighting compensates for heterogeneous scaling and spatially varying reliability across modalities.
 \end{itemize}
 
 The starting point is the standard TNV construction: penalising the nuclear norm of a multi-modality Jacobian promotes joint sparsity and alignment of edges, since a low nuclear norm favours a locally low-rank Jacobian.
@@ -206,24 +205,33 @@ The starting point is the standard TNV construction: penalising the nuclear norm
 \subsection{Directional operators from guidance}
 \label{subsec:directional_from_guidance}
 
-To incorporate guidance information (e.g.\ from a high-resolution anatomical image), we borrow the operator from directional total variation Equation~\ref{eq:directional_op}. The key design choice is that the guidance image is used only to steer the penalty, not to add an extra column to the joint Jacobian. This avoids directly coupling an anatomical channel (with distinct units, resolution, and artefacts) to the emission channels through the singular spectrum. In particular, if a guidance image were appended as an additional modality, then a single global scaling would have data-dependent and spatially non-uniform consequences: where emission gradients are weak, even modest guidance gradients can dominate the local Jacobian and hence the singular values, whereas in strong-emission-edge regions the same scaling may become negligible. Since the nuclear norm couples modalities through the eigenstructure of the local Gram matrix, such reweighting can also transfer structured guidance artefacts into the coupled reconstruction. By contrast, a directional operator provides an explicit, interpretable mechanism: it modifies which gradient components are penalised (anisotropy), without forcing the presence of edges where the emission data do not support them.
+To incorporate guidance information, such as a high-resolution anatomical image, we borrow the operator from directional total variation (Equation~\ref{eq:directional_op}). The key design choice is that the guidance image is used only to steer the penalty, not to add an extra column to the joint Jacobian. This avoids directly coupling an anatomical channel, with distinct units, resolution, and artefacts, to the emission channels through the singular spectrum.
 
-A further practical difficulty is that extending the joint Jacobian from two emission channels to three channels (by appending CT-derived guidance as a third modality) makes the relative weighting problem substantially more ill-conditioned. Even in the two-modality case, the scale factors must be tuned so that neither modality trivially dominates the singular spectrum. With three modalities, the situation is more delicate: down-weighting one emission modality to reduce its influence in the nuclear norm immediately raises the question of how to simultaneously calibrate the guidance channel. If the guidance (CT) column is down-weighted together with the weak emission modality, then its anatomical influence is suppressed precisely where that emission modality needs it most. Conversely, if the guidance column is left unscaled (or scaled to match only the stronger emission modality), it tends to overpower the down-weighted modality: the dominant singular directions become governed by the CT gradients, and the down-weighted emission modality contributes negligibly to the local Gram matrix. In other words, there is no single global CT scaling that can both avoid swamping the weaker emission modality and preserve a consistent level of anatomical steering across voxels and across both emission channels. This trade-off is intrinsic to the spectral coupling: scaling any one column changes not only its own contribution but also the cross-terms and eigenstructure of $\mathcal{G}_n^\top\mathcal{G}_n$, so the effective ``amount of guidance'' becomes spatially and data dependently entangled with the desired emission-to-emission balancing.
-
-Using CT only to construct the directional operators decouples these roles. The relative weighting between emission modalities can be controlled explicitly (e.g.\ via $B_n$) without simultaneously having to retune the strength of anatomical information, which is instead governed by the directional-field stabilisation and anisotropy parameters in $\Pi_{m,n}$. This separation yields more predictable behaviour: modality weights determine how strongly emission gradients are coupled to one another through the nuclear norm, while the directional operator determines how strongly the penalty prefers $\mu$-consistent edge directions. 
-
-In addition, retaining a two-modality Jacobian yields a $2\times 2$ Gram matrix (Equation~\ref{eq:2x2_gram}), which admits closed-form expressions for the spectral quantities required by the smoothed nuclear-norm surrogate and its Jacobian-space gradient. This enables efficient and numerically robust evaluation of $(\mathcal{G}_n^\top\mathcal{G}_n+\epsilon^2 I)^{-1/2}$ per voxel using only scalar invariants (trace and determinant), avoiding a general SVD/eigendecomposition and reducing both computational overhead and implementation complexity.
+If a guidance image were appended as an additional modality, then a single global scaling would have data-dependent and spatially non-uniform consequences. Where emission gradients are weak, even modest guidance gradients can dominate the local Jacobian and hence the singular values; where emission gradients are strong, the same scaling may become negligible. Since the nuclear norm couples modalities through the eigenstructure of the local Gram matrix, such reweighting can also transfer structured guidance artefacts into the coupled reconstruction. By contrast, a directional operator modifies which gradient components are penalised, without forcing the presence of edges where the emission data do not support them.
 
 Applying $\Pi_{m,n}$ to each modality gradient defines the directional multi-modality Jacobian
 \begin{equation}
 \mathcal{G}^{\mathrm{dir}}_n(\bm{z})= \bigl[\Pi_{1,n}(D z_1)_n \;|\; \cdots \;|\; \Pi_{M,n}(D z_M)_n\bigr]\in\mathbb{R}^{d\times M}.
 \end{equation}
-Here $D$ denotes the chosen discrete directional-difference operator (so $(D z_m)_n\in\mathbb{R}^d$), and each $\Pi_{m,n}\in\mathbb{R}^{d\times d}$ is constructed from the guidance field at voxel $n$ (and may be modality dependent, though we don't explore this in this thesis). Intuitively, $\Pi_{m,n}$ down-weights gradient components that are deemed inconsistent with the local anatomical direction, so that emission edges aligned with the guidance become cheaper while other directions are penalised more strongly. In homogeneous regions of the guidance image, $\Pi_{m,n}$ is typically close to the identity, so the regulariser reduces to an (approximately) isotropic TNV-type coupling.
+Here $D$ denotes the chosen discrete directional-difference operator and each $\Pi_{m,n}\in\mathbb{R}^{d\times d}$ is constructed from the guidance field at voxel $n$. In the implementation used in this work, a guidance image $a$ defines
+\begin{equation}
+\xi_n
+=
+\frac{(D a)_n}{\sqrt{\|(D a)_n\|_2^2+\eta^2}},
+\qquad
+\Pi_{m,n}=I_d-\gamma_m\,\xi_n\xi_n^\top,
+\qquad \gamma_m\in[0,1].
+\label{eq:wdtnv_directional_operator}
+\end{equation}
+When $\eta$ is not specified explicitly it is set from a robust scale estimate of $\|(Da)_n\|_2$, namely $0.01$ times the difference between its $99$th and $1$st percentiles. In homogeneous regions of the guidance image, $\xi_n$ is small and $\Pi_{m,n}$ is close to the identity, so the regulariser reduces to an approximately isotropic TNV-type coupling.
+
+Using CT only to construct the directional operators decouples anatomical steering from emission-to-emission weighting. Modality weights determine how strongly emission gradients are coupled to one another through the nuclear norm, while $\Pi_{m,n}$ determines how strongly the penalty prefers guidance-consistent edge directions. Retaining a two-modality Jacobian also preserves the efficient $2\times2$ Gram-matrix structure derived in Section~\ref{sec:tv_to_tnv}.
 
 \subsection{Modality-wise weighting and the full \texorpdfstring{$\wdtnv$}{w-dTNV} prior}
 \label{subsec:modality_weighting}
+\label{subsec:voxelwise_weighting}
 
-PET and SPECT images of the same administered Y-90 activity differ substantially in dynamic range: the effective count level, sensitivity, and noise characteristics vary by orders of magnitude between the two modalities, and in clinical imaging the two reconstructions may also operate at different spatial resolutions. If the directional emission gradients $\Pi_{m,n}(D z_m)_n$ are used directly without normalisation, the nuclear-norm coupling is dominated by the modality with the larger gradient magnitudes, suppressing the contribution of the weaker channel to the joint singular-value spectrum.
+PET and SPECT images of the same administered Y-90 activity differ substantially in dynamic range: the effective count level, sensitivity, and noise characteristics vary by orders of magnitude between the two modalities, and in clinical imaging the two reconstructions may also operate at different spatial resolutions. If the directional emission gradients $\Pi_{m,n}(D z_m)_n$ are used directly without normalisation, the nuclear-norm coupling is dominated by the modality with the larger gradient magnitudes.
 
 To compensate, we introduce a voxel-wise, modality-wise diagonal weight matrix
 \begin{equation}
@@ -231,7 +239,7 @@ To compensate, we introduce a voxel-wise, modality-wise diagonal weight matrix
     \qquad \beta_{m,n} > 0.
     \label{eq:Bn_def}
 \end{equation}
-The \emph{weighted directional Jacobian} is defined by right-multiplying the directional Jacobian by $B_n$:
+The weighted directional Jacobian is
 \begin{equation}
     Y_n(\bm{z}) := \mathcal{G}_n^{\mathrm{dir}}(\bm{z})\,B_n
     = \bigl[\Pi_{1,n}(D z_1)_n \;\big|\; \Pi_{2,n}(D z_2)_n\bigr]\,
@@ -244,785 +252,19 @@ The columns of $Y_n$ are $y_{m,n} := \beta_{m,n}\,\Pi_{m,n}(D z_m)_n \in \mathbb
 The \emph{weighted directional Total Nuclear Variation} ($\wdtnv$) prior is then
 \begin{equation}
     \mathcal{R}_{\mathrm{w\text{-}dTNV}}(\bm{z})
-    := \sum_{n=1}^{N} \phi\!\left(Y_n(\bm{z})\right),
+    :=
+    V_{\mathrm{vox}}\sum_{n=1}^{N} \phi\!\left(Y_n(\bm{z})\right),
     \qquad
     \phi(Y) := \sum_{\ell=1}^{\min(d,M)} g(\sigma_\ell(Y)),
     \label{eq:wdtnv_prior}
 \end{equation}
-with the Charbonnier smoothing $g(s)=\sqrt{s^2+\epsilon^2}$ from~\eqref{eq:charbonnier_g}.
+where $V_{\mathrm{vox}}$ is the voxel volume and $g$ is the Charbonnier smoothing from~\eqref{eq:charbonnier_g}. Choosing equal weights $\beta_{m,n}\equiv 1$ recovers unweighted $d$TNV. Choosing $\beta_{m,n}$ proportional to the inverse of a characteristic modality scale brings both channels to a comparable range before the nuclear-norm coupling is evaluated. The PET/SPECT normalisation used in the application study is specified in Chapter~\ref{chapter:paper}.
 
-Choosing equal weights $\beta_{m,n} \equiv 1$ recovers unweighted $d$TNV; choosing $\beta_{m,n}$ proportional to the inverse of the characteristic gradient magnitude of modality $m$ in the foreground brings both channels to a comparable scale before the nuclear-norm coupling is evaluated. In practice the weights may be chosen globally ($\beta_{m,n} \equiv \beta_m$) or with spatial variation. The specific normalisation strategy used in this thesis is described in Chapter~\ref{chapter:paper}.
-
-\paragraph{Effect on the singular spectrum.} Right-multiplying by $B_n$ scales the $m$-th column of $Y_n$ by $\beta_{m,n}$. This scales the singular values of $Y_n$ in a non-trivial way (the singular values of $Y B$ are not simply $\sigma_\ell(Y)\cdot \beta_m$), but ensures that both columns contribute comparably to the Gram matrix $Y_n^\top Y_n$ when $\beta_{1,n}$ and $\beta_{2,n}$ are chosen to equalise the two modalities' typical gradient magnitudes. The closed-form $2\times 2$ Gram-matrix algebra derived in Section~\ref{sec:tv_to_tnv} applies directly to $Y_n$ and does not require any modification for the weighted case.
-
-\subsection{Preconditioning strategies}
-\label{subsec:preconditioning}
-
-This subsection constructs practical curvature surrogates for the $\wdtnv$ prior when $M=2$ emission modalities.
-The goal is a \emph{voxel-wise} preconditioner (either $2\times2$ block-diagonal across modalities, or fully diagonal)
-that can be applied efficiently inside first-order stochastic solvers.
-
-\paragraph{Setting.}
-Throughout, fix $\epsilon>0$ and let $d\ge 2$ denote the number of discrete directional derivatives (in this thesis $d=18$).
-At voxel $n$, recall the weighted directional Jacobian. For two modalities,
-\begin{equation}
-Y_n
-:=
-\bigl[\Pi_{1,n}(D z_1)_n \;|\; \Pi_{2,n}(D z_2)_n\bigr]\,
-\mathrm{diag}(\beta_{1,n},\beta_{2,n})
-=
-\bigl[y_{1,n}\;|\;y_{2,n}\bigr]\in\mathbb{R}^{d\times 2},
-\end{equation}
-with columns $y_{1,n},y_{2,n}\in\mathbb{R}^d$.
-Define the smoothed TNV density (Charbonnier on singular values)
-\begin{equation}
-\phi(Y)
-:=
-\sqrt{\sigma_1(Y)^2+\epsilon^2}+\sqrt{\sigma_2(Y)^2+\epsilon^2},
-\qquad Y\in\mathbb{R}^{d\times 2},
-\label{eq:phi_def_precond_revised}
-\end{equation}
-and the full prior
-\begin{equation}
-\mathcal{R}_{\mathrm{w\text{-}dTNV}}(\bm{z})
-=
-\beta\sum_{n=1}^{N}\phi(Y_n).
-\label{eq:R_sum_phi_precond_revised}
-\end{equation}
-
-%------------------------------------------------------------
-\subsubsection{A convenient Gram-matrix form and what we mean by ``curvature''}
-
-A key identity is that $\phi(Y)$ can be written using only the $2\times 2$ Gram matrix.
-Define
-\begin{equation}
-S(Y):=Y^\top Y+\epsilon^2 I_2 \in \mathbb{R}^{2\times2}, \qquad S(Y)\succ 0.
-\label{eq:S_def_precond_revised}
-\end{equation}
-If $Y=U\Sigma V^\top$ is an SVD with $\Sigma=\mathrm{diag}(\sigma_1,\sigma_2)$, then
-$S(Y)=V(\Sigma^2+\epsilon^2 I_2)V^\top$, hence
-\begin{equation}
-\phi(Y)
-=
-\mathrm{tr}\!\left(S(Y)^{1/2}\right)
-=
-\mathrm{tr}\!\left((Y^\top Y+\epsilon^2 I_2)^{1/2}\right).
-\label{eq:phi_trace_sqrt_precond_revised}
-\end{equation}
-
-For optimisation, we want a preconditioner that captures (or safely upper-bounds) the local quadratic behaviour
-of $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ with respect to voxel intensities.
-Because $Y_n$ depends on finite-difference stencils, a perturbation at one voxel affects the Jacobians in a small
-neighbourhood. We therefore build a \emph{local} surrogate curvature by:
-(i) constructing a quadratic surrogate for $\phi$ in Jacobian coordinates, and
-(ii) pulling it back through the stencil to image coordinates, then taking a voxel-wise block-diagonal approximation.
-
-%------------------------------------------------------------
-\subsubsection{Stencil pullback: from Jacobian-space quadratic forms to a voxel-wise $2\times2$ curvature block}
-
-Fix a \emph{source} voxel $n$ and consider simultaneous modality perturbations at $n$:
-\begin{equation}
-z_1 \mapsto z_1+h_1 e_n,
-\qquad
-z_2 \mapsto z_2+h_2 e_n,
-\qquad
-\bm{h}:=(h_1,h_2)^\top\in\mathbb{R}^2.
-\end{equation}
-Let $q_{n'\leftarrow n}:=(D e_n)_{n'}\in\mathbb{R}^d$ denote the discrete impulse-gradient stencil vector, and define
-\begin{equation}
-\mathcal{N}(n):=\{n'\ :\ q_{n'\leftarrow n}\neq 0\},
-\end{equation}
-the set of \emph{target} voxels whose directional derivatives are influenced by a perturbation at $n$
-(for forward differences in $d$ directions at an interior voxel, $|\mathcal{N}(n)|=1+d$).
-
-Linearity of $D$ implies that for each $n'\in\mathcal{N}(n)$,
-\begin{equation}
-(D z_m)_{n'} \mapsto (D z_m)_{n'}+h_m q_{n'\leftarrow n},\qquad m\in\{1,2\}.
-\end{equation}
-Therefore, the Jacobian at $n'$ transforms as
-\begin{equation}
-Y_{n'} \mapsto Y_{n'} + \Delta Y_{n'}(\bm{h}),
-\qquad
-\Delta Y_{n'}(\bm{h})=\bigl[h_1 a_{1,n'}\;|\;h_2 a_{2,n'}\bigr]\in\mathbb{R}^{d\times2},
-\label{eq:DeltaY_def_precond_revised}
-\end{equation}
-where
-\begin{equation}
-a_{m,n'}:=\beta_{m,n'}\Pi_{m,n'}q_{n'\leftarrow n}\in\mathbb{R}^d.
-\label{eq:anm_def_precond_revised}
-\end{equation}
-
-For any quadratic model in Jacobian coordinates of the form
-\begin{equation}
-\mathcal{Q}_{n'}(Y) = \frac{1}{2}\,\mathrm{vec}(Y)^\top\,\widetilde{H}_{n'}\,\mathrm{vec}(Y),
-\qquad
-\widetilde{H}_{n'}\in\mathbb{R}^{2d\times 2d}\ \text{symmetric psd},
-\label{eq:calQn_general_quadratic}
-\end{equation}
-the curvature contribution at the source voxel $n$ induced by the target voxel $n'$ is
-\begin{equation}
-\mathrm{d}^2 \mathcal{Q}_{n'}(Y_{n'})[\Delta Y_{n'}(\bm{h}),\Delta Y_{n'}(\bm{h})]
-=
-\mathrm{vec}(\Delta Y_{n'}(\bm{h}))^\top \widetilde{H}_{n'}\, \mathrm{vec}(\Delta Y_{n'}(\bm{h})).
-\end{equation}
-Since $\mathrm{vec}(\Delta Y_{n'}(\bm{h}))=[h_1 a_{1,n'};\ h_2 a_{2,n'}]$, define the block embedding matrix
-\begin{equation}
-E_{n'\leftarrow n}
-:=
-\begin{pmatrix}
-a_{1,n'} & 0\\
-0 & a_{2,n'}
-\end{pmatrix}
-\in\mathbb{R}^{2d\times 2},
-\qquad
-\mathrm{vec}(\Delta Y_{n'}(\bm{h})) = E_{n'\leftarrow n}\,\bm{h}.
-\label{eq:Eembed_def}
-\end{equation}
-Then
-\begin{equation}
-\mathrm{vec}(\Delta Y_{n'}(\bm{h}))^\top \widetilde{H}_{n'}\, \mathrm{vec}(\Delta Y_{n'}(\bm{h}))
-=
-\bm{h}^\top\left(E_{n'\leftarrow n}^\top \widetilde{H}_{n'} E_{n'\leftarrow n}\right)\bm{h}.
-\end{equation}
-We therefore define the \emph{target-to-source} $2\times2$ curvature contribution
-\begin{equation}
-K_{n'\leftarrow n}
-:=
-E_{n'\leftarrow n}^\top \widetilde{H}_{n'} E_{n'\leftarrow n}
-\in\mathbb{R}^{2\times2},
-\qquad
-K_{n'\leftarrow n}\succeq 0,
-\label{eq:K_def_general}
-\end{equation}
-and the voxel-wise $2\times2$ curvature surrogate in image coordinates
-\begin{equation}
-P_n
-:=
-\beta\sum_{n'\in\mathcal{N}(n)} K_{n'\leftarrow n}
-\in\mathbb{R}^{2\times2},
-\qquad
-P_n\succeq 0.
-\label{eq:Pn_def_general}
-\end{equation}
-
-The remaining design choice is the Jacobian-space psd matrix $\widetilde{H}_{n'}$ used to model/majorise the curvature of
-$\phi$ at voxel $n'$. We now present several choices, forming a cost--accuracy hierarchy.
-
-%------------------------------------------------------------
-\subsubsection{Route I: MM/IRLS quadratic surrogates of $\phi$ (fast, $2\times2$ Gram-matrix algebra)}
-
-This route constructs a quadratic \emph{majoriser} of the \emph{function value} $\phi(Y)$ at a lag point $Y^{(k)}$.
-It yields a psd quadratic form and hence a safe curvature proxy, but it is important to note that it does \emph{not}
-claim a global Loewner majorisation of the true Hessian $\nabla^2 \phi(Y)$.
-
-\paragraph{MM/IRLS tangent majoriser in Gram form.}
-Define $\Psi(S):=\mathrm{tr}(S^{1/2})$ for $S\in\mathrm{Sym}^2_{++}$. The map $S\mapsto S^{1/2}$ is operator-concave,
-hence $\Psi$ is concave. Its gradient is
-\begin{equation}
-\nabla_S\Psi(S) = \frac{1}{2}S^{-1/2}.
-\end{equation}
-Concavity implies the global first-order upper bound (tangent majoriser): for any $S,S_0\in\mathrm{Sym}^2_{++}$,
-\begin{equation}
-\Psi(S)\le \Psi(S_0)+\left\langle \frac{1}{2}S_0^{-1/2},\,S-S_0\right\rangle_F.
-\end{equation}
-With $S(Y)=Y^\top Y+\epsilon^2 I_2$ and $S^{(k)}:=S(Y^{(k)})$, define the MM weight
-\begin{equation}
-W^{(k)}:=\left(S^{(k)}\right)^{-1/2}
-=
-\left(Y^{(k)\top}Y^{(k)}+\epsilon^2 I_2\right)^{-1/2}.
-\label{eq:Wk_def_precond_revised}
-\end{equation}
-Then the resulting quadratic surrogate (dropping constants independent of $Y$) is
-\begin{equation}
-\widehat{\phi}(Y;Y^{(k)})
-:=
-\frac{1}{2}\,\mathrm{tr}\!\left(W^{(k)}\,Y^\top Y\right).
-\label{eq:phi_hat_def_precond_revised}
-\end{equation}
-For fixed $W^{(k)}$, this surrogate has constant curvature in $Y$ and can be used to form a local preconditioner.
-
-\paragraph{Jacobian-space curvature matrix for MM.}
-Write $\mathrm{vec}(Y)\in\mathbb{R}^{2d}$ by stacking the two columns of $Y$.
-Since $\frac{1}{2}\mathrm{tr}(W Y^\top Y) = \frac{1}{2}\mathrm{vec}(Y)^\top (I_d\otimes W)\,\mathrm{vec}(Y)$, the MM surrogate corresponds to
-\begin{equation}
-\widetilde{H}^{\mathrm{MM}}_{n'} = I_d \otimes \widetilde{W}_{n'} \in\mathbb{R}^{2d\times 2d},
-\label{eq:Htilde_MM_form}
-\end{equation}
-where $\widetilde{W}_{n'}$ is a $2\times2$ modality-space weight (exact, diagonalised, or approximated as below).
-Substituting \eqref{eq:Htilde_MM_form} into \eqref{eq:K_def_general} gives a fully explicit $2\times2$ contribution:
-\begin{equation}
-K_{n'\leftarrow n}
-=
-\begin{pmatrix}
-\widetilde{w}_{11}\,\|a_{1,n'}\|_2^2 &
-\widetilde{w}_{12}\,\langle a_{1,n'},a_{2,n'}\rangle\\[2pt]
-\widetilde{w}_{12}\,\langle a_{1,n'},a_{2,n'}\rangle &
-\widetilde{w}_{22}\,\|a_{2,n'}\|_2^2
-\end{pmatrix},
-\qquad
-\widetilde{W}_{n'}=\begin{psmallmatrix}\widetilde{w}_{11}&\widetilde{w}_{12}\\ \widetilde{w}_{12}&\widetilde{w}_{22}\end{psmallmatrix}.
-\label{eq:K_MM_explicit}
-\end{equation}
-
-We now specify several choices for $\widetilde{W}_{n'}$.
-
-%------------------------------------------------------------
-\subsubsection{MM--A: block-diagonal (exact $2\times2$ weight, retains cross-modality coupling)}
-\label{subsubsec:prec_MMA_block}
-
-The \emph{exact} MM weight at target voxel $n'$ is
-\begin{equation}
-\widetilde{W}_{n'}^{\mathrm{A}}
-:=
-W_{n'}^{(k)}
-=
-\left(Y_{n'}^{(k)\top}Y_{n'}^{(k)}+\epsilon^2 I_2\right)^{-1/2}.
-\label{eq:W_exact_def_revised}
-\end{equation}
-With \eqref{eq:K_MM_explicit} and \eqref{eq:Pn_def_general} this yields a voxel-wise $2\times2$ curvature block $P_n^{\mathrm{A}}$.
-
-\paragraph{Closed form for $\left(2\times2\right)$ inverse square-root (no SVD/eigendecomposition).}
-Fix a target voxel and write $Y^{(k)}=[y_1|y_2]$. Define
-\begin{equation}
-S:=Y^{(k)\top}Y^{(k)}+\epsilon^2 I_2
-=
-\begin{pmatrix}
-s_{11} & s_{12}\\
-s_{12} & s_{22}
-\end{pmatrix},
-\qquad
-s_{11}:=\|y_1\|_2^2+\epsilon^2,\quad
-s_{22}:=\|y_2\|_2^2+\epsilon^2,\quad
-s_{12}:=\langle y_1,y_2\rangle,
-\end{equation}
-and invariants
-\begin{equation}
-t:=\mathrm{tr}(S)=s_{11}+s_{22},
-\qquad
-s:=\sqrt{\det(S)}=\sqrt{s_{11}s_{22}-s_{12}^2}.
-\end{equation}
-Then $S\succ 0$ implies $\det(S)>0$ and the inverse square-root has the explicit form
-\begin{equation}
-S^{-1/2}
-=
-\frac{\sqrt{t+2s}}{2\det(S)+s\,t}
-\begin{pmatrix}
-s_{22}+s & -s_{12}\\
--s_{12} & s_{11}+s
-\end{pmatrix}.
-\label{eq:W_closed_precond_revised}
-\end{equation}
-This is numerically robust in the $2\times2$ case and avoids per-voxel SVDs.
-
-\paragraph{Application.}
-Method MM--A produces a $2\times2$ block $P_n^{\mathrm{A}}$ per voxel. Applying the preconditioner requires inverting each block,
-which is closed-form and cheap; in practice one may add a small stabiliser $\mu I_2$ before inversion.
-
-%------------------------------------------------------------
-\subsubsection{MM--B: diagonal \emph{majorising} MM weight (safe diagonalisation via Gershgorin row-sums)}
-\label{subsubsec:prec_MMB_gersh}
-
-If one wants a \emph{strictly diagonal} modality preconditioner while retaining a safety margin against missing coupling,
-a principled option is to replace the $2\times2$ weight $W_{n'}^{(k)}$ by a diagonal matrix that \emph{dominates it} in the
-Loewner order. For a symmetric $2\times2$ matrix
-$W=\begin{psmallmatrix}w_{11}&w_{12}\\w_{12}&w_{22}\end{psmallmatrix}$,
-the Gershgorin row-sum diagonal
-\begin{equation}
-\widetilde{W}_{n'}^{\mathrm{B}}
-:=
-\mathrm{diag}\!\left(w_{11}+|w_{12}|,\; w_{22}+|w_{12}|\right)
-\label{eq:W_gersh_diag}
-\end{equation}
-satisfies $\widetilde{W}_{n'}^{\mathrm{B}} - W \succeq 0$.
-Intuitively, $|w_{12}|$ is the amount of cross-modality coupling; adding it to each diagonal entry ensures the diagonal proxy is
-conservative rather than aggressive.
-
-With $\widetilde{w}_{12}=0$, the contribution \eqref{eq:K_MM_explicit} becomes diagonal and the resulting image-space preconditioner is diagonal in the modality index:
-\begin{equation}
-(P^{\mathrm{B}}_{1})_n
-=
-\beta\sum_{n'\in\mathcal{N}(n)} \left(w_{11}(n')+|w_{12}(n')|\right)\,\|a_{1,n'}\|_2^2,
-\qquad
-(P^{\mathrm{B}}_{2})_n
-=
-\beta\sum_{n'\in\mathcal{N}(n)} \left(w_{22}(n')+|w_{12}(n')|\right)\,\|a_{2,n'}\|_2^2.
-\label{eq:PB_diag_entries_gersh}
-\end{equation}
-
-%------------------------------------------------------------
-\subsubsection{MM--B$^\star$: diagonal MM by \emph{dropping} off-diagonals (fast but potentially underestimates curvature)}
-\label{subsubsec:prec_MMB_naive}
-
-A common heuristic is to simply discard cross-modality coupling by taking only the diagonal of the exact MM weight:
-\begin{equation}
-\widetilde{W}_{n'}^{\mathrm{B^\star}}
-:=
-\mathrm{diag}\!\left(w_{11},\,w_{22}\right),
-\qquad
-W_{n'}^{(k)}=\begin{psmallmatrix}w_{11}&w_{12}\\w_{12}&w_{22}\end{psmallmatrix}.
-\label{eq:W_naive_diag}
-\end{equation}
-This choice is \emph{not} guaranteed to dominate $W_{n'}^{(k)}$ (indeed $\mathrm{diag}(w_{11},w_{22})-W$ is indefinite when $w_{12}\neq 0$),
-so it can \emph{underestimate} curvature in directions that mix the two modalities. In practice, this may lead to overly aggressive steps
-unless additional safeguards are used (smaller global step sizes, stronger line-search, or adding a stabilising diagonal shift).
-
-The resulting diagonal entries are simply
-\begin{equation}
-(P^{\mathrm{B^\star}}_{1})_n
-=
-\beta\sum_{n'\in\mathcal{N}(n)} w_{11}(n')\,\|a_{1,n'}\|_2^2,
-\qquad
-(P^{\mathrm{B^\star}}_{2})_n
-=
-\beta\sum_{n'\in\mathcal{N}(n)} w_{22}(n')\,\|a_{2,n'}\|_2^2.
-\label{eq:PBstar_diag_entries}
-\end{equation}
-
-%------------------------------------------------------------
-\subsubsection{MM--C: Frobenius/isotropic approximation (``Frobenius rather than nuclear'' proxy)}
-\label{subsubsec:prec_MMC_frob}
-
-The exact MM weight $W=(Y^\top Y+\epsilon^2 I_2)^{-1/2}$ depends on the \emph{full} $2\times2$ Gram matrix, hence on the
-cross-term $\langle y_1,y_2\rangle$ and the singular spectrum. A cheaper alternative is to replace this by an \emph{isotropic}
-scalar weight, motivated by approximating the local coupling by a Frobenius-magnitude model.
-
-If $S$ is close to isotropic (its two eigenvalues are similar), then
-$S \approx \frac{1}{2}\mathrm{tr}(S)\,I_2$ and hence
-$S^{-1/2} \approx \left(\frac{1}{2}\mathrm{tr}(S)\right)^{-1/2}I_2$.
-We therefore define
-\begin{equation}
-\widetilde{W}_{n'}^{\mathrm{C}}
-:=
-\bar{\omega}_{n'}\,I_2,
-\qquad
-\bar{\omega}_{n'}
-:=
-\left(\frac{1}{2}\mathrm{tr}(S_{n'})\right)^{-1/2},
-\qquad
-S_{n'}:=Y_{n'}^{(k)\top}Y_{n'}^{(k)}+\epsilon^2 I_2.
-\label{eq:W_frob_isotropic}
-\end{equation}
-Since $\mathrm{tr}(Y^\top Y)=\|Y\|_F^2$, this can be written explicitly as
-\begin{equation}
-\bar{\omega}_{n'}
-=
-\frac{1}{\sqrt{\frac{1}{2}\|Y_{n'}^{(k)}\|_F^2+\epsilon^2}}
-=
-\frac{1}{\sqrt{\frac{1}{2}\big(\|y_{1,n'}\|_2^2+\|y_{2,n'}\|_2^2\big)+\epsilon^2}}.
-\label{eq:omega_frob_revised}
-\end{equation}
-This is ``Frobenius rather than nuclear'' in the sense that the weight depends only on the Frobenius magnitude
-$\|Y\|_F$ (equivalently $\sigma_1^2+\sigma_2^2$), not on the individual singular values or their alignment.
-
-Substituting $\widetilde{W}_{n'}^{\mathrm{C}}=\bar{\omega}_{n'}I_2$ into \eqref{eq:K_MM_explicit} yields a diagonal modality preconditioner:
-\begin{equation}
-(P^{\mathrm{C}}_{1})_n
-=
-\beta\sum_{n'\in\mathcal{N}(n)} \bar{\omega}_{n'}\,\|a_{1,n'}\|_2^2,
-\qquad
-(P^{\mathrm{C}}_{2})_n
-=
-\beta\sum_{n'\in\mathcal{N}(n)} \bar{\omega}_{n'}\,\|a_{2,n'}\|_2^2.
-\label{eq:PC_diag_def_revised}
-\end{equation}
-Computationally, this avoids computing $s_{12}=\langle y_1,y_2\rangle$ and avoids \eqref{eq:W_closed_precond_revised}; it requires only
-$\|y_{1,n'}\|_2^2$ and $\|y_{2,n'}\|_2^2$ per target voxel.
-
-%------------------------------------------------------------
-\subsubsection{Route II: Lewis--Sendov Hessian-based curvature majorisers (more accurate, more expensive)}
-\label{subsubsec:prec_LS}
-
-The MM/IRLS constructions above produce a safe psd quadratic surrogate for $\phi$ (majorising the \emph{function value} at a lag point).
-An alternative is to approximate (or conservatively majorise) the \emph{true} Jacobian-space Hessian of $\phi$ itself.
-This route is more expensive but can be significantly tighter in strongly coupled regions.
-
-\paragraph{Hermitian dilation to convert singular values to eigenvalues.}
-Define the (symmetric) Hermitian dilation of $Y\in\mathbb{R}^{d\times2}$:
-\begin{equation}
-\mathcal{H}(Y)
-:=
-\begin{pmatrix}
-0 & Y\\
-Y^\top & 0
-\end{pmatrix}
-\in\mathbb{R}^{(d+2)\times(d+2)}.
-\label{eq:dilation_def}
-\end{equation}
-The eigenvalues of $\mathcal{H}(Y)$ are $\pm\sigma_1(Y)$, $\pm\sigma_2(Y)$, and (if $d>2$) additional zeros.
-Introduce the even smooth scalar function
-\begin{equation}
-\psi(t):=\sqrt{t^2+\epsilon^2},
-\qquad
-\psi'(t)=\frac{t}{\sqrt{t^2+\epsilon^2}},
-\qquad
-\psi''(t)=\frac{\epsilon^2}{(t^2+\epsilon^2)^{3/2}}.
-\label{eq:psi_def}
-\end{equation}
-Define the symmetric spectral trace function
-\begin{equation}
-F(A):=\mathrm{tr}\,\psi(A)=\sum_{j}\psi(\lambda_j(A)).
-\end{equation}
-Because $\psi$ is even and the spectrum of $\mathcal{H}(Y)$ is $\{\pm\sigma_1,\pm\sigma_2,0,\dots,0\}$, we have
-\begin{equation}
-F(\mathcal{H}(Y)) = 2\psi(\sigma_1(Y)) + 2\psi(\sigma_2(Y)) + (d-2)\psi(0)
-= 2\phi(Y) + (d-2)\epsilon.
-\end{equation}
-Thus $\phi(Y)=\tfrac{1}{2}F(\mathcal{H}(Y)) - \tfrac{d-2}{2}\epsilon$ differs from $\tfrac{1}{2}F\circ \mathcal{H}$ only by an additive constant,
-so they share the same gradients and Hessians up to the standard chain rule.
-
-\paragraph{Second derivatives via spectral calculus (Lewis--Sendov structure).}
-Let $A\in\mathrm{Sym}^{d+2}$ have eigendecomposition $A=Q\,\mathrm{diag}(\lambda)\,Q^\top$.
-For the separable spectral trace $F(A)=\mathrm{tr}\,\psi(A)$, the second differential has the form
-\begin{equation}
-\nabla^2 F(A)[H]
-=
-Q\left(
-\mathrm{diag}\!\big(\psi''(\lambda)\odot \mathrm{diag}(\widetilde{H})\big)
-+
-\mathcal{C}(\lambda)\circ \widetilde{H}
-\right)Q^\top,
-\qquad
-\widetilde{H}:=Q^\top H Q,
-\label{eq:LS_operator_form}
-\end{equation}
-where $\odot$ is elementwise multiplication of vectors and $\circ$ is the Hadamard product \cite{doi:10.1137/S089547980036838X}.
-The coefficient matrix $\mathcal{C}(\lambda)$ has entries, for $i\neq j$,
-\begin{equation}
-\mathcal{C}_{ij}(\lambda)
-:=
-\begin{cases}
-\dfrac{\psi'(\lambda_i)-\psi'(\lambda_j)}{\lambda_i-\lambda_j}, & \lambda_i\neq \lambda_j,\\[10pt]
-\psi''(\lambda_i), & \lambda_i=\lambda_j,
-\end{cases}
-\qquad
-\mathcal{C}_{ii}(\lambda):=0.
-\label{eq:Cij_def}
-\end{equation}
-In our case the eigenvalues are $\pm\sigma_1,\pm\sigma_2,0,\dots$ so many pairs simplify.
-For example, for any $\sigma\ge 0$,
-\begin{equation}
-\mathcal{C}(\sigma,-\sigma)=\mathcal{C}(\sigma,0)=\frac{1}{\sqrt{\sigma^2+\epsilon^2}},
-\end{equation}
-while for distinct $\sigma_1\neq\sigma_2$,
-\begin{equation}
-\mathcal{C}(\sigma_1,\sigma_2)
-=
-\frac{\frac{\sigma_1}{\sqrt{\sigma_1^2+\epsilon^2}}-\frac{\sigma_2}{\sqrt{\sigma_2^2+\epsilon^2}}}{\sigma_1-\sigma_2},
-\qquad
-\mathcal{C}(\sigma_1,-\sigma_2)
-=
-\frac{\frac{\sigma_1}{\sqrt{\sigma_1^2+\epsilon^2}}+\frac{\sigma_2}{\sqrt{\sigma_2^2+\epsilon^2}}}{\sigma_1+\sigma_2}.
-\label{eq:Cij_special_cases}
-\end{equation}
-Repeated eigenvalues (including repeated zeros when $d>2$) are handled by the $\lambda_i=\lambda_j$ branch in \eqref{eq:Cij_def}.
-
-\paragraph{From $\nabla^2 F$ to $\nabla^2\phi$ in $Y$-coordinates.}
-The dilation map $Y\mapsto \mathcal{H}(Y)$ in \eqref{eq:dilation_def} is linear, so no second-derivative terms arise from the map itself.
-For any perturbation $\Delta Y\in\mathbb{R}^{d\times2}$, define $\Delta \mathcal{H} := \mathcal{H}(\Delta Y)$.
-Then the Hessian-vector product of $\phi$ can be obtained by:
-\begin{equation}
-\nabla^2 \phi(Y)[\Delta Y]
-\quad\text{is the top-right $d\times2$ block of}\quad
-\frac{1}{2}\nabla^2 F(\mathcal{H}(Y))[\Delta \mathcal{H}],
-\end{equation}
-with the standard ``factor-of-two'' cancellation when converting the dilation-space bilinear form back to the Frobenius pairing on $\Delta Y$
-(this is the same cancellation that appears whenever one uses symmetric dilations to represent singular-value spectral functions).
-
-In practice, we do not need a closed-form $2d\times2d$ Hessian; we need a \emph{psd majoriser} $\widetilde{H}_{n'}$ in \eqref{eq:calQn_general_quadratic},
-which can be assembled from Hessian-vector products.
-
-\subsubsection{LS--D: block-Gershgorin majoriser (retains cross-modality coupling within each direction)}
-\label{subsubsec:prec_LS_block_gersh}
-
-Let $H_{n'}\in\mathbb{R}^{2d\times2d}$ denote the Jacobian-coordinate Hessian matrix representation of $\phi$ at voxel $n'$
-(with coordinates indexed by direction $p\in\{1,\dots,d\}$ and modality $m\in\{1,2\}$).
-Partition $H_{n'}$ into $d\times d$ blocks of size $2\times2$:
-\begin{equation}
-H_{n'}
-=
-\begin{pmatrix}
-H_{11} & \cdots & H_{1d}\\
-\vdots & \ddots & \vdots\\
-H_{d1} & \cdots & H_{dd}
-\end{pmatrix},
-\qquad
-H_{pq}\in\mathbb{R}^{2\times2}.
-\end{equation}
-Define the block-diagonal matrix $\widetilde{H}_{n'}^{\mathrm{D}}$ by the block-Gershgorin construction:
-\begin{equation}
-\widetilde{H}_{n'}^{\mathrm{D}}
-:=
-\mathrm{blkdiag}\!\bigl(\widetilde{D}_1,\dots,\widetilde{D}_d\bigr),
-\qquad
-\widetilde{D}_p
-:=
-H_{pp} + \left(\sum_{q\neq p}\|H_{pq}\|_2\right) I_2,
-\label{eq:block_gersh_def}
-\end{equation}
-where $\|\cdot\|_2$ is the spectral norm of a $2\times2$ matrix.
-This construction guarantees $\widetilde{H}_{n'}^{\mathrm{D}} - H_{n'} \succeq 0$ (hence a curvature majoriser),
-while retaining the within-direction cross-modality coupling in each $2\times2$ block.
-
-Finally, substitute $\widetilde{H}_{n'}=\widetilde{H}_{n'}^{\mathrm{D}}$ into \eqref{eq:K_def_general}--\eqref{eq:Pn_def_general} to obtain a voxel-wise
-$2\times2$ image-space block $P_n^{\mathrm{D}}$.
-
-\subsubsection{LS--E: scalar row-sum diagonal majoriser (cheapest LS option)}
-\label{subsubsec:prec_LS_rowsum}
-
-A simpler conservative alternative is a purely diagonal majoriser of the full $2d\times2d$ Hessian matrix $H_{n'}$.
-Define
-\begin{equation}
-\left(\widetilde{H}_{n'}^{\mathrm{E}}\right)_{\alpha\alpha}
-:=
-(H_{n'})_{\alpha\alpha} + \sum_{\beta\neq \alpha}|(H_{n'})_{\alpha\beta}|,
-\qquad
-\left(\widetilde{H}_{n'}^{\mathrm{E}}\right)_{\alpha\beta}:=0\ \ (\alpha\neq \beta),
-\label{eq:rowsum_diag_def}
-\end{equation}
-i.e.\ the diagonal is the absolute row-sum.
-Then $\widetilde{H}_{n'}^{\mathrm{E}}-H_{n'}$ is symmetric, weakly diagonally dominant, and has nonnegative diagonal,
-which implies $\widetilde{H}_{n'}^{\mathrm{E}}-H_{n'}\succeq 0$ and hence $H_{n'}\preceq \widetilde{H}_{n'}^{\mathrm{E}}$.
-Substituting $\widetilde{H}_{n'}=\widetilde{H}_{n'}^{\mathrm{E}}$ into \eqref{eq:K_def_general}--\eqref{eq:Pn_def_general} yields a \emph{diagonal} modality preconditioner.
-
-%------------------------------------------------------------
-\subsubsection{Summary of the six practical preconditioners and cost implications for $d=18$}
-
-All variants produce a voxel-wise curvature surrogate $P_n$ via \eqref{eq:Pn_def_general}, aggregating $|\mathcal{N}(n)|$ target
-contributions (for forward differences at interior voxels, $|\mathcal{N}(n)|=1+d=19$ when $d=18$).
-
-\begin{itemize}
-\item \textbf{MM--A (block, exact $2\times2$):} $\widetilde{W}_{n'}=S_{n'}^{-1/2}$ via \eqref{eq:W_closed_precond_revised}.
-Most accurate MM option; inexpensive (only $2\times2$ algebra per target voxel) and retains modality coupling.
-
-\item \textbf{MM--B (diagonal, Gershgorin-safe):} diagonalise the MM weight via \eqref{eq:W_gersh_diag}.
-More conservative than MM--A but strictly diagonal in modality; robust against underestimating curvature when coupling is strong.
-
-\item \textbf{MM--B$^\star$ (diagonal, naive):} $\widetilde{W}_{n'}=\mathrm{diag}(W_{11},W_{22})$ \eqref{eq:W_naive_diag}.
-Cheapest MM diagonalisation but can underestimate curvature when $W_{12}\neq 0$; may require extra damping.
-
-\item \textbf{MM--C (Frobenius/isotropic):} $\widetilde{W}_{n'}=\bar{\omega}_{n'}I_2$ via \eqref{eq:omega_frob_revised}.
-Avoids cross-terms and $2\times2$ inverse square-roots; depends only on $\|Y\|_F$.
-Interpretable as a Frobenius-magnitude proxy rather than a singular-spectrum (nuclear) proxy.
-
-\item \textbf{LS--D (block-Gershgorin):} build/approximate the true Hessian in Jacobian coordinates using \eqref{eq:LS_operator_form},
-then apply the block-Gershgorin majoriser \eqref{eq:block_gersh_def}.
-Tighter curvature modelling but substantially higher cost due to per-voxel spectral decompositions of $(d+2)\times(d+2)$ matrices
-(and multiple Hessian-vector products if assembling blocks explicitly).
-
-\item \textbf{LS--E (row-sum diagonal):} diagonal majoriser of the full Jacobian-coordinate Hessian via \eqref{eq:rowsum_diag_def}.
-Most conservative LS option; still requires access to Hessian information (explicitly or via Hessian-vector products), but is simplest to apply.
-\end{itemize}
-
-\paragraph{Practical application in the solver.}
-Each voxel contributes either a $2\times2$ SPD block $P_n$ (MM--A, LS--D) or a diagonal $(P^{(1)}_n,P^{(2)}_n)$ (MM--B/MM--B$^\star$/MM--C/LS--E).
-We apply the preconditioner by solving $P_n\,p_n = g_n$ (block case) or componentwise division (diagonal case), optionally using a small
-shift $P_n\leftarrow P_n+\varepsilon_0 I_2$ to prevent near-singularity in flat regions.
-
-\subsubsection{Speed Tests}
-
-\begin{table}[t]
-\centering
-\caption{Preconditioner timing summary for the phantom experiment.}
-\label{tab:precond_speed_phantom}
-\begin{tabular}{lrrrr}
-\toprule
-\textbf{precond\_method} & \textbf{mean [s]} & \textbf{std [s]} & \textbf{min [s]} & \textbf{max [s]} \\
-\midrule
-\texttt{frob\_diag\_pd}         & 1.7423 & 0.1074 & 1.5849 & 1.8984 \\
-\texttt{mm\_diag\_jensen}       & 1.6808 & 0.1570 & 1.4193 & 1.9309 \\
-\texttt{mm\_diag\_gershgorin}   & 1.7867 & 0.0660 & 1.6353 & 1.8669 \\
-\texttt{mm\_block\_2x2}         & 0.7900 & 0.1601 & 0.5225 & 0.9529 \\
-\texttt{ls\_block\_gershgorin}  & 2.8504 & 0.0503 & 2.7663 & 2.9405 \\
-\texttt{ls\_block\_diag}        & 1.0128 & 0.0488 & 0.9607 & 1.1113 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[t]
-\centering
-\caption{Preconditioner timing summary for the patient experiment.}
-\label{tab:precond_speed_patient}
-\begin{tabular}{lrrrr}
-\toprule
-\textbf{precond\_method} & \textbf{mean [s]} & \textbf{std [s]} & \textbf{min [s]} & \textbf{max [s]} \\
-\midrule
-\texttt{frob\_diag\_pd}         & 3.2487  & 0.2885 & 2.8217  & 3.7851  \\
-\texttt{mm\_diag\_jensen}       & 5.1042  & 0.8985 & 2.9625  & 5.7309  \\
-\texttt{mm\_diag\_gershgorin}   & 5.8492  & 0.2705 & 5.4345  & 6.3806  \\
-\texttt{mm\_block\_2x2}         & 1.9934  & 0.9074 & 1.0635  & 3.2051  \\
-\texttt{ls\_block\_gershgorin}  & 11.4426 & 0.1004 & 11.3371 & 11.6381 \\
-\texttt{ls\_block\_diag}        & 3.9007  & 0.0116 & 3.8859  & 3.9192  \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-%------------------------------------------------------------
-\section{Multi-bed PET acquisition: joint reconstruction without post-hoc stitching}
-\label{sec:multibed}
-
-Clinical Y-90 PET acquisitions typically span an axial range that exceeds the scanner's single-bed field of view (FOV), requiring multiple overlapping bed positions. In this work we use $K=2$ bed positions. The conventional approach, used for example in the sequential HKEM method of \cite{deidda_triple_2023}, is to reconstruct each bed position independently and then combine the resulting images by sensitivity-weighted stitching. We show that this strategy is incompatible with edge-preserving priors such as $\wdtnv$, and derive the joint formulation adopted throughout this thesis.
-
-\subsection{Notation and restriction operators}
-\label{subsec:multibed_notation}
-
-Let $\Omega_k$ denote the axial FOV of bed position $k \in \{1,\dots,K\}$, and define the combined grid
-\begin{equation}
-    \Omega := \bigcup_{k=1}^{K} \Omega_k,
-    \label{eq:combined_FOV}
-\end{equation}
-discretised onto a shared voxel lattice of $N$ voxels. For $K=2$ the two beds overlap in an axial strip
-$\Omega_\cap := \Omega_1 \cap \Omega_2 \neq \emptyset$.
-
-Define the \emph{restriction operator} $R_k : \mathbb{R}^N \to \mathbb{R}^{N_k}$ as the binary row-selection matrix that extracts the $N_k$ voxels belonging to $\Omega_k$:
-\begin{equation}
-    (R_k\, x)_j = x_n,
-    \qquad \text{where voxel } n \text{ is the } j\text{-th element of } \Omega_k.
-    \label{eq:restriction_op}
-\end{equation}
-The adjoint $R_k^\top : \mathbb{R}^{N_k} \to \mathbb{R}^N$ is the corresponding zero-padding (embedding) operator. By construction,
-\begin{equation}
-    \sum_{k=1}^{K} R_k^\top R_k = \mathrm{diag}(c),
-    \qquad c_n = \#\{k : n \in \Omega_k\} \in \{1,2\},
-    \label{eq:coverage_count}
-\end{equation}
-so $c_n = 2$ for voxels in the overlap $\Omega_\cap$ and $c_n = 1$ elsewhere.
-
-\subsection{Sensitivity-weighted stitching and its failure with edge-preserving priors}
-\label{subsec:stitching_failure}
-
-The standard pipeline solves $K$ independent reconstruction problems,
-\begin{equation}
-    \hat{x}^{(k)} = \argmin_{x_k \geq 0}
-    \Bigl\{ D_k(y_k \mid A_k\, x_k + b_k) + \beta\,\mathcal{R}(x_k) \Bigr\},
-    \qquad k = 1,\dots,K,
-    \label{eq:per_bed_recon}
-\end{equation}
-where $A_k$ is the bed-$k$ system matrix operating on $x_k \in \mathbb{R}^{N_k}$.  A stitched image on $\Omega$ is then formed as the sensitivity-weighted average
-\begin{equation}
-    \hat{x}_{n}^{\mathrm{stitch}}
-    = \frac{\displaystyle\sum_{k:\,n\in\Omega_k} s_{k,n}\,\hat{x}^{(k)}_n}
-           {\displaystyle\sum_{k:\,n\in\Omega_k} s_{k,n}},
-    \qquad s_{k,n} := (A_k^\top \mathbf{1})_n,
-    \label{eq:sensitivity_stitch}
-\end{equation}
-where $s_{k,n}$ is the sensitivity (normalisation image) of bed $k$ at voxel $n$.
-
-\paragraph{Failure mode with edge-preserving regularisation.}
-At the axial boundaries of each bed's FOV the sensitivity $s_{k,n}$ drops steeply toward zero, and hence the noise in the marginal voxels is strongly amplified. For a quadratic prior this is a purely statistical problem: the sensitivity-weighted average in~\eqref{eq:sensitivity_stitch} partly corrects for the noise inflation by down-weighting the low-sensitivity estimates. For an edge-preserving prior such as $\wdtnv$ the interaction is qualitatively different. The anisotropic diffusion weights in the Gram matrix $S(Y_n) = Y_n^\top Y_n + \epsilon^2 I_2$ (cf.~\eqref{eq:S_def_precond_revised}) respond to the local gradient magnitudes; at the low-sensitivity FOV boundary, noise amplification inflates the apparent gradients in both $z_1$ and $z_2$, causing the prior to \emph{suppress} smoothing precisely where it is most needed. This produces structured ring- or banding-like artifacts at each bed boundary, arising independently in each per-bed reconstruction. Sensitivity-weighted averaging cannot remove them, since both operands $\hat{x}^{(k)}$ already carry the artifact.
-
-\subsection{Joint multi-bed reconstruction}
-\label{subsec:joint_multibed}
-
-We instead define a single image $x_1 \in \mathbb{R}^N$ on the combined grid $\Omega$ and formulate the PET data fidelity as a sum over all bed positions:
-\begin{equation}
-    \mathcal{L}_{\mathrm{PET}}(x_1)
-    := \sum_{k=1}^{K} D_k\!\left(y_k \;\middle|\; A_k\,R_k\, x_1 + b_k\right).
-    \label{eq:joint_multibed_fidelity}
-\end{equation}
-Each term projects only the bed-$k$-restricted portion $R_k x_1 \in \mathbb{R}^{N_k}$ of the full image. The regulariser $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ is evaluated on the full PET image $x_1$ jointly with the SPECT image $x_2$, both defined on $\Omega$, without any axial masking or truncation.
-
-\paragraph{Gradient.}
-Differentiating~\eqref{eq:joint_multibed_fidelity} with respect to $x_1$ yields
-\begin{equation}
-    \nabla_{x_1}\,\mathcal{L}_{\mathrm{PET}}(x_1)
-    = \sum_{k=1}^{K} R_k^\top\, A_k^\top\,
-      \nabla_{f_k} D_k(y_k \mid f_k),
-    \qquad f_k := A_k R_k x_1 + b_k.
-    \label{eq:joint_multibed_gradient}
-\end{equation}
-The zero-padding operator $R_k^\top$ embeds the back-projected gradient of bed $k$ into the full grid, so the contributions from the two beds accumulate additively for voxels in $\Omega_\cap$.
-
-\paragraph{EM-type preconditioner.}
-The combined sensitivity of the multi-bed system at voxel $n$ is
-\begin{equation}
-    s_n^{\mathrm{tot}} := \left(\sum_{k=1}^{K} R_k^\top A_k^\top \mathbf{1}\right)_n,
-    \label{eq:combined_sensitivity}
-\end{equation}
-and for $K=2$, overlap voxels satisfy $s_n^{\mathrm{tot}} = s_{1,n} + s_{2,n}$.
-The EM-type preconditioner for the full image is
-\begin{equation}
-    \bigl(P^{\mathrm{EM}}\bigr)_n = \frac{(x_1)_n}{s_n^{\mathrm{tot}}},
-    \label{eq:multibed_em_prec}
-\end{equation}
-so overlap voxels automatically receive a smaller effective step size, providing implicit adaptation to the locally elevated data constraint from two beds. No explicit stitching or sensitivity normalisation is required.
-
-\paragraph{Bed positions as stochastic subsets.}
-Within a variance-reduced stochastic solver such as SVRG, the $K$ bed positions can in principle serve as data subsets. In this work, subsets are defined within each bed's sinogram independently, and the bed structure enters only through the factored gradient~\eqref{eq:joint_multibed_gradient}. The per-iteration cost therefore remains proportional to the number of sinogram subsets and is independent of $K$.
-
-\paragraph{Summary.}
-The joint formulation~\eqref{eq:joint_multibed_fidelity}--\eqref{eq:joint_multibed_gradient} is used for all PET reconstructions in this thesis. The bed boundary is invisible to the regulariser, since the prior is evaluated on the full, untruncated image. Experimental evidence that this eliminates the banding artifacts observed with sensitivity-weighted stitching under $\wdtnv$ regularisation is presented in Chapter~\ref{chapter:paper}.
-
-\begin{comment}
-\subsection{Diffusivity analysis}
-
-\textbf{Joint Total Variation} regularises the magnitude of the combined gradient vector. Its diffusivity is an isotropic
-identity matrix scaled by the total magnitude:
-\begin{equation}
-K_{\mathrm{JTV}}
-=
-\left(\sum_{m=1}^{M} \|D z_{m,n}\|_2^2 + \epsilon^2\right)^{-1/2} \cdot I_{dM \times dM}.
-\end{equation}
-It couples channels only through the scalar magnitude; structural alignment is not explicitly encouraged.
-
-\textbf{Parallel Level Sets} introduce a cross-diffusion tensor explicitly dependent on the angle between gradients.
-The off-diagonal terms take the form
-\begin{equation}
-\tau(u,v) =
--\psi'[|\langleD u, D v\rangle|_{\epsilon^2}]
-\frac{\langleD u, D v\rangle}{|\langleD u, D v\rangle|_{\epsilon^2}}
-\rho(u,v).
-\end{equation}
-While this forces alignment, the factor
-$\frac{\langleD u, D v\rangle}{|\langle \dots \rangle|}$
-introduces singular behaviour when gradients are orthogonal, typically requiring stabilisation.
-
-\textbf{Total Nuclear Variation} implies a spectral diffusivity derived from the SVD components:
-\begin{equation}
-K_{\mathrm{TNV}}
-=
-U \operatorname{diag}\left(\frac{g'(\sigma_k)}{\sigma_k}\right) U^\top.
-\end{equation}
-The key distinction is that TNV diffuses selectively along the principal singular vectors of the joint Jacobian.
-
-\subsection{Comparative summary}
-
-JTV is stable but structurally blind. PLS is structurally explicit but numerically fragile near orthogonality. TNV achieves
-a synthesis: by penalising the nuclear norm, it encourages rank deficiency (alignment) through a convex spectral function.
-This avoids the singularities of PLS while providing richer structural coupling than JTV.
-\end{comment}
+\paragraph{Effect on the singular spectrum.}
+Right-multiplying by $B_n$ scales the $m$-th column of $Y_n$ by $\beta_{m,n}$. This scales the singular values of $Y_n$ in a non-trivial way, since the singular values of $YB$ are not simply $\sigma_\ell(Y)\beta_m$. The intended effect is instead on the Gram matrix: $Y_n^\top Y_n$ contains modality self-terms and cross-terms after scaling, so suitable $\beta_{m,n}$ values allow both modalities to contribute comparably to the coupled singular spectrum. The $2\times2$ Gram-matrix algebra in Section~\ref{sec:tv_to_tnv} applies directly to this weighted case.
 
 \section{Conclusion}
 
-This chapter introduced a smoothed, weighted, and directional Total Nuclear Variation ($\wdtnv$) prior designed for joint
-multi-modality reconstruction with anatomically informed anisotropy. By applying Charbonnier smoothing to the singular-value
-penalty, we obtained a differentiable spectral functional and derived practical expressions for its Jacobian-space gradient,
-including efficient $2\times2$ Gram-matrix formulas in the two-modality case. A modality-wise diagonal weight matrix $B_n$
-was introduced to compensate for the heterogeneous dynamic ranges of PET and SPECT, bringing both channels to a comparable
-scale before the nuclear-norm coupling is evaluated.
+This chapter introduced a smoothed, weighted, and directional Total Nuclear Variation ($\wdtnv$) prior for synergistic reconstruction. Charbonnier smoothing of the singular values yields a differentiable spectral functional whose Jacobian-space gradient can be written in Gram-matrix form. For two coupled emission modalities this reduces the key spectral operation to a $2\times2$ inverse square-root, allowing the prior and its gradient to be evaluated robustly without a general per-voxel SVD.
 
-A central contribution of the chapter is a hierarchy of synergy-aware diagonal and block-diagonal preconditioners that
-approximate the local curvature of the $\wdtnv$ prior while remaining computationally negligible compared with tomographic
-projection operations. The preconditioners are constructed by (i) modelling curvature in Jacobian coordinates and (ii) pulling
-this curvature back through the finite-difference stencil to image coordinates, yielding voxel-wise modality blocks.
-
-We presented two complementary routes. The first route uses an MM/IRLS quadratic surrogate of the smoothed nuclear-norm
-potential. This yields (MM--A) an exact $2\times2$ block preconditioner that retains cross-modality coupling via a closed-form
-inverse square-root of the $2\times2$ Gram matrix, together with two diagonal simplifications: (MM--B) a conservative diagonal
-variant that absorbs coupling through a Gershgorin-style row-sum, and (MM--B$^\star$) a cheaper but potentially risky diagonal
-variant that drops the off-diagonal coupling terms and may underestimate curvature. The second route uses Hessian information
-from the symmetric dilation representation of singular values, combined with conservative majorisers to obtain (LS--D) a
-block-Gershgorin majoriser that retains within-direction coupling and (LS--E) a fully diagonal row-sum majoriser.
-
-Finally, we included an isotropic Frobenius-magnitude approximation (MM--C), which replaces spectral coupling by a scalar weight
-depending only on $\|Y_n\|_F$. Although less expressive than the spectral weights, it provides a very low-cost baseline that
-captures only overall gradient magnitude and is useful for ablation and robustness analysis.
-
-Together, these preconditioners provide a scalable toolbox: from tight block-diagonal curvature models (MM--A, LS--D) to cheap
-diagonal approximations (MM--B/MM--C) suitable for large-scale stochastic optimisation. In the next section, we evaluate these
-choices empirically in combination with variance-reduced stochastic updates and subset-selection strategies, with the aim of
-identifying practical configurations that offer stable convergence without compromising computational throughput.
-
-Finally, Section~\ref{sec:multibed} addresses the multi-bed PET acquisition geometry used in clinical Y-90 imaging. We show
-that sensitivity-weighted post-hoc stitching is incompatible with edge-preserving regularisation, and derive a joint
-formulation in which all bed positions contribute to a single image-space objective, eliminating the need for stitching
-entirely.
+The chapter also separated two roles that are easily confounded in multimodality reconstruction. Anatomical information is used directionally through $\Pi_{m,n}$, steering the penalty without adding CT as another coupled intensity channel. Modality scaling is handled separately through the diagonal weight matrix $B_n$, allowing PET and SPECT gradients to enter the nuclear-norm coupling on comparable scales. Chapter~\ref{chapter:optimisation} uses these definitions to construct practical preconditioners and subset-selection strategies for large-scale $\wdtnv$ optimisation.
