@@ -50,11 +50,11 @@ y_i \sim \mathrm{Poisson}\!\left( (A x)_i + b_i \right), \qquad i = 1,\dots,I,
 \end{equation}
 where $A$ is the system matrix modelling the (primary) detection process (including attenuation and detector response as implemented in our reconstruction pipeline), and $b \in \mathbb{R}_{+}^{I}$ is an \emph{additive} component. In Bremsstrahlung SPECT, $b$ is typically dominated by Compton-scattered photons, with additional contributions possible from other backgrounds (e.g.\ stray radiation or modelling mismatch). The role of additive correction is therefore to provide an estimate of $b$ that is consistent with the acquisition protocol and reconstruction model.
 
-Given a \emph{fixed} $b$, \glsentryshort{osem} yields an approximate maximum-likelihood estimate of $x$ under this Poisson model. However, in \isotope[90]{Y} Bremsstrahlung imaging, $b$ is large and difficult to estimate from energy-window tricks, motivating model-based strategies.
+Given a \emph{fixed} $b$, \glsentryshort{osem} yields an approximate maximum-likelihood estimate of $x$ under this Poisson model. However, in \isotope[90]{Y} Bremsstrahlung imaging, $b$ is large and impossible to estimate from neighbouring energy-window , motivating model-based strategies.
 
 \subsection{Initial scatter estimate via a pre-trained deep network}
 
-To initialise $b$ we use a deep-learning scatter estimator that predicts scatter projections directly from the measured emission projections (and \glsentryshort{ct}-derived attenuation information), following the general approach of training a convolutional neural network to regress \glsentryshort{mc}-derived ``true'' scatter \cite{xiang_deep_2020}.
+To initialise $b$ we use a deep-learning scatter estimator that predicts scatter projections directly from the measured emission projections (and \glsentryshort{ct}-derived attenuation information), following the  approach by Xiang \textem{et al.}~ who trained a convolutional neural network to regress \glsentryshort{mc}-derived ``true'' scatter \cite{xiang_deep_2020}.
 
 In our case this initialisation is explicitly heuristic: the available pre-trained network was developed and trained under a different hardware/protocol configuration (scanner, collimation, energy windowing, and number of views) than the Siemens and Mediso datasets used in this thesis \cite{xiang_deep_2020}. In particular, the network was trained on data acquired on a Symbia Intevo SPECT/CT system with high-energy collimation and a 105--195~keV window with 80 projections, whereas our reconstructions were performed on Siemens or Mediso systems with different energy windows and either MEGP (Siemens) or MLEGP (Mediso) collimation. Despite this domain shift, we found that the predicted scatter term fits the measured data sufficiently well to provide a sensible starting point for subsequent model-based refinement (Figure \ref{fig:nema_scatter_est}). 
 
@@ -62,7 +62,7 @@ In our case this initialisation is explicitly heuristic: the available pre-train
 
 Starting from the deep-learning initialisation $b^{(0)}$, we then refine the additive term using an alternating procedure:
 \begin{enumerate}
-    \item \textbf{Reconstruction step:} perform an OSEM update of $x$ using the current additive estimate $b^{(k)}$. We used 12 subsets and 5 epochs (total 60 subiterations)
+    \item \textbf{Reconstruction step:} update $x$ using OSEM and the current additive estimate $b^{(k)}$. We used 12 subsets and 5 epochs (total 60 subiterations).
     \item \textbf{Regularisation of the intermediate image:} apply an isotropic Gaussian post-smoothing of 5~mm \gls{fwhm} to the intermediate reconstruction (used only for the subsequent scatter simulation step).
     \item \textbf{Scatter simulation step:} run a SIMIND-based Monte Carlo scatter simulation using the (smoothed) current activity estimate to produce a new scatter estimate $\widehat{b}^{(k+1)}$.
 \end{enumerate}
@@ -107,7 +107,7 @@ Overall, these offline/online and replacement/damping variants provide a practic
         \includegraphics[height=1.2in]{figures/Chapter3/offline_scatter_replace.png}
         %\caption{Lorem ipsum}
     \end{subfigure}%
-    ~ 
+    ~ \\
     \begin{subfigure}[b]{0.9\textwidth}
         \centering
         \includegraphics[height=1.2in]{figures/Chapter3/offline_scatter_damped.png}
@@ -127,14 +127,14 @@ Overall, these offline/online and replacement/damping variants provide a practic
     \label{fig:gaussian_bremss_range}
 \end{figure}
 
-In \isotope[90]{Y} Bremsstrahlung SPECT, detected photons are not emitted at the \isotope[90]{Y} decay site: Bremsstrahlung photons are generated along the $\beta$-particle track, inducing an additional \emph{range blur} that is absent in photopeak imaging. Several \glsentryshort{mc} frameworks can model this effect using detailed, energy-dependent \glspl{pdf} for the displacement between the decay location and the photon emission location. However, in practice, most general-purpose reconstruction toolkits are not designed to ingest arbitrary, precomputed displacement \glspl{pdf} within the forward projector.
+As mentioned previously, bremsstrahlung photons are generated along the $\beta$-particle track, inducing an additional \emph{range blur} that is absent in photopeak imaging. Several \glsentryshort{mc} frameworks can model this effect using detailed, energy-dependent \glspl{pdf} for the displacement between the decay location and the photon emission location. However, in practice, most general-purpose reconstruction toolkits are not designed to ingest arbitrary, precomputed displacement \glspl{pdf} within the forward projector and its adjoint.
 
 Here we adopt a pragmatic approximation: for clinically relevant energy windows and in water-equivalent tissue, the marginal displacement distribution is observed to be close to Gaussian. We therefore model the Bremsstrahlung range blur as an \emph{isotropic image-space Gaussian} whose variance is selected to match \glsentryshort{mc}-derived displacement statistics (Figure~\ref{fig:gaussian_bremss_range}). This is simple to implement (a single 3D Gaussian smoothing) and is compatible with standard projector architectures.
 
 \subsection{Projector point-spread function}
 \label{subsec:projector_psf}
 
-We model the collimator--detector response (CDR) by an approximately Gaussian \gls{psf} whose width increases with the source--collimator distance $h$ and depends on energy $E$. In the projector we represent the depth-dependent blur by a spatially variant isotropic Gaussian with standard deviation
+We model the collimator--detector response (CDR) by a  Gaussian \gls{psf} whose width increases with the source--collimator distance $h$ and depends on energy $E$. In the projector we represent the depth-dependent blur by a spatially variant isotropic Gaussian with standard deviation
 \begin{equation}
 \sigma_{\mathrm{lin}}(h;E) = c_0(E) + c_1(E)\, h.
 \label{eq:sigma_lin_def}
@@ -273,7 +273,7 @@ This validation focuses on water-equivalent media, which is appropriate for the 
 \section{Residual Correction}
 \label{sec:residual_correction}
 
-Fu and Qi proposed a residual-correction (RC) strategy to accelerate reconstructions when an \emph{accurate} forward model is too expensive to apply at every iteration \cite{fu_residual_2010}. In their positron-range setting, the accurate system model can be expressed as a fast projector composed with an additional blurring operator. RC then intermittently estimates the modelling discrepancy and folds it into an additive term, allowing subsequent iterations to proceed using the cheaper projector.
+Fu and Qi proposed a residual-correction (RC) strategy to accelerate reconstructions when an \emph{accurate} forward model is too expensive to apply at every iteration \cite{fu_residual_2010}. In their positron-range setting, the accurate system model can be expressed as a fast projector composed with an additional blurring operator. RC then intermittently estimates the modelling discrepancy and folds it into an additive term, allowing subsequent iterations to proceed using the computationally cheaper projector.
 
 In this work we investigate whether RC can be applied analogously to \isotope[90]{Y} Bremsstrahlung SPECT reconstruction. Empirically, we find that RC behaves well for high-count, low-background phantom data, but can become unreliable in low-count clinical-like regimes where regularisation is necessarily strong. We attribute this behaviour to the fact that RC corrects the \emph{forward prediction} but does not, in general, restore a \emph{matched} forward/adjoint pair inside a regularised reconstruction.
 
@@ -375,7 +375,7 @@ Residual correction aims to make the \emph{forward prediction} behave like the a
 A_{\mathrm{fast}}Kx \;\approx\; A_{\mathrm{fast}}x + \mathrm{RC}(x),
 \end{equation}
 where $\mathrm{RC}(x)$ approximates $(A_{\mathrm{fast}}K-A_{\mathrm{fast}})x$ (often using lagged/intermittent updates). If the correction is consistent at a limit point $x^\star$, then the ratio term $y/(A_{\mathrm{fast}}Kx+r)$ is effectively ``accurate-forward''.
-However, the backprojection used by the iterative update typically remains $A_{\mathrm{fast}}^T$, not $(A_{\mathrm{fast}}K)^T = K^T A_{\mathrm{fast}}^T$. In this sense, RC can be interpreted as correcting the forward model while still behaving like an \emph{unmatched} method on the adjoint side.
+However, the backprojection used by the iterative update remains $A_{\mathrm{fast}}^T$, not $(A_{\mathrm{fast}}K)^T = K^T A_{\mathrm{fast}}^T$. In this sense, RC can be interpreted as correcting the forward model while still behaving like an \emph{unmatched} method on the adjoint side.
 
 \paragraph{Why low-count + RDP regularisation is high-risk.}
 With an RDP prior, the MAP stationarity condition (ignoring the non-negativity constraint) is
