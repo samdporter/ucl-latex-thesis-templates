@@ -1,270 +1,409 @@
-\chapter{Introduction to Weighted Directional Total Nuclear Variation}
-\label{chapter:wdtnv}
+\chapter{Anatomy-informed deconvolution for \gls{pet} partial volume correction}
+\label{chapter:deconvolution_pvc}
 
-In this chapter, we introduce a smoothed \acrfull{wdtnv} prior for synergistic emission tomography. The chapter focuses on the regulariser itself: its relationship to total nuclear variation, its differentiability after singular-value smoothing, the use of anatomical information through directional operators, and the modality-wise weighting needed when coupling heterogeneous emission images.
+\section{Introduction and relationship to the thesis}
+\label{sec:deconv_intro}
 
-The optimisation machinery used to apply this prior in large-scale PET/SPECT reconstruction, including prior-aware preconditioning, subset selection, and multi-bed PET handling, is developed separately in Chapter~\ref{chapter:optimisation}.
+Chapter~\ref{chapter:reconstruction} established the penalised-likelihood framework for emission tomography, reviewed representative methods for injecting prior knowledge into the optimisation problem (including anatomically guided and kernelised models), and motivated optimisation strategies that remain stable under regularisation. The core of this thesis concerns regularised and synergistic reconstruction under the full Poisson forward model $\bar y(x)=Ax+b$, where the ill-conditioning of $A$ and the low-count regime make prior design, preconditioning, and choice of optimisation algorithm critical.
 
-\section{Total Nuclear Variation Revisited}
-\label{sec:tv_to_tnv}
+In this chapter we consider a deliberately simplified, image-domain inverse problem: post-reconstruction \acrfull{pvc} via deconvolution with an estimated \acrfull{psf}. Although this is not a substitute for incorporating resolution modelling within reconstruction, it provides a controlled sandbox in which the effects of anatomical guidance and regularisation can be studied without confounding factors such as subset noise, projector modelling error, and complex system geometry. In particular, the chapter serves two main purposes within the broader narrative:
+\begin{enumerate}
+    \item it connects the priors reviewed in Chapter~\ref{chapter:reconstruction} (kernel methods, directional regularisation) to a tractable inverse problem where their qualitative behaviour is easily interpreted;
+    \item it provides a practical \glsentryshort{pvc} baseline that is straightforward to deploy on retrospectively reconstructed images.
+\end{enumerate}
 
-This section builds on the definitions in Section~\ref{subsec:synergistic_recon}. For convenience, we restate the key definitions here:
-\begin{itemize}
-    \item Registered images: $\bm{z} \coloneqq \{ z_m \}_{m=1}^{M}$, where $z_m \coloneqq W_m x_m$ and
-    $W_m : \mathbb{R}_+^{J_m} \to \mathbb{R}_+^{N}$.
-    \item Finite-difference operator: for $\ell=1,\dots,d$,
-    \[
-        \big((D x)_n\big)^{(\ell)} \coloneqq \frac{x_{n+\delta_\ell} - x_{n}}{\Delta_{\ell}} .
-    \]
-    \item Voxel-wise Jacobian:
-    \[
-        \mathcal{G}_n(\bm{z})
-        \coloneqq
-        \begin{bmatrix}
-        D z_{1,n} & D z_{2,n} & \cdots & D z_{M,n}
-        \end{bmatrix}
-        \in \mathbb{R}^{d\times M}.
-    \]
-    \item Nuclear norm: for a matrix $Y$ with singular values $\{\sigma_k(Y)\}_{k=1}^{r}$ and $r=\operatorname{rank}(Y)$,
-    \[
-        \|Y\|_* \coloneqq \sum_{k=1}^{r}\sigma_k(Y).
-    \]
-    \item Total nuclear variation:
-    \[
-        \mathcal{R}_{\mathrm{TNV}}(\bm{z}) \coloneqq \sum_{n=1}^N  \|\mathcal{G}_n(\bm{z})\|_* .
-    \]
-\end{itemize}
+\acrfull{rl} deconvolution is a purely image-domain analogue of \glsentryshort{mlem} under the Poisson model $\bar y(x)=Cx+b$: it is the same \glsentryshort{em} update, with the system matrix $A$ replaced by the \glsentryshort{psf} convolution operator $C$ \cite{shepp_maximum_1982,sawatzky_em-tv_2013}. In this setting the ``sensitivity image'' simplifies substantially, since for a unit-sum \glsentryshort{psf} one has $C^{\mathsf T}\mathbf{1}\approx \mathbf{1}$, so the usual \glsentryshort{mlem} normalisation by $A^{\mathsf T}\mathbf{1}$ becomes approximately trivial. We extend \gls{rl} to a penalised deconvolution regime by incorporating a directional total variation prior (Equation~\ref{eq:dtv_defn}), and we construct kernelised deconvolution updates by substituting the kernel image model $x=K\alpha$, exactly as in \gls{kem}/\gls{hkem}. The resulting anatomy-aware deconvolution variants are referred to throughout as \gls{krl}, \gls{hkrl}, and \gls{rldtv}. Their basic update equations are derived in the following sections.
 
-\subsection{Mathematical properties and differentiability}
-\label{subsec:tnv_differentiability}
+\section{Image-domain inverse problem and objective}
+\label{sec:deconv_model}
 
-Briefly revisiting total variation, optimisation of $\mathcal{R}_{\mathrm{TV}}$ (cf.\ \eqref{eq:tv}) is inconvenient in gradient-based methods because these functionals are not globally smooth: the TV gradient is undefined when $(D x_m)_j=0$. A standard remedy is to introduce a small smoothing parameter $\epsilon>0$.
-
-If we define
+Let $x\in\mathbb{R}^J_+$ denote the unknown (sharper) \gls{pet} activity image on a voxel grid, and let $y\in\mathbb{R}^J_+$ denote an observed blurred image. Although reconstructed \gls{pet} images are not independent raw count data, their local noise is often treated as approximately Poisson in post-reconstruction restoration models \cite{sawatzky_em-tv_2013}. We therefore use the following image-domain approximation:
 \begin{equation}
-\tilde{\mathcal{R}}_{\mathrm{TV}}(x_m)
-\;:=\;
-\sum_{j=1}^{J_m} \|(D x_m)_j\|_{2,\epsilon},
-\qquad
-\|v\|_{2,\epsilon}:=\sqrt{\|v\|_2^2+\epsilon^2},
-\end{equation}
-then the image-space gradient is
-\begin{equation}
-\nabla_{x_m}\tilde{\mathcal{R}}_{\mathrm{TV}}(x_m)
-\;=\;
--\,\operatorname{div}\!\left(\frac{D x_m}{\|D x_m\|_{2,\epsilon}}\right),
-\end{equation}
-where the division is understood pointwise over voxels.
-
-For nuclear-norm VTV, the unsmoothed singular-value map is not differentiable at zero singular values, and hence the corresponding nuclear norm is not $C^1$ at rank-deficient points. We therefore apply the Charbonnier function to the singular values:
-\begin{equation}\label{eq:charbonnier_g}
-g(s)=\sqrt{s^2+\epsilon^2}-\epsilon,
-\qquad
-g'(s) = \frac{s}{\sqrt{s^2+\epsilon^2}},
-\qquad
-g''(s)=\frac{\epsilon^2}{(s^2+\epsilon^2)^{3/2}}.
-\end{equation}
-The constant $-\epsilon$ matches the implemented objective value and does not affect gradients or optimisation.
-
-The nuclear norm is orthogonally invariant: for any orthogonal $U\in\mathbb{R}^{d\times d}$ and $V\in\mathbb{R}^{M\times M}$,
-\begin{equation}
-\|Y\|_* \;=\; \|U Y V^\top\|_*.
-\end{equation}
-More generally, any function of the form
-\begin{equation}
-\phi(Y) \;:=\; f(\sigma(Y)),
-\qquad
-f(s)=\sum_{\ell=1}^{r} g(s_\ell),
-\qquad
-r=\min\{d,M\},
-\end{equation}
-is orthogonally invariant and depends on $Y$ only through its singular values $\sigma(Y)=(\sigma_1(Y),\dots,\sigma_r(Y))$.
-Since $g\in C^\infty([0,\infty))$ for $\epsilon>0$, the symmetric function $f$ is smooth and hence $\phi$ is differentiable, with gradient given by the standard formula for orthogonally invariant matrix functions \cite{lewis_convex_1995,lewis_derivatives_1996}.
-
-\paragraph{Jacobian-space gradient.}
-Let $\phi(\mathcal{G})=\sum_{\ell=1}^{\min(d,M)} g(\sigma_\ell(\mathcal{G}))$, where $\sigma_\ell(\mathcal{G})$ are the singular values of the voxel-wise Jacobian matrix $\mathcal{G}\in\mathbb{R}^{d\times M}$. A thin SVD
-\begin{equation}
-\mathcal{G} \;=\; U\,\Sigma\,V^\top,
-\qquad
-U\in\mathbb{R}^{d\times r},\ \Sigma=\mathrm{diag}(\sigma)\in\mathbb{R}^{r\times r},\ V\in\mathbb{R}^{M\times r},
-\end{equation}
-with $r=\min\{d,M\}$ gives
-\begin{equation}\label{eq:phi_grad_svd}
-\nabla_{\mathcal{G}} \phi(\mathcal{G})
-\;=\;
-U\,\mathrm{diag}\!\bigl(g'(\sigma)\bigr)\,V^\top,
-\qquad
-g'(\sigma_\ell)=\frac{\sigma_\ell}{\sqrt{\sigma_\ell^2+\epsilon^2}}.
-\end{equation}
-
-In practice, it is unnecessary to form $U$ if we exploit the small Gram matrix
-\begin{equation}
-G := \mathcal{G}^\top \mathcal{G}\in\mathbb{R}^{M\times M},
-\qquad G\succeq 0.
-\end{equation}
-Let $G=V\Lambda V^\top$ with $\Lambda=\mathrm{diag}(\lambda_1,\dots,\lambda_M)$. Then $\lambda_\ell=\sigma_\ell^2$ for the nonzero spectrum and $V$ coincides with the right singular vectors of $\mathcal{G}$. On the range of $\mathcal{G}$ we have $U=\mathcal{G}V\Sigma^{-1}$, so substituting into~\eqref{eq:phi_grad_svd} yields
-\begin{equation}\label{eq:phi_grad_gram}
-\nabla_{\mathcal{G}} \phi(\mathcal{G})
-\;=\;
-\mathcal{G}\,V\,\mathrm{diag}\!\left(\frac{g'(\sigma_\ell)}{\sigma_\ell}\right)\,V^\top,
-\end{equation}
-with the continuous extension at $\sigma_\ell=0$. For Charbonnier smoothing,
-\begin{equation}
-\frac{g'(\sigma_\ell)}{\sigma_\ell}
-=
-\frac{1}{\sqrt{\sigma_\ell^2+\epsilon^2}}
-=
-\frac{1}{\sqrt{\lambda_\ell+\epsilon^2}},
-\end{equation}
-hence
-\begin{equation}\label{eq:phi_grad_inv_sqrt}
-\nabla_{\mathcal{G}} \phi(\mathcal{G})
-\;=\;
-\mathcal{G}\,V\,\mathrm{diag}\!\left(\frac{1}{\sqrt{\lambda_\ell+\epsilon^2}}\right)\,V^\top
-\;=\;
-\mathcal{G}\,(G+\epsilon^2 I)^{-1/2}.
-\end{equation}
-Equation~\eqref{eq:phi_grad_inv_sqrt} shows that the Jacobian-space gradient is obtained by applying the inverse square-root of the $M\times M$ SPD matrix $G+\epsilon^2 I$ to the columns of $\mathcal{G}$.
-
-For $M=2$ modalities, even an eigendecomposition of $G$ can be avoided. Writing
-\begin{equation}
-G=
-\begin{pmatrix}
-a & c\\
-c & b
-\end{pmatrix},
-\qquad
-a=\|\mathcal{G}_{:,1}\|_2^2,\ \ b=\|\mathcal{G}_{:,2}\|_2^2,\ \ c=\langle \mathcal{G}_{:,1},\mathcal{G}_{:,2}\rangle,
-\end{equation}
-define $S:=G+\epsilon^2 I=\begin{psmallmatrix}s_{11} & s_{12}\\ s_{12} & s_{22}\end{psmallmatrix}$ with $s_{11}=a+\epsilon^2$, $s_{22}=b+\epsilon^2$, $s_{12}=c$, and the invariants
-\begin{equation}
-t:=\mathrm{tr}(S)=s_{11}+s_{22},
-\qquad
-s:=\sqrt{\det(S)}=\sqrt{s_{11}s_{22}-s_{12}^2}.
-\end{equation}
-Since $\epsilon>0$ implies $S\succ 0$, the following identity holds for $2\times2$ SPD matrices:
-\begin{equation}\label{eq:inv_sqrt_2x2}
-S^{-1/2}
-=
-\sqrt{t+2s}\,(S+sI)^{-1}
-=
-\frac{\sqrt{t+2s}}{2\det(S)+s\,t}
-\begin{pmatrix}
-s_{22}+s & -s_{12}\\
--s_{12} & s_{11}+s
-\end{pmatrix}.
-\end{equation}
-Therefore, for two modalities the Jacobian-space gradient can be evaluated via
-\begin{equation}\label{eq:2x2_gram}
-\nabla_{\mathcal{G}} \phi(\mathcal{G})
-=
-\mathcal{G}\,S^{-1/2},
-\qquad S=G+\epsilon^2 I,
-\end{equation}
-using only dot products and scalar square-roots per voxel.
-
-\paragraph{Image-space gradient.}
-Define voxel-wise
-\begin{equation}
-Q_n \;:=\; \nabla_{\mathcal{G}} \phi\bigl(\mathcal{G}_n(\bm{z})\bigr)
-\in\mathbb{R}^{d\times M},
-\end{equation}
-and let $Q=\{Q_n\}_{n=1}^N$. Applying the chain rule through the linear map $\bm{z}\mapsto D\bm{z}$ yields
-\begin{equation}
-\delta \tilde{\mathcal{R}}_{\mathrm{TNV}}(\bm{z})[\delta \bm{z}]
-=
-\sum_{n=1}^N \left\langle Q_n,\ (D\,\delta \bm{z})_n \right\rangle_F
-=
-\left\langle Q,\ D\,\delta \bm{z} \right\rangle.
-\end{equation}
-By definition of the adjoint $D^\ast$,
-\begin{equation}
-\left\langle Q,\ D\,\delta \bm{z} \right\rangle
-=
-\left\langle D^\ast Q,\ \delta \bm{z} \right\rangle.
-\end{equation}
-Defining the discrete divergence as $\operatorname{div}:=-D^\ast$, we obtain
-\begin{equation}
-\nabla_{\bm{z}} \tilde{\mathcal{R}}_{\mathrm{TNV}}(\bm{z})
-=
--\,\operatorname{div} Q,
-\end{equation}
-where $\operatorname{div}$ acts column-wise on $Q$.
-
-\section{Weighted Directional Total Nuclear Variation ($\wdtnv$)}
-\label{sec:wdtnv}
-
-This section extends TNV \cite{rigie_joint_2015, holt_total_2014} in two orthogonal ways:
-\begin{itemize}
-    \item high-resolution anatomical information is incorporated directionally rather than as an additional coupled intensity channel;
-    \item voxel-wise, modality-wise diagonal weighting compensates for heterogeneous scaling and spatially varying reliability across modalities.
-\end{itemize}
-
-The starting point is the standard TNV construction: penalising the nuclear norm of a multi-modality Jacobian promotes joint sparsity and alignment of edges, since a low nuclear norm favours a locally low-rank Jacobian.
-
-\subsection{Directional operators from guidance}
-\label{subsec:directional_from_guidance}
-
-To incorporate guidance information, such as a high-resolution anatomical image, we borrow the operator from directional total variation (Equation~\ref{eq:directional_op}). The key design choice is that the guidance image is used only to steer the penalty, not to add an extra column to the joint Jacobian. This avoids directly coupling an anatomical channel, with distinct units, resolution, and artefacts, to the emission channels through the singular spectrum.
-
-If a guidance image were appended as an additional modality, then a single global scaling would have data-dependent and spatially non-uniform consequences. Where emission gradients are weak, even modest guidance gradients can dominate the local Jacobian and hence the singular values; where emission gradients are strong, the same scaling may become negligible. Since the nuclear norm couples modalities through the eigenstructure of the local Gram matrix, such reweighting can also transfer structured guidance artefacts into the coupled reconstruction. By contrast, a directional operator modifies which gradient components are penalised, without forcing the presence of edges where the emission data do not support them.
-
-Applying $\Pi_{m,n}$ to each modality gradient defines the directional multi-modality Jacobian
-\begin{equation}
-\mathcal{G}^{\mathrm{dir}}_n(\bm{z})= \bigl[\Pi_{1,n}(D z_1)_n \;|\; \cdots \;|\; \Pi_{M,n}(D z_M)_n\bigr]\in\mathbb{R}^{d\times M}.
-\end{equation}
-Here $D$ denotes the chosen discrete directional-difference operator and each $\Pi_{m,n}\in\mathbb{R}^{d\times d}$ is constructed from the guidance field at voxel $n$. In the implementation used in this work, a guidance image $a$ defines
-\begin{equation}
-\xi_n
-=
-\frac{(D a)_n}{\sqrt{\|(D a)_n\|_2^2+\eta^2}},
-\qquad
-\Pi_{m,n}=I_d-\gamma_m\,\xi_n\xi_n^\top,
-\qquad \gamma_m\in[0,1].
-\label{eq:wdtnv_directional_operator}
-\end{equation}
-When $\eta$ is not specified explicitly it is set from a robust scale estimate of $\|(Da)_n\|_2$, namely $0.01$ times the difference between its $99$th and $1$st percentiles. In homogeneous regions of the guidance image, $\xi_n$ is small and $\Pi_{m,n}$ is close to the identity, so the regulariser reduces to an approximately isotropic TNV-type coupling.
-
-Using CT only to construct the directional operators decouples anatomical steering from emission-to-emission weighting. Modality weights determine how strongly emission gradients are coupled to one another through the nuclear norm, while $\Pi_{m,n}$ determines how strongly the penalty prefers guidance-consistent edge directions. Retaining a two-modality Jacobian also preserves the efficient $2\times2$ Gram-matrix structure derived in Section~\ref{sec:tv_to_tnv}.
-
-\subsection{Modality-wise weighting and the full \texorpdfstring{$\wdtnv$}{w-dTNV} prior}
-\label{subsec:modality_weighting}
-\label{subsec:voxelwise_weighting}
-
-PET and SPECT images of the same administered Y-90 activity differ substantially in dynamic range: the effective count level, sensitivity, and noise characteristics vary by orders of magnitude between the two modalities, and in clinical imaging the two reconstructions may also operate at different spatial resolutions. If the directional emission gradients $\Pi_{m,n}(D z_m)_n$ are used directly without normalisation, the nuclear-norm coupling is dominated by the modality with the larger gradient magnitudes.
-
-To compensate, we introduce a voxel-wise, modality-wise diagonal weight matrix
-\begin{equation}
-    B_n := \mathrm{diag}(\beta_{1,n},\,\beta_{2,n}) \in \mathbb{R}^{2\times 2},
-    \qquad \beta_{m,n} > 0.
-    \label{eq:Bn_def}
-\end{equation}
-The weighted directional Jacobian is
-\begin{equation}
-    Y_n(\bm{z}) := \mathcal{G}_n^{\mathrm{dir}}(\bm{z})\,B_n
-    = \bigl[\Pi_{1,n}(D z_1)_n \;\big|\; \Pi_{2,n}(D z_2)_n\bigr]\,
-    \mathrm{diag}(\beta_{1,n},\beta_{2,n})
-    \in \mathbb{R}^{d\times 2}.
-    \label{eq:Yn_weighted}
-\end{equation}
-The columns of $Y_n$ are $y_{m,n} := \beta_{m,n}\,\Pi_{m,n}(D z_m)_n \in \mathbb{R}^d$.
-
-The \emph{weighted directional Total Nuclear Variation} ($\wdtnv$) prior is then
-\begin{equation}
-    \mathcal{R}_{\mathrm{w\text{-}dTNV}}(\bm{z})
-    :=
-    V_{\mathrm{vox}}\sum_{n=1}^{N} \phi\!\left(Y_n(\bm{z})\right),
+    y_j \sim \mathrm{Poisson}(\bar y_j(x)),
     \qquad
-    \phi(Y) := \sum_{\ell=1}^{\min(d,M)} g(\sigma_\ell(Y)),
-    \label{eq:wdtnv_prior}
+    \bar y(x)=Cx+b,
+    \qquad j=1,\dots,J,
+    \label{eq:deconv_forward_model}
 \end{equation}
-where $V_{\mathrm{vox}}$ is the voxel volume and $g$ is the Charbonnier smoothing from~\eqref{eq:charbonnier_g}. Choosing equal weights $\beta_{m,n}\equiv 1$ recovers unweighted $d$TNV. Choosing $\beta_{m,n}$ proportional to the inverse of a characteristic modality scale brings both channels to a comparable range before the nuclear-norm coupling is evaluated. The PET/SPECT normalisation used in the application study is specified in Chapter~\ref{chapter:paper}.
+where $C\in\mathbb{R}_+^{J\times J}$ is a discretised convolution operator representing a space-invariant \glsentryshort{psf}, and $b\in\mathbb{R}^J_+$ is an optional additive background term (set to $0$ in the experiments unless stated otherwise). The operator $C$ plays the same role as the system matrix $A$ in \eqref{eq:forward_model}, but in the image domain.
 
-\paragraph{Effect on the singular spectrum.}
-Right-multiplying by $B_n$ scales the $m$-th column of $Y_n$ by $\beta_{m,n}$. This scales the singular values of $Y_n$ in a non-trivial way, since the singular values of $YB$ are not simply $\sigma_\ell(Y)\beta_m$. The intended effect is instead on the Gram matrix: $Y_n^\top Y_n$ contains modality self-terms and cross-terms after scaling, so suitable $\beta_{m,n}$ values allow both modalities to contribute comparably to the coupled singular spectrum. The $2\times2$ Gram-matrix algebra in Section~\ref{sec:tv_to_tnv} applies directly to this weighted case.
+Within this approximation, assuming independence across voxels in the image-domain observation model, the Poisson negative log-likelihood is
+\begin{equation}
+    \mathcal{L}(x)
+    =
+    \sum_{j=1}^{J}
+    \left(
+        \bar y_j(x) - y_j \log \bar y_j(x)
+    \right),
+    \qquad
+    \bar y(x)=Cx+b,
+    \label{eq:deconv_nll}
+\end{equation}
+dropping constants independent of $x$ as in Chapter~\ref{chapter:reconstruction}.
 
-\section{Conclusion}
+A MAP (penalised-likelihood) deconvolution estimate is then
+\begin{equation}
+    \hat x
+    \in
+    \arg\min_{x\in\mathcal{C}}
+    \left\{
+        \mathcal{L}(x) + \beta \mathcal{R}(x)
+    \right\},
+    \qquad
+    \mathcal{C}=\mathbb{R}_+^J,
+    \label{eq:deconv_map}
+\end{equation}
+with $\beta>0$ and an appropriate regulariser $\mathcal{R}$.
 
-This chapter introduced a smoothed, weighted, and directional Total Nuclear Variation ($\wdtnv$) prior for synergistic reconstruction. Charbonnier smoothing of the singular values yields a differentiable spectral functional whose Jacobian-space gradient can be written in Gram-matrix form. For two coupled emission modalities this reduces the key spectral operation to a $2\times2$ inverse square-root, allowing the prior and its gradient to be evaluated robustly without a general per-voxel SVD.
+Throughout, $C$ is non-negative and (approximately) intensity preserving: for a unit-sum \glsentryshort{psf} kernel and negligible boundary effects, $C\mathbf{1}\approx \mathbf{1}$ and $C^{\mathsf T}\mathbf{1}\approx \mathbf{1}$. The adjoint $C^{\mathsf T}$ corresponds to convolution with the flipped \glsentryshort{psf}. For a symmetric \glspl{psf} common in \gls{pet}, $C^{\mathsf T}\approx C$.
 
-The chapter also separated two roles that are easily confounded in multimodality reconstruction. Anatomical information is used directionally through $\Pi_{m,n}$, steering the penalty without adding CT as another coupled intensity channel. Modality scaling is handled separately through the diagonal weight matrix $B_n$, allowing PET and SPECT gradients to enter the nuclear-norm coupling on comparable scales. Chapter~\ref{chapter:optimisation} uses these definitions to construct practical preconditioners and subset-selection strategies for large-scale $\wdtnv$ optimisation.
+\section{Baseline: Richardson--Lucy deconvolution}
+\label{sec:deconv_rl}
+
+The RL algorithm is the EM algorithm for the Poisson model \eqref{eq:deconv_forward_model} with $b=0$ \cite{shepp_maximum_1982}. Introducing elementwise multiplication and division, denoted $\odot$ and $\oslash$, the unit-sensitivity RL update is
+\begin{equation}
+    x^{(k+1)}
+    =
+    x^{(k)} \odot
+        C^{\mathsf T}\!\left( y \oslash (C x^{(k)}) \right).
+    \label{eq:rl_update}
+\end{equation}
+More generally, the right-hand side of \eqref{eq:rl_update} contains an elementwise division by $C^{\mathsf T}\mathbf{1}$; in this chapter this denominator is neglected because the \glsentryshort{psf} kernels are normalised and boundary effects are small.
+As with \glsentryshort{mlem}/\glsentryshort{osem} under the full forward model, RL iterations tend to sharpen edges rapidly but amplify high-frequency noise as iterations increase. Consequently, unregularised RL is typically used with early stopping, which acts as an implicit regulariser but yields iteration-dependent bias.
+
+\subsection{Scaled-gradient interpretation and EM-type preconditioning}
+\label{sec:deconv_precond}
+
+To connect with Chapter~\ref{chapter:reconstruction}, we rewrite \eqref{eq:rl_update} as an additive scaled-gradient step. The gradient of the Poisson negative log-likelihood \eqref{eq:deconv_nll} (with $b=0$) is
+\begin{equation}
+    D_x \mathcal{L}(x)
+    =
+    C^{\mathsf T}\!\left(
+        \mathbf{1} - y \oslash (Cx)
+    \right).
+    \label{eq:deconv_nll_grad}
+\end{equation}
+Using the same rearrangement as for \glsentryshort{mlem} in Chapter~\ref{chapter:reconstruction}, and again using $C^{\mathsf T}\mathbf{1}\approx\mathbf{1}$, we obtain
+\begin{equation}
+    x^{(k+1)}
+    =
+    x^{(k)}\odot\left(\mathbf{1}
+    -
+    D_x\mathcal{L}(x^{(k)})\right).
+    \label{eq:deconv_scaled_grad}
+\end{equation}
+This corresponds to an EM-type diagonal preconditioner analogous to $P_{EM}^{(k)}=\operatorname{diag}(x^{(k)}/(A^{\mathsf T}\mathbf{1}))$ in the full reconstruction problem.
+
+\section{Kernelised Richardson--Lucy deconvolution}
+\label{sec:deconv_krl}
+
+Kernel methods were reviewed in Chapter~\ref{chapter:reconstruction} as an implicit regularisation strategy in which prior information enters through the image model $x=K\alpha$ rather than through an explicit penalty \cite{wang_pet_2015,hutchcroft_anatomically-aided_2016}. The same idea can be applied to image-domain deconvolution.
+
+\subsection{Kernel image model}
+\label{sec:deconv_kernel_model}
+
+Let $u$ be a co-registered anatomical guidance image (\gls{mr} or \gls{ct}), resampled to the \gls{pet} grid. We represent
+\begin{equation}
+    x = K\alpha,
+    \qquad
+    \alpha\in\mathbb{R}^J_+,
+    \qquad
+    K\in\mathbb{R}_+^{J\times J},
+    \label{eq:deconv_kernel_x}
+\end{equation}
+where $K$ is a sparse, row-normalised kernel matrix constructed from features extracted from $u$ (and optionally spatial coordinates), as in Chapter~\ref{chapter:reconstruction}. Row normalisation ($K\mathbf{1}=\mathbf{1}$) ensures that constant coefficient images are mapped to constant activity images, preserving the intended intensity scale of the kernel representation.
+
+Substituting into \eqref{eq:deconv_forward_model} gives the kernelised forward model
+\begin{equation}
+    \bar y(\alpha) = C(K\alpha)+b.
+    \label{eq:deconv_kernel_forward}
+\end{equation}
+
+\subsection{KRL update}
+\label{sec:deconv_krl_update}
+
+Maximising the Poisson likelihood with respect to $\alpha$ under \eqref{eq:deconv_kernel_forward} yields an EM-type multiplicative update analogous to \gls{kem}:
+\begin{equation}
+    \alpha^{(k+1)}
+    =
+    \alpha^{(k)} \odot
+    \frac{
+        K^{\mathsf T}C^{\mathsf T}\!\left(
+            y \oslash (C K \alpha^{(k)} + b)
+        \right)
+    }{
+        K^{\mathsf T}C^{\mathsf T}\mathbf{1}
+    },
+    \qquad
+    x^{(k+1)} = K\alpha^{(k+1)}.
+    \label{eq:krl_update}
+\end{equation}
+As in \gls{kem}, the denominator can be precomputed once, and the update preserves non-negativity given $\alpha^{(0)}\ge 0$. Under the same unit-sensitivity approximation used for vanilla \gls{rl}, $C^{\mathsf T}\mathbf{1}\approx\mathbf{1}$, the denominator reduces to $K^{\mathsf T}\mathbf{1}$; this term is generally not equal to $\mathbf{1}$ and cannot be ignored.
+
+\subsection{Hybrid KRL (HKRL)}
+\label{sec:deconv_hkrl}
+
+A known limitation of purely anatomy-derived kernels is suppression of \gls{pet}-unique structures when they are not supported by the guidance image \cite{deidda_hybrid_2019}. Hybrid kernels mitigate this by incorporating features derived from the evolving \gls{pet} estimate \cite{deidda_hybrid_2019}.
+
+Because iteration-dependent kernels can propagate noise back into the coupling structure at late iterations, we adopt a frozen-kernel strategy consistent with the motivation in \gls{hkem}, freezing after 5 iterations (although this proved to be unnecessary for the sphere phantom as the best iteration was usually before this point).
+
+\section{Directional-TV regularised RL deconvolution}
+\label{sec:deconv_dtv}
+
+\acrfull{dtv} was introduced in Chapter~\ref{chapter:reconstruction} as an anatomically guided regulariser that promotes edge alignment between the emission image and a structural guidance image \cite{ehrhardt_pet_2016}. Here we use \gls{dtv} as an explicit penalty for deconvolution.
+
+\subsection{Penalised objective and update}
+\label{sec:deconv_dtv_update}
+
+The penalised-likelihood deconvolution objective is
+\begin{equation}
+    \hat x
+    \in
+    \arg\min_{x\in\mathbb{R}^J_+}
+    \left\{
+        \mathcal{L}(x) + \beta R_{\mathrm{sDTV}}(x;u)
+    \right\},
+    \qquad
+    \mathcal{L}(x)=\sum_{j}\left((Cx+b)_j-y_j\log(Cx+b)_j\right).
+    \label{eq:deconv_map_dtv}
+\end{equation}
+Here $R_{\mathrm{sDTV}}$ is a smoothed \gls{dtv} penalty. A natural baseline solver is the scaled-gradient RL--DTV iteration
+\begin{equation}
+    x^{(k+1)}
+    =
+    \left\{
+        x^{(k)}\odot\left(\mathbf{1}
+        -
+        \varsigma_k
+        \left[
+            D_x\mathcal{L}(x^{(k)}) + \beta\,\nabla_x R_{\mathrm{sDTV}}(x^{(k)};u)
+        \right]\right)
+    \right\}_{\geq 0},
+    \label{eq:rldtv_update}
+\end{equation}
+where $\{\}_{\geq0}$ denotes projection onto non-negativity. Step sizes $\{\varsigma_k\}$ may be taken constant (with conservative tuning) or diminishing to improve stability. This update is the image-domain analogue of the scaled-gradient MAP schemes discussed in Chapter~\ref{chapter:reconstruction} (compare with BSREM-type forms), but without subsets.
+
+In contrast to kernelised RL variants, RL--DTV is typically numerically stable once $\beta$ is chosen, and the objective in \eqref{eq:deconv_map_dtv} is smooth with simple bound constraints. This makes it well suited to a quasi-Newton solver: in the experiments of this chapter we therefore accelerate convergence by optimising \eqref{eq:deconv_map_dtv} with the L-BFGS-B algorithm reviewed in Section~\ref{sec:optimisation}, using bound constraints to enforce non-negativity. In this setting, L-BFGS-B replaces the hand-tuned step-size sequence $\{\varsigma_k\}$ by an automatic line search and curvature-informed scaling, often reaching a stationary point of \eqref{eq:deconv_map_dtv} in substantially fewer iterations than the scaled-gradient RL--DTV update \eqref{eq:rldtv_update}.
+
+For RL and KRL/HKRL, early stopping is essential and is treated as part of the regularisation. In experiments we report results across iteration counts and select a stopping point based on NRMSE (Equation~\ref{eq:nrmse_krl}) for the phantom and qualitative assessment for the brain example. For RL--DTV, iteration sensitivity is reduced, but a stopping point is still selected to avoid unnecessary computation once the relative objective decrease satisfies
+\begin{equation}
+    \frac{
+        \mathcal{O}(x^{(k)}) - \mathcal{O}(x^{(k+1)})
+    }{
+        \max\left\{\left|\mathcal{O}(x^{(k)})\right|,
+        \left|\mathcal{O}(x^{(k+1)})\right|,1\right\}
+    }
+    \leq f_{\mathrm{tol}},
+    \qquad
+    \mathcal{O}(x)=\mathcal{L}(x)+\beta R_{\mathrm{sDTV}}(x;u).
+\end{equation}
+Here $f_{\mathrm{tol}}$ is chosen to be $10^{-6}$. In L-BFGS-B implementations that expose the historical \texttt{factr} parameter, the equivalent objective tolerance is $f_{\mathrm{tol}}=\texttt{factr}\,\epsilon_{\mathrm{mp}}$, where $\epsilon_{\mathrm{mp}}$ is machine precision.
+
+\section{Data and experimental setup} \label{sec:deconv_data}
+Two datasets are used to characterise behaviour under controlled and realistic conditions.
+
+\begin{enumerate}
+    \item \textbf{Spherical phantom:} a hot-sphere phantom enabling assessment of edge recovery and spill-over (see Figure~\ref{fig:spheres_overview}).
+
+    \item \textbf{$\tau$-\gls{pet} brain with MRI guidance:} a representative in vivo dataset (see Figure~\ref{fig:brain_overview}).
+\end{enumerate}
+
+\begin{figure}[hbtp]
+    \centering
+    \includegraphics[width=1\linewidth]{figures/Chapter3a/poster_figures_blur_init/fig1_spheres_overview.png}
+    \caption{Left, ground truth phantom, centre blurred and noisy reconstruction and right MRI guidance image for the simulated sphere phantom. Units are arbitrary.}
+    \label{fig:spheres_overview}
+\end{figure}
+
+\begin{figure}[hbtp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/Chapter3a/poster_figures_blur_init/fig2_brain_overview.png}
+    \caption{Left, reconstructed $\tau$-\gls{pet} brain, right registered MRI guidance image. Units are arbitrary.}
+    \label{fig:brain_overview}
+\end{figure}
+
+In both cases, the anatomical image $u$ is registered to the \gls{pet} grid and resampled to the reconstruction voxel size. The registered anatomy is used either to define the kernel $K$ (KRL/HKRL) or the directional field $\{\xi_j\}$ (RL--DTV).
+
+To obtain a controlled test case with known truth while retaining a realistic resolution/noise regime, the sphere dataset is simulated from a digital activity distribution by forward projecting with an isotropic Gaussian resolution model of $\mathrm{FWHM}=\SI{6}{\milli\metre}$ embedded in the forward projector, adding Poisson noise to the resulting sinograms, and then reconstructing using an operator without additional blurring. This deliberately introduces a resolution-modelling mismatch between simulation and reconstruction. The deconvolution operator used in the subsequent image-domain correction was the same $\SI{6}{\milli\metre}$ Gaussian model, implemented with the same boundary handling as the simulation blur.
+
+Let $x^\star$ denote the digital ground-truth activity image and $\hat{x}$ the reconstructed image. For each sphere $s$, let $\mathcal{S}_s$ be the set of voxel indices belonging to that sphere, and let $\mathcal{S}=\bigcup_s \mathcal{S}_s$ denote the union over all spheres. We report an aggregate recovery coefficient computed by pooling all sphere voxels,
+\begin{equation}
+\mathrm{RC} \;=\; \frac{\frac{1}{|\mathcal{S}|}\sum_{i\in \mathcal{S}}\hat{x}_i}{\frac{1}{|\mathcal{S}|}\sum_{i\in \mathcal{S}}x^\star_i}.
+\end{equation}
+
+To quantify background noise, let $\mathcal{B}$ denote the set of voxel indices in a warm background region. We compute the coefficient of variation (CoV) within $\mathcal{B}$ as
+\begin{equation}
+\mathrm{CoV}_{\mathcal{B}} \;=\; \frac{\sigma_{\mathcal{B}}}{\mu_{\mathcal{B}}},
+\qquad
+\mu_{\mathcal{B}} \;=\; \frac{1}{|\mathcal{B}|}\sum_{i\in \mathcal{B}}\hat{x}_i,
+\qquad
+\sigma_{\mathcal{B}} \;=\; \sqrt{\frac{1}{|\mathcal{B}|-1}\sum_{i\in \mathcal{B}}\left(\hat{x}_i-\mu_{\mathcal{B}}\right)^2}.
+\end{equation}
+
+Finally, overall fidelity to the truth is summarised by the normalised root mean squared error (NRMSE) over the full image grid $\Omega$,
+\begin{equation}\label{eq:nrmse_krl}
+\mathrm{NRMSE} \;=\; 
+\frac{\sqrt{\frac{1}{|\Omega|}\sum_{i\in \Omega}\left(\hat{x}_i-x^\star_i\right)^2}}
+{\sqrt{\frac{1}{|\Omega|}\sum_{i\in \Omega}\left(x^\star_i\right)^2}}.
+\end{equation}
+
+The in vivo dataset is a $\tau$-\gls{pet} scan acquired on a healthy volunteer using the tracer \textsuperscript{18}F-MK-6240, with a co-registered anatomical MRI serving as guidance. This dataset is used to qualitatively illustrate how the different priors behave in the presence of heterogeneous uptake patterns and fine anatomical structure, where over-regularisation can lead to anatomical ``imprinting''. The FWHM of the deconvolution operator was estimated from a Hoffman brain phantom scan acquired on the same Siemens Vision scanner. The phantom reconstruction used PSF modelling; after removing extra-cerebral activity, the reconstructed image was co-registered to a Hoffman template, and the template was smoothed over a grid of Gaussian FWHM values, independently in the in-plane and axial directions. The smoothing that minimised the sum-of-squared differences to the reconstructed phantom image was selected, giving $\mathrm{FWHM}=(\SI{4.6}{\milli\metre},\SI{4.6}{\milli\metre},\SI{6.4}{\milli\metre})$.
+
+\subsection{Hyperparameter tuning}
+\label{subsec:hyperparameter_tuning}
+
+Hyperparameters were tuned by grid search.
+
+For DTV reconstructions, we swept the regularisation weight
+\[
+\beta\in\{0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0\}.
+\]
+
+Kernel methods used a fixed number of neighbours ($48$-NN) within a cubic $9\times9\times9$ neighbourhood \cite{hutchcroft_anatomically-aided_2016}. Feature channels were normalised before computing Gaussian similarities, as in the kernel construction described in Chapter~\ref{chapter:reconstruction}; the reported $\sigma_a$ and $\sigma_f$ values are therefore interpreted in these normalised feature units. For KRL we swept the anatomical weighting $\sigma_a$. For HKRL we additionally swept the functional weighting $\sigma_f$. Because we used a k-NN neighbourhood strategy, distance weights ($\sigma_{df}, \sigma_{da}$) were not used.
+
+\begin{table}[hbtp]
+\centering
+\caption{Hyperparameter sweeps for kernel-based deconvolution}
+\label{tab:kernel_sweeps}
+\begin{tabular}{lll}
+\toprule
+Method & Hyperparameter & Values swept \\
+\midrule
+KRL/HKRL & $\sigma_{a}$ & \{0.1, 0.2, 0.5, 1.0, 2.0, 5.0\} \\
+HKRL & $\sigma_{f}$ & \{0.1, 0.2, 0.5, 1.0, 2.0, 5.0\} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The requirement for early stopping in RL, KRL and HKRL means that the initialising image plays a pivotal role in regularisation. We investigate the effect that initialisation could have on image quality by running identical sweeps over the sphere dataset initialising with a uniform image of ones and the blurred \gls{pet} image.
+
+$\tau$-\gls{pet} brain data reconstructions were initialised using a uniform image of ones for RL/KRL/HKRL and the blurred \gls{pet} image for RL--DTV.
+
+\section{Results}
+\label{sec:deconv_results}
+
+\subsection{Spheres}
+
+The results for the best reconstructions are summarised in Table~\ref{tab:spheres_krl} and visualised in Figure~\ref{fig:recons_krl}.
+
+\begin{figure}[hbtp]
+    \centering
+    \begin{subfigure}[b]{1\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_blur_init/fig3_spheres_best_comparison.png}
+    \end{subfigure}
+    \begin{subfigure}[b]{1\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_unif_init/fig3_spheres_best_comparison.png}
+    \end{subfigure}
+    \caption{Figures showing central slice of reconstructions with best NRMSE\@. Top, initialised by the blurred \gls{pet} image and bottom, initialised by a uniform image.}
+    \label{fig:recons_krl}
+\end{figure}
+
+\begin{table}[hbtp]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.15}
+
+\begin{tabular}{lrrrrrrr}
+\toprule
+\multicolumn{8}{c}{\textbf{Uniform initialisation}}\\
+\midrule
+Method & Min NRMSE & Iter. & RC & Bkg CoV & $\sigma_a$ & $\sigma_f$ & $\beta$ \\
+\midrule
+RL     & 0.0327 & 2   & 0.7645 & 0.2106 & --   & --  & -- \\
+KRL    & 0.0190 & 3   & 0.8781 & 0.1546 & 0.5  & --  & -- \\
+HKRL   & 0.0191 & 3   & 0.8776 & 0.1546 & 0.5  & 5   & -- \\
+RL--DTV & 0.0177 & 143 & 0.8890 & 0.1233 & --   & --  & 2  \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.8em}
+
+\begin{tabular}{lrrrrrrr}
+\toprule
+\multicolumn{8}{c}{\textbf{Blurred initialisation}}\\
+\midrule
+Method & Min NRMSE & Iter. & RC & Bkg CoV & $\sigma_a$ & $\sigma_f$ & $\beta$ \\
+\midrule
+RL     & 0.0338 & 0   & 0.7307 & 0.2278 & -- & -- & -- \\
+KRL    & 0.0208 & 2   & 0.8841 & 0.1805 & 5  & -- & -- \\
+HKRL   & 0.0212 & 2   & 0.8805 & 0.1805 & 5  & 5 & -- \\
+RL--DTV & 0.0177 & 164 & 0.8893 & 0.1233 & -- & -- & 2  \\
+\bottomrule
+\end{tabular}
+\caption{Tables summarising the hyperparameters and metric values of the best (measured by NRMSE) reconstructions of the various methods for (top) a uniform initialisation of ones and (bottom) the blurred \gls{pet} image.}
+\label{tab:spheres_krl}
+\end{table}
+
+Across both initialisation strategies, RL--DTV achieved the lowest NRMSE (0.0177), the highest aggregate recovery coefficient (approximately 0.889), and the lowest background CoV (approximately 0.123). KRL and HKRL substantially improved on unregularised RL, but were almost indistinguishable from one another in this simple sphere phantom. With blurred initialisation, the best RL result occurred at iteration 0, indicating that unconstrained RL deconvolution immediately increased the NRMSE once applied to this noisy reconstruction.
+
+The effect of initialisation on the quality of reconstructions can be seen in Figures~\ref{fig:nrmse_krl} and~\ref{fig:rc_cov_krl}.
+
+\begin{figure}[hbtp]
+    \centering
+    \begin{subfigure}[b]{0.8\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_blur_init/fig4_spheres_nrmse_curves.png}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.8\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_unif_init/fig4_spheres_nrmse_curves.png}
+    \end{subfigure}
+    \caption{Figures showing iteration versus global NRMSE for the best performing reconstructions. Top, initialised by the blurred \gls{pet} image and bottom, initialised by a uniform image.}
+    \label{fig:nrmse_krl}
+\end{figure}
+
+\begin{figure}[hbtp]
+    \centering
+    \begin{subfigure}[b]{0.8\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_blur_init/fig4eii_spheres_recovery_vs_cov_all_params_curves_fixed_axes.png}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.8\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_unif_init/fig4eii_spheres_recovery_vs_cov_all_params_curves_fixed_axes.png}
+    \end{subfigure}
+    \caption{Figures showing RC versus CoV for all reconstructions. Top, initialised by the blurred \gls{pet} image and bottom, initialised by a uniform image. KRL and HKRL are visually indistinguishable in these plots.}
+    \label{fig:rc_cov_krl}
+\end{figure}
+
+\subsection{$\tau$-\gls{pet} brain}
+
+$\tau$-\gls{pet} brain data were only qualitatively analysed. Optimal images were chosen by visual quality, which is an obvious limitation of the study design. The chosen images are shown in Figure~\ref{fig:brain_recons_krl}.
+
+\begin{figure}[hbtp]
+    \centering
+    \begin{subfigure}[b]{0.72\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_unif_init/fig5_brain_example_comparison.png}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_blur_init/fig5_brain_example_comparison.png}
+    \end{subfigure}
+    \caption{Figures showing visually best reconstructions for the different reconstructions.}
+    \label{fig:brain_recons_krl}
+\end{figure}
+
+In the brain example, RL produced sharp but visibly noisy cortical structure, while KRL and HKRL suppressed noise but showed stronger dependence on the anatomical guidance image. RL--DTV gave the best qualitative compromise in this dataset: cortical definition was improved relative to the blurred image and the kernel methods, while noise amplification was lower than for unregularised RL\@. This visual assessment supports the quantitative sphere result, but should be interpreted cautiously because it is based on a single healthy volunteer scan and does not include a reference truth.
+
+
+
+\section{Discussion}
+\label{sec:deconv_discussion}
+
+Deblurring is inherently ill-posed: the PSF attenuates high frequencies, so naive inversion magnifies noise. Anatomical guidance provides a structured way to preferentially preserve edges that are plausible given $u$ while damping noise-like oscillations, either by restricting the solution space (kernel methods) or by penalising anatomically inconsistent gradients (DTV).
+
+All guidance-based methods risk bias when the guidance image does not reflect tracer uptake boundaries. KRL is the most restrictive because it enforces $x\in\mathrm{range}(K)$; RL--DTV is less restrictive but can still encourage alignment where the data term is weak (low counts, low contrast). HKRL partially mitigates mismatch by allowing the coupling structure to adapt to \gls{pet} features, but must be controlled (e.g.\ freezing) to avoid noise-driven feedback.
+
+The behaviours observed here anticipate challenges in the full reconstruction setting: strong priors induce spatially varying curvature and require effective scaling (preconditioning), and guidance mechanisms must be designed to avoid suppressing modality-unique information. These considerations directly motivate the synergy-aware prior and optimisation strategy developed later in the thesis.
+
+The present study should therefore be viewed as a proof-of-principle rather than a definitive validation. A stronger evaluation would require a larger set of patient scans and more demanding controlled simulations, for example BrainWeb-style digital brain phantoms with inserted PET-unique lesions or tumours. Such work is ongoing, supported by additional clinical datasets, and would allow the qualitative observations here to be tested with population-level variability and known ground truth.
+
+\section{Summary}
+\label{sec:deconv_summary}
+
+This chapter formulated post-reconstruction \gls{pet} PVC as an approximate image-domain Poisson inverse problem $\bar y(x)=Cx+b$ and studied RL deconvolution and three anatomy-aware regularised variants. KRL and HKRL implement implicit regularisation through kernelised image models, consistent with the kernel framework reviewed in Chapter~\ref{chapter:reconstruction} \cite{wang_pet_2015,hutchcroft_anatomically-aided_2016,deidda_hybrid_2019}. RL--DTV implements explicit anatomically guided regularisation via a DTV penalty \cite{ehrhardt_pet_2016} using the same directional notation as Chapter~\ref{chapter:reconstruction}. Together, these methods provide a practical PVC baseline and a controlled setting in which to diagnose guidance-driven bias and noise amplification, informing the design choices for the synergistic priors and optimisation algorithms developed in subsequent chapters.
