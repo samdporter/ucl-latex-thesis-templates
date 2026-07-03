@@ -62,7 +62,7 @@ In our case this initialisation is explicitly heuristic: the available pre-train
 
 Starting from the deep-learning initialisation $b^{(0)}$, we then refine the additive term using an alternating procedure:
 \begin{enumerate}
-    \item \textbf{Reconstruction step:} update $x$ using OSEM and the current additive estimate $b^{(k)}$. We used 12 subsets and 5 epochs (total 60 subiterations).
+    \item \textbf{Reconstruction step:} update $x$ using OSEM and the current additive estimate $b^{(k)}$. We used 12 subsets and 10 epochs (total 120 subiterations), warm-started from the previous outer iterate.
     \item \textbf{Regularisation of the intermediate image:} apply an isotropic Gaussian post-smoothing of 5~mm \gls{fwhm} to the intermediate reconstruction (used only for the subsequent scatter simulation step).
     \item \textbf{Scatter simulation step:} run a SIMIND-based Monte Carlo scatter simulation using the (smoothed) current activity estimate to produce a new scatter estimate $\widehat{b}^{(k+1)}$.
 \end{enumerate}
@@ -400,4 +400,415 @@ As total counts decrease, the likelihood term becomes flatter and noisier, so th
 
 For high-count, low-background phantom acquisitions (e.g.\ NEMA-style datasets), RC substantially improves agreement with accurate forward projections and remains stable. For low-count Bremsstrahlung acquisitions, however, we observe that RC can become unreliable when combined with strong RDP regularisation. These observations are consistent with the interpretation above: in prior-dominated regimes, mismatched adjoints change the effective weighting of the data term relative to the RDP, and RC does not in general restore a matched forward/adjoint pair.
 
-\section{Putting It All Together}
+\section{Experimental Evaluation}
+\label{sec:brems_eval}
+
+The preceding sections introduced four modelling choices that can be layered onto
+the \isotope[90]{Y} Bremsstrahlung forward model: an image-space Gaussian
+approximation to the range blur (Section~\ref{sec:brem_range_blur}); an additive
+scatter term that is either fixed (\emph{offline}) or updated on-the-fly
+(\emph{online}) during reconstruction (Section~\ref{sec:additive_corrections});
+a damped rather than full update of that additive term
+(Section~\ref{subsec:rc_update}); and a Fu \& Qi-style residual correction of the
+resolution model (Section~\ref{sec:residual_correction}). This section evaluates
+each of these on measured data, and asks not whether any single option is
+universally ``best'', but how each behaves as the regularisation strength is
+varied and how they interact.
+
+\subsection{Datasets and reconstruction protocol}
+\label{subsec:brems_datasets}
+
+We evaluated the corrections on three measured phantom acquisitions and one
+patient study, chosen to span the range of background activity encountered in
+post-radioembolization imaging:
+\begin{itemize}
+    \item \textbf{NEMA (cold background):} a NEMA IEC body phantom with six
+    equal-concentration hot spheres ($10$--$37\,\mathrm{mm}$) in a
+    (nominally) cold background.
+    \item \textbf{NEMA (warm background):} the same phantom geometry with an
+    $8{:}1$ sphere-to-background activity ratio. The $17\,\mathrm{mm}$ sphere was
+    unfilled and is excluded; the two smallest spheres
+    ($\le 13\,\mathrm{mm}$) are noise-limited at these count levels and are
+    excluded from the quantitative analysis.
+    \item \textbf{Anthropomorphic liver:} an anthropomorphic phantom with a
+    single hot lesion insert in a warm liver compartment
+    ($\approx 4{:}1$).
+    \item \textbf{Patient (SIRT-3):} a clinical post-\gls{sirt} \isotope[90]{Y}
+    acquisition with five liver lesions delineated in the co-registered
+    \isotope[90]{Y} \gls{pet} space.
+\end{itemize}
+
+Each reconstruction was performed with \gls{osem} using $12$ staggered subsets and
+$10$ epochs ($120$ subset updates), warm-started from the previous outer iterate.
+The prior was included through a one-step-late gradient step applied after each
+subset update, using the Relative Difference prior (RDP,
+Equation~\ref{eq:rdp_prior}) with weight
+$\beta\in\{0,\,10^{-3},\,10^{-2},\,10^{-1}\}$; unless a $\beta$-sweep is shown, all
+other results use $\beta=10^{-2}$. The SPECTUB system matrix modelled attenuation
+(from the co-registered \gls{ct}) and a depth-dependent Gaussian
+collimator--detector response. The Bremsstrahlung range blur, when enabled, was
+the isotropic $6.9\,\mathrm{mm}$-\gls{fwhm} image-space Gaussian of
+Section~\ref{subsec:brem_specific_blur}, applied to the activity estimate inside
+the acquisition model before forward projection. This reconstruction was embedded
+in the outer \mbox{OSEM\,$\rightarrow$\,SIMIND} additive-update loop of
+Section~\ref{sec:additive_corrections}, run for $10$ outer iterations; between
+outer iterations the reconstruction was smoothed with a $5\,\mathrm{mm}$-\gls{fwhm}
+isotropic Gaussian before being used as the source for the next Monte Carlo
+simulation.
+
+\paragraph{Additive-term construction (reproducibility).}
+At each outer iteration $k$, a single SIMIND PENETRATE simulation
+(Section~\ref{sec:additive_corrections}) was run on the current, body-masked
+reconstruction, yielding two projection components: the total detected fluence
+$p_{\mathrm{tot}}^{(k)}$ (all interactions) and the geometrically collimated,
+attenuated primary $p_{\mathrm{geo}}^{(k)}$. The Monte Carlo output was calibrated
+to the fast \gls{spect} forward projector $A_{\star}$ by a scalar
+$s^{(k)}$, computed as a ratio-of-sums of $A_{\star}x^{(k)}$ to
+$p_{\mathrm{geo}}^{(k)}$ after trimming the $10\%$ most extreme per-bin ratios for
+robustness. The two corrections were then formed as
+\begin{align}
+\widehat{b}_{\mathrm{sc}}^{(k)} &= s^{(k)}\bigl(p_{\mathrm{tot}}^{(k)}-p_{\mathrm{geo}}^{(k)}\bigr)
+&&\text{(scatter: all non-geometric-primary counts),}\\
+(\Delta A)x^{(k)} &= s^{(k)}\,p_{\mathrm{geo}}^{(k)} - A_{\star}x^{(k)}
+&&\text{(residual, cf.\ Equation~\ref{eq:residual}).}
+\end{align}
+Each term was folded into the running additive estimate by the damped update of
+Section~\ref{subsec:rc_update} --- the scatter term with $\alpha=0.2$, the residual
+term with $\alpha\in\{0.2,\,1\}$ --- and the effective additive term applied to the
+\gls{osem} step, $b^{(k)}=b_{\mathrm{sc}}^{(k)}+(\Delta A)x^{(k)}$ (with only the
+component(s) active for a given strategy), was projected to non-negativity before
+each forward projection. The initial additive term $b^{(0)}$ was the pre-trained
+deep-learning scatter estimate of Section~\ref{sec:additive_corrections}; for the
+fixed-scatter strategies it was held constant. The body mask used to suppress
+out-of-patient activity before each simulation was obtained by thresholding the
+attenuation map (at $0.05\,\mathrm{cm}^{-1}$), with a morphological opening
+(radius $2$) and retention of the largest connected component. Crossing the two
+scatter options (fixed/updated), the residual option (off/on), the range blur
+(off/on) and the four values of $\beta$ yields the four correction
+\emph{strategies} --- fixed scatter, fixed scatter\,$+$\,residual, updated
+scatter, and updated scatter\,$+$\,residual --- each evaluated across the blur and
+$\beta$ axes.
+
+\paragraph{Monte Carlo (SIMIND) configuration.}
+All simulations used \gls{mc} code SIMIND \cite{ljungberg_-_2012} with the
+PENETRATE scoring routine (which resolves geometric collimation, septal
+penetration and collimator scatter as separate components) and the
+Y-90 Frey Bremsstrahlung source model. Common settings were a
+$9.5\,\mathrm{mm}$ \gls{nai} crystal, a $10\,\mathrm{keV}$ energy-bin width up to
+$2.08\,\mathrm{MeV}$, a photon-history multiplier of $1$, and a low-energy
+photon-history cutoff at $75\%$ of the lower window threshold. The scanner-,
+collimator- and window-specific settings, which differ between the Mediso and
+Siemens acquisitions, are listed in Table~\ref{tab:brems_simind}.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Dataset-specific SIMIND acquisition settings. The collimator routine
+    selects the penetration/collimator-scatter model (1) or a simpler geometric
+    model (0).}
+    \label{tab:brems_simind}
+    \begin{tabular}{lccccc}
+        \hline
+        Dataset & Nominal $E$ (keV) & Energy window (keV) & Collimator & Coll.\ routine & Scanner \\
+        \hline
+        \gls{nema} (cold) & 150 & 75--225 & \gls{mlegp} & 1 & Mediso \\
+        \gls{nema} (warm) & 83 & 39.8--126.2 & \gls{megp} & 0 & Siemens \\
+        Anthropomorphic & 150 & 75--225 & \acrshort{mlegp} & 1 & Mediso \\
+        Patient (\gls{sirt}-3) & 100 & 50--150 & \acrshort{megp} & 0 & Siemens \\
+        \hline
+    \end{tabular}
+\end{table}
+
+The regularisation strength $\beta$ is not itself an object of study here: it is
+well established that increasing the RDP weight suppresses noise and, beyond a
+point, also suppresses contrast recovery. We instead sweep $\beta$ so that each
+correction strategy traces out a recovery--noise \emph{operating curve}, allowing
+the strategies to be compared fairly at matched noise rather than at a single
+arbitrary $\beta$.
+
+\subsection{Figures of merit}
+\label{subsec:brems_fom}
+
+No spatially co-registered ground-truth image exists for any of these
+acquisitions (the only available \isotope[90]{Y} \gls{pet} volumes are not
+registered to the \gls{spect} grid). We therefore avoid any image-to-reference
+comparison and report only scale-invariant quantities:
+\begin{itemize}
+    \item \textbf{Recovery coefficient (RC):} the measured activity ratio between
+    a hot \gls{voi} and a reference region, divided by the \emph{known} true
+    ratio, so that perfect recovery gives $\mathrm{RC}=1$. For the
+    \emph{cold-background} NEMA phantom the spheres are all filled to the
+    \emph{same} concentration, so the reference is taken to be the eroded
+    \emph{centre of the largest ($37\,\mathrm{mm}$) sphere} and each sphere's
+    recovery is $\mathrm{RC}=\overline{x}_{\mathrm{sphere}}/\overline{x}_{37\,\mathrm{mm\,centre}}$,
+    with an ideal value of $1$ for every sphere (the $37\,\mathrm{mm}$ sphere thus
+    measures its own whole-VOI mean against its centre). Recovery is reported for
+    the six spheres ($10,13,17,22,28,37\,\mathrm{mm}$). For the
+    \emph{warm-background} NEMA phantom the sphere-to-background ratio is normalised
+    by the known $8{:}1$ (the unfilled $17\,\mathrm{mm}$ sphere is excluded, and the
+    two smallest spheres, $\le13\,\mathrm{mm}$, are noise-limited and excluded from
+    the quantitative summaries); for the anthropomorphic phantom the lesion-to-liver
+    ratio is normalised by the known $\approx4{:}1$ concentration.
+    \item \textbf{Noise:} the voxel-wise coefficient of variation (CoV, standard
+    deviation over mean) in a uniform region (the $37\,\mathrm{mm}$-sphere centre
+    for cold NEMA; the background compartment for warm NEMA; the liver for the
+    anthropomorphic phantom; a background region for the patient).
+    \item \textbf{Patient lesion contrast:} as no known activity ratio is
+    available \emph{in vivo}, we use the lesion-to-background uptake ratio as a
+    contrast proxy.
+\end{itemize}
+All quantities are read at the converged tenth outer iteration unless a
+convergence trajectory is shown explicitly. To keep comparisons fair, the reported
+paired effects hold every other factor fixed and change only the correction under
+test. Except where recovery is resolved by sphere size
+(Figure~\ref{fig:brems_residual_size}), a single reported recovery coefficient is
+the mean over the evaluated spheres of the phantom.
+
+\subsection{On-the-fly scatter update: gains, cost and stability}
+\label{subsec:res_update}
+
+Updating the additive scatter term during reconstruction, rather than fixing it,
+is the most aggressive of the four modelling choices, and its behaviour is
+strongly dataset-dependent (Figure~\ref{fig:brems_scatter_dynamics}). On the
+warm-background phantom the online update raises recovery substantially
+(mean $\Delta\mathrm{RC}\approx+0.10$ relative to a fixed scatter term) but nearly
+\emph{doubles} the noise (mean $\Delta\mathrm{CoV}\approx+0.9$, an increase in
+every matched run). On the cold-background phantom, where there is little patient
+scatter to re-estimate, the update is essentially inert in both recovery and
+noise. Pooled across all datasets the recovery benefit is not statistically
+reliable (recovery increased in only $\sim\!53\%$ of matched runs); the update
+helps precisely where there is substantial scatter to model, and destabilises the
+reconstruction as it does so. The convergence trajectories in
+Figure~\ref{fig:brems_scatter_dynamics} make the mechanism explicit: on the warm
+phantom the updated-scatter recovery oscillates violently in the early outer
+iterations while the noise climbs monotonically, whereas the fixed-scatter
+reconstruction is smooth and stable.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.95\linewidth]{figures/Chapter3/results_scatter_update_dynamics.pdf}
+    \caption{Convergence dynamics of the on-the-fly scatter update
+    ($\beta=10^{-2}$, range blur on). Recovery coefficient (top) and noise
+    (bottom) versus outer iteration for a fixed scatter term (blue) and an
+    on-the-fly updated term (orange), on the cold-background (left) and
+    warm-background (right) NEMA phantoms. On the warm phantom the updated term
+    drives an early recovery overshoot and a monotonic increase in noise; on the
+    cold phantom, where there is little scatter to re-estimate, the two strategies
+    are almost indistinguishable.}
+    \label{fig:brems_scatter_dynamics}
+\end{figure}
+
+\subsection{Damping the online update}
+\label{subsec:res_damping}
+
+The instability introduced by the online update motivates the damped update rule
+of Section~\ref{subsec:rc_update}. Replacing the full update ($\alpha=1$) with a
+damped one ($\alpha=0.2$) reduces noise consistently --- in every matched run on
+the warm-background and anthropomorphic phantoms (mean
+$\Delta\mathrm{CoV}\approx-0.09$ overall). Crucially, in the most unstable
+configuration --- the combined updated-scatter\,$+$\,residual strategy on the warm
+phantom --- damping improves \emph{both} recovery and noise simultaneously (mean
+$\Delta\mathrm{RC}\approx+0.15$, $\Delta\mathrm{CoV}\approx-0.28$), because it
+suppresses the iteration-to-iteration oscillation of the undamped update rather
+than merely trading recovery for smoothness (Figure~\ref{fig:brems_damping}). In
+the already-stable configurations damping behaves as expected, exchanging a small
+amount of recovery for reduced noise. The role of damping is therefore best
+understood not as a generic smoother but as the stabiliser that renders the
+aggressive online update usable.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/Chapter3/results_damping_stability.pdf}
+    \caption{Effect of damping the online update on the warm-background NEMA
+    phantom, for the (most unstable) updated-scatter\,$+$\,residual strategy at
+    $\beta=0$. The full update ($\alpha=1$, red dashed) settles to lower recovery
+    and higher noise than the damped update ($\alpha=0.2$, violet solid); damping
+    improves both figures of merit by suppressing the inter-iteration
+    oscillation.}
+    \label{fig:brems_damping}
+\end{figure}
+
+\subsection{Bremsstrahlung range blur}
+\label{subsec:res_blur}
+
+Including the $6.9\,\mathrm{mm}$ Gaussian range-blur term in the forward model
+behaves as a near-``free'' regulariser rather than a resolution-recovery tool.
+Across all datasets its dominant, reliable effect is a reduction in noise (noise
+fell in every matched run on the warm-background and anthropomorphic phantoms,
+mean $\Delta\mathrm{CoV}\approx-0.07$ to $-0.15$), while the accompanying change in
+recovery is small and only weakly consistent (mean $\Delta\mathrm{RC}\approx+0.01$,
+positive in $\sim\!61\%$ of runs). Figure~\ref{fig:brems_blur_effect} shows this
+as off\,$\rightarrow$\,on displacement arrows in the recovery--noise plane: on the
+warm phantoms the arrows point predominantly leftward (lower noise) at little cost
+in recovery, whereas on the cold phantom --- where counts are low and scatter is
+minimal --- the blur has almost no effect. Modelling the range blur is thus
+worthwhile because it reduces noise essentially for free, not because it restores
+contrast.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{figures/Chapter3/results_brems_blur_effect.pdf}
+    \caption{Effect of the Bremsstrahlung range-blur model in the recovery--noise
+    plane. Each arrow runs from ``blur off'' to ``blur on'' for one correction
+    strategy at one value of $\beta$; colour denotes strategy. Leftward arrows
+    indicate a noise reduction. The effect is consistent and noise-reducing on the
+    warm-background and anthropomorphic phantoms and negligible on the
+    cold-background phantom.}
+    \label{fig:brems_blur_effect}
+\end{figure}
+
+\subsection{Residual correction and resolution recovery}
+\label{subsec:res_residual}
+
+Of the four choices, the Fu \& Qi-style residual correction is the most
+dependable route to improved recovery. Added to a stable (fixed-scatter) base it
+raises recovery in $86\%$ of matched runs (mean $\Delta\mathrm{RC}\approx+0.035$,
+with a small spread), at a modest and universal noise cost
+(mean $\Delta\mathrm{CoV}\approx+0.09$) --- a textbook resolution-recovery /
+noise trade-off. The recovery gain is largest on the warm-background phantom
+($\approx+0.10$) and smallest on the cold-background phantom ($\approx+0.02$),
+mirroring the scatter-update behaviour. Figure~\ref{fig:brems_residual_size}
+resolves the effect by lesion size: the residual correction and the online update
+both lift the recovery-versus-diameter curve above the fixed-scatter baseline,
+with the largest gains on the mid-to-large spheres. When the residual correction
+is instead stacked on the \emph{unstable} online update its average benefit
+persists but becomes erratic (its run-to-run spread grows roughly eight-fold),
+consistent with the interpretation in Section~\ref{subsec:rc_unmatched} that the
+correction is well behaved only when the underlying reconstruction is stable.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/Chapter3/results_residual_vs_size.pdf}
+    \caption{Recovery coefficient versus sphere diameter at $\beta=10^{-2}$ (range
+    blur on) for the cold-background (left) and warm-background (right) NEMA
+    phantoms. Recovery increases monotonically with size; adding residual
+    correction and/or an online scatter update raises the curve, most clearly on
+    the warm phantom. Values above unity on the large warm-phantom spheres reflect
+    edge enhancement. The two smallest warm-phantom spheres are noise-limited and
+    omitted.}
+    \label{fig:brems_residual_size}
+\end{figure}
+
+\subsection{Overall trade-off and method comparison}
+\label{subsec:res_tradeoff}
+
+Sweeping $\beta$ turns each correction strategy into an operating curve in the
+recovery--noise plane (Figure~\ref{fig:brems_master_tradeoff}). Read this way, the
+strategies separate cleanly on the warm-background and anthropomorphic phantoms
+but collapse onto one another on the cold-background phantom, where recovery
+saturates near $0.4$ irrespective of the correction applied. On the warm phantoms
+the ordering is consistent: the updated-scatter\,$+$\,residual strategy reaches the
+highest recovery, followed by the residual-only and updated-only strategies, with
+fixed scatter lowest --- but the higher-recovery strategies also sit at higher
+noise, so no strategy dominates across the whole curve. The paired-effect summary
+of Figure~\ref{fig:brems_effect_summary} condenses the four mechanisms into a
+single view: residual correction gives a reliable recovery gain at a fixed noise
+cost; the online scatter update offers a large but dataset-dependent recovery gain
+at a large noise cost; damping and the range blur are noise-reducers; and every
+effect is modulated by whether the background is cold or warm.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{figures/Chapter3/results_master_tradeoff.pdf}
+    \caption{Recovery--noise operating curves for the four correction strategies,
+    obtained by sweeping the RDP weight $\beta$ (range blur on, converged
+    iteration). Each marker is one value of $\beta$; the dotted line marks ideal
+    recovery. The strategies separate on the warm-background (centre) and
+    anthropomorphic (right) phantoms and are indistinguishable on the
+    cold-background phantom (left).}
+    \label{fig:brems_master_tradeoff}
+\end{figure}
+
+The same behaviour is visible directly in the reconstructions
+(Figure~\ref{fig:brems_recon_phantoms}): on the cold phantom the four strategies
+are almost indistinguishable by eye, whereas on the two warm phantoms the
+updated-scatter strategies visibly sharpen the hot inserts against a noticeably
+noisier background.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{figures/Chapter3/results_recon_phantoms_strategies.pdf}
+    \caption{Reconstructed activity for the four correction strategies on the
+    three phantoms: cold-background NEMA (top), warm-background NEMA (middle) and
+    the anthropomorphic warm-liver phantom (bottom), at $\beta=10^{-2}$ with the
+    range blur enabled and at the converged tenth outer iteration (single axial
+    slice through the hot inserts). All panels within a row share an intensity
+    window; cyan outlines mark the hot VOIs and the inset reports the mean
+    recovery coefficient (RC) and background noise (CoV). On the cold phantom the
+    strategies are visually near-indistinguishable and recovery saturates
+    irrespective of the correction; on the two warm phantoms the updated-scatter
+    strategies recover markedly more insert contrast, but at conspicuously higher
+    background noise --- the image-space counterpart of the operating curves in
+    Figure~\ref{fig:brems_master_tradeoff}.}
+    \label{fig:brems_recon_phantoms}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{figures/Chapter3/results_effect_summary.pdf}
+    \caption{Paired effect of each correction on recovery (left) and noise
+    (right), as the mean $\pm$ standard deviation over all matched runs at the
+    converged iteration, split by dataset. Positive $\Delta$RC is more recovery;
+    positive $\Delta$CoV is more noise. Residual correction and the online scatter
+    update raise recovery (the latter only on warm backgrounds, at large noise
+    cost); the range blur and damping reduce noise.}
+    \label{fig:brems_effect_summary}
+\end{figure}
+
+\subsection{Clinical example}
+\label{subsec:res_patient}
+
+The single patient study is consistent with the phantom findings and, in
+particular, behaves like the \emph{warm}-background phantom, as expected for a
+liver with diffuse uptake surrounding the lesions
+(Figure~\ref{fig:brems_patient}). The online scatter update markedly increases
+lesion-to-background contrast relative to a fixed scatter term, again at the price
+of higher background noise, reproducing on measured clinical data the trade-off
+seen in the warm-background phantom. This should be read qualitatively --- it is a
+single subject with no ground-truth activity ratio --- but it demonstrates that
+the phantom-derived behaviour transfers to the clinical setting. The effect is
+apparent in the reconstructions themselves
+(Figure~\ref{fig:brems_recon_patient}): the online update suppresses the diffuse
+liver background and lifts the delineated lesion out of it, at the price of a
+grainier background, exactly as in the warm-background phantom.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{figures/Chapter3/results_recon_patient_strategies.pdf}
+    \caption{Patient (SIRT-3) reconstructions for the four correction strategies,
+    resampled into PET space (single axial slice) at $\beta=10^{-2}$ with the
+    range blur on and at the converged iteration; the cyan outline is a
+    PET-defined lesion. All panels share an intensity window; the inset gives the
+    mean lesion-to-background contrast (C) and background noise (CoV). The online
+    scatter update (c,\,d) suppresses the diffuse liver background and raises
+    lesion contrast relative to the fixed-scatter reconstructions (a,\,b), at the
+    cost of higher background noise --- the clinical counterpart of
+    Figure~\ref{fig:brems_patient}.}
+    \label{fig:brems_recon_patient}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.62\linewidth]{figures/Chapter3/results_patient_tradeoff.pdf}
+    \caption{Patient (SIRT-3): lesion-to-background uptake ratio versus background
+    noise, sweeping $\beta$ (range blur on), averaged over five PET-space lesions.
+    The online scatter update reaches substantially higher lesion contrast than a
+    fixed scatter term, mirroring the warm-background phantom.}
+    \label{fig:brems_patient}
+\end{figure}
+
+\subsection{Summary}
+\label{subsec:brems_summary}
+
+Taken together, the four modelling choices form a hierarchy of aggressiveness and
+risk. The range blur is a low-risk, noise-reducing addition that is worth
+including by default. Residual correction is the dependable way to improve
+contrast recovery, provided the underlying reconstruction is stable. The on-the-fly
+scatter update offers the largest recovery gains, but only where the background is
+warm enough to carry substantial scatter, and it destabilises the reconstruction;
+damping is what makes it usable, and in the most unstable configuration recovers
+both accuracy and noise simultaneously. No single strategy is universally optimal:
+the appropriate choice depends on the imaging task and on where along the
+recovery--noise trade-off one wishes to operate. For quantitative liver dosimetry,
+where warm backgrounds dominate, a damped online update combined with residual
+correction and the range blur, operated at a moderate RDP weight
+($\beta\approx10^{-2}$), offers the most favourable balance observed here.
