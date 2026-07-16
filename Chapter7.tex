@@ -312,6 +312,44 @@ The comparison uses the one-bed anthropomorphic phantom, modality-separated subs
 
 The reference is separate from this five-method comparison: it is a single 1000-epoch run with the same objective, a Gershgorin-diagonal MM preconditioner, and more conservative optimisation settings, including $\eta_{\mathrm{relax}}=10^{-4}$. It provides $x^\star$ for the NRMSE calculation rather than an additional candidate method.
 
+\subsection{Preconditioner Comparison}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}{0.99\linewidth}
+        \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_limited.png}
+        \caption{Count-limited PET.}
+    \end{subfigure}
+    \begin{subfigure}{0.99\linewidth}
+        \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_SPECT.png}
+        \caption{SPECT represented on the PET grid.}
+    \end{subfigure}
+    \caption{Convergence of data-only BSREM and the four prior-aware preconditioners in Table~\ref{tab:preconditioner_settings}. All methods use the same objective and long-run reference within each modality. Lines show the mean per-run NRMSE over five stochastic realisations, and shading shows the pointwise minimum--maximum over the first 20 matched data passes.}
+    \label{fig:optim_preconditioners}
+\end{figure}
+
+The four prior-aware constructions in Figure~\ref{fig:optim_preconditioners} behave broadly similarly. Their ordering varies between regions, and the differences are small compared with the distinction between prior-aware and data-only scaling; there is no universal winner. For count-limited PET, the whole-image data-only BSREM trajectory leaves the displayed range, indicating divergence under the tested schedule, whereas the prior-aware methods remain bounded and continue to reduce the hot- and cold-sphere errors. Prior curvature was therefore required for stable PET convergence under this common step-size schedule.
+
+SPECT is more robust. All five methods remain stable, and data-only BSREM is competitive with, or slightly faster than, the prior-aware alternatives in the sphere regions. This contrast suggests that the tested prior-aware scalings can be conservative for SPECT even though they are needed to stabilise the limited-count PET case.
+
+\subsection{Sensitivity to the Initial Step Size}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}{0.99\linewidth}
+        \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_step1_2_limited.png}
+        \caption{Count-limited PET.}
+    \end{subfigure}
+    \begin{subfigure}{0.99\linewidth}
+        \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_step1_2_SPECT.png}
+        \caption{SPECT represented on the PET grid.}
+    \end{subfigure}
+    \caption{Sensitivity to the common initial step size for the displayed preconditioners. Solid curves use $\varsigma^{(0)}=1$ and dashed curves use $\varsigma^{(0)}=2$. Lines and envelopes again show the five-run mean and pointwise minimum--maximum over 20 matched data passes.}
+    \label{fig:optim_step_size}
+\end{figure}
+
+Doubling the common initial step improves SPECT convergence across the three regions in Figure~\ref{fig:optim_step_size}, but destabilises the limited-count PET reconstruction. A single shared relaxation schedule is therefore not equally well calibrated to both modalities. Modality-dependent initial steps or relaxation rates are a natural direction for future work, but were not tested here.
+
 \section{Subset Selection}
 \label{sec:optimisation_subset_selection}
 
