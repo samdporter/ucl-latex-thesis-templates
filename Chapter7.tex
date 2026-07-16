@@ -350,6 +350,42 @@ SPECT is more robust. All five methods remain stable, and data-only BSREM is com
 
 Doubling the common initial step improves SPECT convergence across the three regions in Figure~\ref{fig:optim_step_size}, but destabilises the limited-count PET reconstruction. A single shared relaxation schedule is therefore not equally well calibrated to both modalities. Modality-dependent initial steps or relaxation rates are a natural direction for future work, but were not tested here.
 
+\subsection{Lehmer Combination}
+
+The inverse sum is one member of a broader matrix Lehmer family. For voxel-wise symmetric positive-definite preconditioners $B=P_{\mathcal R}$ and $D=P_{\mathrm D}$, define
+\begin{equation}
+    C=D^{-1/2}BD^{-1/2},
+    \qquad
+    L_q(B,D)=D^{1/2}f_q(C)D^{1/2},
+    \qquad
+    f_q(t)=\frac{t^q+1}{t^{q-1}+1},
+    \label{eq:matrix_lehmer_combination}
+\end{equation}
+where $f_q(C)$ is evaluated spectrally. The implemented preconditioner is $\tfrac12L_q(B,D)$. At $q=0$ this reduces exactly to the parallel sum,
+\begin{equation}
+    \tfrac12L_0(P_{\mathcal R},P_{\mathrm D})
+    =
+    \left(P_{\mathrm D}^{-1}+P_{\mathcal R}^{-1}\right)^{-1}.
+    \label{eq:lehmer_parallel_equivalence}
+\end{equation}
+The legends in Figure~\ref{fig:optim_lehmer_parallel} use $p$ for the same order denoted by $q$ in the text.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}{0.99\linewidth}
+        \includegraphics[width=\linewidth]{figures/preconditioning/lehmer_vs_parallel_1bpos_ls_block_diag.png}
+        \caption{Count-limited PET.}
+    \end{subfigure}
+    \begin{subfigure}{0.99\linewidth}
+        \includegraphics[width=\linewidth]{figures/preconditioning/lehmer_vs_parallel_1bpos_ls_block_diag_SPECT.png}
+        \caption{SPECT represented on the PET grid.}
+    \end{subfigure}
+    \caption{Parallel-sum and Lehmer combinations for the Lewis--Sendov block-diagonal prior model. This experiment changes only the combination rule; lines and shading show the five-run mean and pointwise minimum--maximum over 20 matched data passes. The plot legend denotes the Lehmer order by $p$, whereas the text uses $q$.}
+    \label{fig:optim_lehmer_parallel}
+\end{figure}
+
+For the Lewis--Sendov block model, $q=0.01$ is marginally better than the inverse-sum result in these curves, but the difference is small. This comparison does not establish that the same order is preferable for the MM-derived preconditioners. Chapter~\ref{chapter:paper} had already frozen the Lewis--Sendov block-diagonal model with $q=0.01$ before the broader benchmark in this chapter. Retaining it therefore provides protocol continuity, not a post-hoc claim that Lewis--Sendov or $q=0.01$ is universally optimal.
+
 \section{Subset Selection}
 \label{sec:optimisation_subset_selection}
 
@@ -411,4 +447,8 @@ Figure~\ref{fig:optim_subset_organisation} shows faster convergence with modalit
 \section{Conclusion}
 \label{sec:optimisation_conclusion}
 
-This chapter has separated the optimisation machinery from the definition of the $\wdtnv$ prior itself. The current preconditioner experiments compare BSREM scaling with \glsentryshort{mm}-derived prior-aware diagonal and block curvature surrogates, combined through Hessian-sum inversion in the active reconstruction code. The subset-selection experiments independently vary modality grouping and prior sampling, including a two-bed PET setting where the data term is evaluated jointly over bed positions. These methods provide the framework into which numerical convergence and image-quality results can be inserted once available.
+Joint reconstruction of the PET bed positions is required for the edge-preserving prior to act consistently across their overlap; the qualitative example showed the noise and discontinuities that can remain after separate reconstruction and fusion. For the one-bed convergence study, modality-separated subsets converged faster than paired subsets under matched data-projection work, although they also performed twice as many parameter updates and prior-gradient evaluations per pass.
+
+Prior-aware preconditioning was required for stable convergence of the count-limited PET reconstruction under the tested shared step schedule. SPECT was more robust, and data-only BSREM was sometimes competitive, suggesting that the prior-aware methods can be conservative for that modality. The four prior-curvature models behaved similarly overall, with no universal winner. Increasing the common initial step improved SPECT but destabilised PET, motivating modality-dependent relaxation as future work.
+
+The Lewis--Sendov Lehmer experiment found only a small advantage for $q=0.01$ over the parallel sum. Chapter~\ref{chapter:paper} retains the previously frozen Lewis--Sendov block-diagonal/$q=0.01$ configuration for protocol continuity. Its use in that chapter should not be interpreted as selection of the best method after the wider comparison reported here.
