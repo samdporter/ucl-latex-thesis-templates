@@ -143,7 +143,7 @@ The regions are evaluated separately over the whole image, the hot-sphere mask, 
 \label{sec:optimisation_preconditioners}
 \label{subsec:preconditioning}
 
-Preconditioning is critical for subset-based MAP reconstruction because the data term and the edge-preserving prior can have very different local curvature scales \cite{clinthorne_preconditioning_1993,ahn_globally_2002,de_pierro_fast_2001,ehrhardt_fast_2025}. The current experiments compare data-only BSREM scaling with several prior-aware curvature surrogates for $\wdtnv$.
+Preconditioning is critical for subset-based MAP reconstruction because the data term and the edge-preserving prior can have very different local curvature scales \cite{clinthorne_preconditioning_1993,ahn_globally_2002,de_pierro_fast_2001,ehrhardt_fast_2025}. The comparison below includes data-only BSREM scaling and four prior-aware curvature models for $\wdtnv$.
 
 \subsection{Data Curvature}
 \label{subsec:optimisation_data_preconditioning}
@@ -155,14 +155,14 @@ For modality $m$, let $s_m$ denote the sensitivity image on the shared grid,
     W_m A_m^\top \bm 1,
     \label{eq:shared_grid_sensitivity}
 \end{equation}
-where $A_m$ is the native-grid system matrix and $W_m$ maps native images to the shared prior grid. The EM/BSREM data preconditioner is
+where $A_m$ is the native-grid system matrix and $W_m$ maps native images to the shared prior grid. The data-only EM/BSREM preconditioner is
 \begin{equation}
     P_{\mathrm{BSREM},m}
     =
     (z_m+\epsilon_x)\oslash s_m,
     \label{eq:bsrem_preconditioner}
 \end{equation}
-with element-wise division. Equivalently, the corresponding diagonal data Hessian surrogate is
+with element-wise division. This scaling models the data term only; it contains no prior curvature. Equivalently, the corresponding diagonal data Hessian surrogate is
 \begin{equation}
     \widehat H_{\mathrm{data},m}
     =
@@ -171,10 +171,12 @@ with element-wise division. Equivalently, the corresponding diagonal data Hessia
 \end{equation}
 The implementation optionally smooths the numerator image used in the EM preconditioner with a Gaussian filter. In the experiments below the smoothing FWHM is $5\,\mathrm{mm}$ in each direction.
 
-\subsection{Current \texorpdfstring{$\wdtnv$}{w-dTNV} Prior Curvature}
+\subsection{Prior Curvature Models}
 \label{subsec:optimisation_prior_preconditioning}
 
-The current prior-aware preconditioners use the \acrfull{mm}/\acrfull{irls} curvature implied by the smoothed spectral penalty. At voxel $n$, let
+Four prior-curvature constructions were considered: three based on a local \acrfull{mm}/\acrfull{irls} surrogate and one based on the Lewis--Sendov Hessian of the smoothed spectral penalty. The term MM describes the derivation of the first family; none of the implemented preconditioners has been established as a majoriser of the complete objective, and no monotone-descent guarantee is claimed.
+
+For the MM family, at voxel $n$ let
 \begin{equation}
     Y_n
     =
@@ -207,7 +209,7 @@ For diagonal preconditioning, the finite-difference stencil and directional proj
     \beta_{m,n}^2\,c_{mm,n}\,\tau_{m,n}.
     \label{eq:diag_tight_preconditioner}
 \end{equation}
-This is the diagonal extraction of the local \glsentryshort{mm} curvature surrogate, and is therefore an approximation rather than a strict Loewner majoriser in general. The Gershgorin diagonal majoriser inflates the modality-space diagonal by the absolute off-diagonal coupling,
+This is the diagonal extraction of the local \glsentryshort{mm} curvature surrogate. A more conservative Gershgorin-inflated diagonal surrogate adds the magnitude of the cross-modal term,
 \begin{equation}
     \widehat H_{\mathcal R,1,n}^{\mathrm{diag\text{-}G}}
     =
@@ -251,53 +253,52 @@ and
     \end{pmatrix},
     \label{eq:block_tight_preconditioner}
 \end{equation}
-where $B_r=\mathrm{diag}(\beta_{1,r},\beta_{2,r})$ and $\circ$ denotes the Hadamard product. The long reference reconstructions in the subset-selection study use a more conservative voxel-block curvature majoriser.
+where $B_r=\mathrm{diag}(\beta_{1,r},\beta_{2,r})$ and $\circ$ denotes the Hadamard product.
+
+The fourth construction uses the exact Lewis--Sendov Hessian of the smoothed spectral penalty \cite{lewis_derivatives_1996}. If $H_{\mathcal R}=\nabla^2\mathcal R$ denotes the resulting image-space Hessian, the implemented approximation retains only its voxel-wise diagonal blocks,
+\begin{equation}
+    \widehat H_{\mathcal R}^{\mathrm{LS\text{-}block}}
+    =
+    \operatorname{blkdiag}
+    \left(
+        [H_{\mathcal R}]_{11},\ldots,[H_{\mathcal R}]_{NN}
+    \right),
+    \qquad
+    [H_{\mathcal R}]_{nn}\in\mathbb R^{2\times2}.
+    \label{eq:ls_block_preconditioner}
+\end{equation}
+It therefore retains PET/SPECT cross-curvature within each voxel but discards spatial off-diagonal blocks. Evaluating the smoothed spectral Hessian requires the voxel-wise singular-value decompositions used by the Lewis--Sendov construction. Recomputing this block model once per epoch consequently has a non-negligible cost.
 
 \subsection{Combining Data and Prior Curvature}
 \label{subsec:optimisation_preconditioner_combination}
 
-The current experiments invert the summed data and prior Hessian surrogates. For diagonal methods,
+Let $P_{\mathrm D}=\widehat H_{\mathrm D}^{-1}$ denote the data preconditioner and $P_{\mathcal R}=\widehat H_{\mathcal R}^{-1}$ the preconditioner obtained from one of the prior-curvature models above. For block methods, $\widehat H_{\mathrm D}$ is the $2\times2$ diagonal matrix containing the modality-specific data curvatures at each voxel. The principal comparison combines the operands through the inverse-sum, or parallel-sum, rule
 \begin{equation}
-    P_{m,n}^{\mathrm{diag}}
+    P_{\parallel}
     =
-    \left(
-        \widehat H_{\mathrm{data},m,n}
-        +
-        \widehat H_{\mathcal R,m,n}
-    \right)^{-1},
-    \label{eq:diag_majoriser_combination}
-\end{equation}
-with numerical floors and optional maximum-value caps. For block methods,
-\begin{equation}
-    P_{n}^{\mathrm{block}}
+    \left(P_{\mathrm D}^{-1}+P_{\mathcal R}^{-1}\right)^{-1}
     =
-    \left(
-        \begin{pmatrix}
-        \widehat H_{\mathrm{data},1,n} & 0\\
-        0 & \widehat H_{\mathrm{data},2,n}
-        \end{pmatrix}
-        +
-        \widehat H_{\mathcal R,n}
-    \right)^{-1}.
-    \label{eq:block_majoriser_combination}
+    \left(\widehat H_{\mathrm D}+\widehat H_{\mathcal R}\right)^{-1}.
+    \label{eq:parallel_sum_combination}
 \end{equation}
-This differs from the application implementation in Chapter~\ref{chapter:paper}, where the same local diagonal \wdtnv{} curvature approximation was combined with the data preconditioner using a Lehmer mean.
+The same expression applies to diagonal and voxel-block operands, with numerical floors used before inversion. It is a combination of approximate curvature preconditioners, not a statement that either operand or their sum majorises the full objective.
 
-The preconditioner is updated once per epoch in the experiments unless an explicit update interval is supplied. Between updates the curvature is therefore stale, which is a pragmatic compromise between optimisation stability and the computational cost of evaluating $\widehat H_{\mathcal R}$.
+The preconditioner is updated once per epoch and held fixed between updates. This limits curvature-computation cost, particularly for the Lewis--Sendov construction, but means the preconditioner becomes progressively stale within each epoch.
 
 \begin{table}[htbp]
 \centering
-\caption{Preconditioner settings used in the current preconditioner experiments.}
+\caption{Preconditioner models used in the principal comparison. The four prior-aware models use the inverse-sum combination in Equation~\eqref{eq:parallel_sum_combination}.}
 \label{tab:preconditioner_settings}
-\begin{tabular}{lll}
+\small
+\begin{tabular}{p{0.25\linewidth}p{0.45\linewidth}p{0.19\linewidth}}
 \toprule
-Preconditioner setting & Prior curvature model & Combination used in sweep\\
+Preconditioner & Prior-curvature construction & Combination\\
 \midrule
-Data-only EM/BSREM scaling & none & none\\
-Local diagonal \wdtnv{} curvature approximation & diagonal extraction of local \glsentryshort{mm} curvature & Hessian-sum inversion\\
-Gershgorin diagonal \wdtnv{} curvature majoriser & diagonal majoriser including cross-modal coupling & Hessian-sum inversion\\
-Local voxel-block \wdtnv{} curvature approximation & voxel-wise $2\times2$ local \glsentryshort{mm} curvature & Hessian-sum inversion\\
-Conservative voxel-block \wdtnv{} curvature majoriser & voxel-wise $2\times2$ conservative majoriser & reference runs\\
+Data-only BSREM & None; EM data scaling only & Not applicable\\
+MM local diagonal & Diagonal extraction of the local MM curvature surrogate & Inverse sum\\
+MM Gershgorin-inflated diagonal & Local diagonal inflated by the magnitude of cross-modal coupling & Inverse sum\\
+MM local voxel-block & Voxel-wise $2\times2$ local MM curvature surrogate & Inverse sum\\
+Lewis--Sendov block-diagonal & Voxel-block diagonal of the exact smoothed spectral Hessian & Inverse sum\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -305,11 +306,11 @@ Conservative voxel-block \wdtnv{} curvature majoriser & voxel-wise $2\times2$ co
 \subsection{Preconditioner Comparison Methods}
 \label{subsec:preconditioner_experiment_methods}
 
-Four preconditioner settings are compared: data-only BSREM, the local diagonal \wdtnv{} curvature approximation, the Gershgorin diagonal \wdtnv{} curvature majoriser, and the local voxel-block \wdtnv{} curvature approximation. These settings are summarised in Table~\ref{tab:preconditioner_settings}.
+Five settings are compared: data-only BSREM, MM local diagonal, MM Gershgorin-inflated diagonal, MM local voxel-block, and Lewis--Sendov block-diagonal preconditioning. These settings are summarised in Table~\ref{tab:preconditioner_settings}. The four prior-aware settings use the inverse-sum combination.
 
-All sweep reconstructions use the same objective, prior settings, and initialisation within each dataset. The fixed sweep parameters are $\alpha=\beta=1$, $\gamma_{\mathrm{TNV}}=0.02$, initial step size $\varsigma^{(0)}=1$, relaxation parameter $\eta_{\mathrm{relax}}=0.002$, and $25$ epochs. Time-of-flight PET is disabled in these optimisation experiments. Sensitivity-derived support masks are enabled with relative threshold $10^{-3}$, and both EM and prior-aware preconditioner maximum-value caps are disabled. The EM component of the preconditioner is smoothed with a $5\,\mathrm{mm}$ Gaussian FWHM.
+The comparison uses the one-bed anthropomorphic phantom, modality-separated subsets, and the complete prior gradient at every update. All methods use the same objective, initialisation, long-run reference, initial step $\varsigma^{(0)}=1$, and relaxation parameter $\eta_{\mathrm{relax}}=0.002$. Five stochastic realisations are evaluated for the first 20 matched data passes. Sensitivity-derived support masks are enabled with relative threshold $10^{-3}$, and the data component is smoothed with a $5\,\mathrm{mm}$ Gaussian FWHM.
 
-Experiments are configured for a single-bed anthropomorphic phantom dataset and a two-bed clinical PET/SPECT dataset. For the one-bed sweep, the reconstruction is routed through the subset-selection runner with separate PET/SPECT subset functions and the prior evaluated deterministically every iteration. The two-bed sweep uses the corresponding two-bed reconstruction path. Objective values, saved images, and convergence metrics are recorded for comparison against long-run reference reconstructions. The corresponding numerical comparisons are reported below.
+The reference is separate from this five-method comparison: it is a single 1000-epoch run with the same objective, a Gershgorin-diagonal MM preconditioner, and more conservative optimisation settings, including $\eta_{\mathrm{relax}}=10^{-4}$. It provides $x^\star$ for the NRMSE calculation rather than an additional candidate method.
 
 \section{Subset Selection}
 \label{sec:optimisation_subset_selection}
