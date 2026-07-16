@@ -126,7 +126,7 @@ for the 20-pass comparisons described below.
 \subsection{Common Evaluation Protocol}
 \label{subsec:optimisation_evaluation_protocol}
 
-The convergence experiments used an anthropomorphic phantom scanned on the Mediso AnyScan at the National Physical Laboratory. PET and SPECT were each partitioned into 18 subsets. Each plotted comparison curve comprises five stochastic realisations and covers the first 20 complete data passes. A single 1000-epoch reconstruction of the same objective, run with more conservative optimisation settings, provided the reference image $x^\star$; it is a final long-run iterate rather than a known global minimiser.
+The convergence experiments used an anthropomorphic phantom scanned on the Mediso AnyScan at the National Physical Laboratory. PET and SPECT were each partitioned into 18 subsets. Each plotted comparison curve comprises five stochastic realisations and covers the first 20 complete data passes. A single 1000-epoch reconstruction of the same objective, run with more conservative optimisation settings, provided the reference image $x^\star$; it is a final long-run iterate rather than a known global minimiser. Appendix~\ref{app:baseline_convergence} reports the objective and iterate diagnostics supporting its effective stationarity relative to the best observed iterate.
 
 For each stochastic run and each saved iteration, the \acrfull{nrmse} in region $R$ is
 \begin{equation}

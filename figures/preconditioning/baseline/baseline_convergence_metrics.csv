@@ -1,0 +1,2 @@
+baseline,epochs,updates_per_epoch_L,J0,J_star,total_decrease,final_gap,final_gap_frac_of_total,final_rel_obj_change_per_epoch,final_pet_velocity_per_epoch,initial_step,final_step,epoch_99.9pct_decrease,step_at_99.9pct,epoch_99.99pct_decrease,step_at_99.99pct,relaxation_eta
+1bpos (phantom),1000,36,2644544.238974207,2630274.7433027946,14269.495671412442,0.0001258435659110546,8.81906192124015e-09,1.717066137149271e-11,7.284663631014375e-08,1.0,0.21739130434782605,45,0.8605851979345955,112,0.7126567844925884,0.0001
