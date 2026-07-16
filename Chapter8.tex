@@ -173,22 +173,21 @@ which reduces to a smoothed single-channel directional-TV penalty. This tests an
 \section{Optimisation and implementation}
 \label{sec:90y_optimisation}
 
-We minimise the joint objective \eqref{eq:90y_joint_obj} using a subset stochastic variance-reduced gradient (SVRG) method \cite{johnson_accelerating_2013}, consistent with the stochastic framework studied in Chapter~\ref{chapter:optimisation}. We decompose the objective into $S$ subset terms,
+We minimise the joint objective \eqref{eq:90y_joint_obj} using a subset stochastic variance-reduced gradient (SVRG) method \cite{johnson_accelerating_2013}, consistent with the stochastic framework studied in Chapter~\ref{chapter:optimisation}. Let $N_{\mathrm d}$ be the total number of PET and SPECT data functions in the reconstruction being described, including separate functions for each PET bed position where applicable. The application implementation distributes the prior equally across these functions,
 \begin{equation}
 \mathcal{O}(\bm{z})
 =
-\sum_{s=1}^{S}
-\mathcal{O}_s(\bm{z}),
+\sum_{i=1}^{N_{\mathrm d}}
+\mathcal{O}_i(\bm{z}),
 \qquad
-\mathcal{O}_s(\bm{z})
+\mathcal{O}_i(\bm{z})
 =
-\left[
-\mathcal{D}_s(\bm{z})
+\mathcal{D}_i(\bm{z})
 +
-\frac{1}{S}\tilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}(\bm{z})
-\right],
+\frac{1}{N_{\mathrm d}}
+\tilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}(\bm{z}),
 \end{equation}
-so that each subset gradient includes a consistent $(1/S)\nabla \tilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}$ contribution. Subsets are formed using staggered, view-interleaved partitioning. For the joint reconstructions, subsets are split by modality as well as by view so that each subset term contains either PET or SPECT data, matching the subset-selection analysis in Chapter~\ref{chapter:optimisation}.
+so that summing all stochastic functions recovers one complete prior term. This differs organisationally from the Chapter~\ref{chapter:optimisation} experiments, in which the complete prior was held outside the data-function sampler. Here every stochastic function includes the scaled prior contribution; the prior is not sampled as a separate subset. Data functions are formed using staggered, view-interleaved partitioning and are split by modality, so each $\mathcal D_i$ contains either PET or SPECT data.
 
 At iteration $k$, with anchor point $\tilde{\bm{z}}$ refreshed once per epoch, we use the SVRG estimator
 \begin{equation}
@@ -196,11 +195,11 @@ g^{(k)}
 =
 \nabla \mathcal{O}(\tilde{\bm{z}})
 +
-S\left[\nabla \mathcal{O}_{s_k}(\bm{z}^{(k)})-\nabla \mathcal{O}_{s_k}(\tilde{\bm{z}})\right],
+N_{\mathrm d}\left[\nabla \mathcal{O}_{i_k}(\bm{z}^{(k)})-\nabla \mathcal{O}_{i_k}(\tilde{\bm{z}})\right],
 \qquad
-s_k\sim\mathrm{Unif}\{1,\dots,S\},
+i_k\sim\mathrm{Unif}\{1,\dots,N_{\mathrm d}\},
 \end{equation}
-and apply a projected diagonally preconditioned update
+and apply a projected voxel-block-preconditioned update
 \begin{equation}
 \bm{z}^{(k+1)}
 =
@@ -219,40 +218,40 @@ with a decaying step size
 \end{equation}
 Reconstructions were run for 250 epochs, corresponding to approximately 500 full data passes because the full-gradient snapshot is recomputed once per epoch. This fixed stopping point was used for all methods rather than a case-specific convergence criterion.
 
-\subsection{Diagonal preconditioning}
+\subsection{Block-diagonal preconditioning}
 \label{subsec:90y_precond}
 
-We use a diagonal preconditioner combining:
-\begin{itemize}
-    \item an EM-type data scaling \cite{de_pierro_fast_2001, ahn_globally_2002},
-    \begin{equation}
-    P_{\mathrm{data},m} = z_m \oslash \left(W_m A_m^\top \mathbf{1}\right),
+For modality $m$, the data component is the EM-type scaling \cite{de_pierro_fast_2001,ahn_globally_2002}
+\begin{equation}
+    P_{\mathrm{data},m}
+    =
+    z_m \oslash \left(W_m A_m^\top \mathbf{1}\right),
     \label{eq:90y_Pdata}
-    \end{equation}
-    represented on the shared grid for each modality, and
-    \item the local diagonal \wdtnv{} curvature approximation for $\tilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}$ described in Chapter~\ref{chapter:optimisation} (Section~\ref{subsec:preconditioning}).
-\end{itemize}
-
-In practice, $P_{\mathcal{R}}$ is updated once per epoch (and held fixed within the epoch) to limit overhead. Since $M=2$, the per-voxel spectral quantities required by both the $w$-$d$TNV gradient and the diagonal surrogates can be evaluated efficiently using the $2\times 2$ Gram-matrix structure (Equation~\ref{eq:inv_sqrt_2x2} and the discussion around Equation~\ref{eq:2x2_gram}).
-
-Inspired by \cite{ehrhardt_fast_2025}, we combine $P_{\mathrm{data}}$ and $P_{\mathcal{R}}$ via a floor-regularised Lehmer mean of order $q=0.1$. This describes the application implementation used for the reconstructions in this chapter; the later optimisation experiments in Chapter~\ref{chapter:optimisation} replace this combination rule with Hessian-sum inversion.
-\begin{equation}
-\widetilde P_{\mathrm{data}}=\max(P_{\mathrm{data}},p_{\min}),
-\qquad
-\widetilde P_{\mathcal R}=\max(P_{\mathcal R},p_{\min}),
-\qquad
-p_{\min}=10^{-6},
 \end{equation}
+represented on the shared grid. At voxel $n$, these modality-specific values form the diagonal block
 \begin{equation}
-P =
-\frac{\widetilde P_{\mathrm{data}}^{q}
-      +
-      \widetilde P_{\mathcal R}^{q}}
-     {\widetilde P_{\mathrm{data}}^{q-1}
-      +
-      \widetilde P_{\mathcal R}^{q-1}}.
+    P_{\mathrm D,n}
+    =
+    \begin{pmatrix}
+        P_{\mathrm{data},1,n} & 0\\
+        0 & P_{\mathrm{data},2,n}
+    \end{pmatrix}.
+    \label{eq:90y_PD_block}
 \end{equation}
-For $q=0$ this reduces to harmonic averaging. The choice $q=0.1$ gives a slightly less severe, but still conservative, compromise between data and regulariser scaling. The floor prevents numerical zeros in either constituent from freezing the update.
+The prior component $P_{\mathcal R,n}$ is obtained by inverting the Lewis--Sendov voxel-block diagonal of the exact smoothed spectral Hessian described in Section~\ref{subsec:optimisation_prior_preconditioning}. It retains the PET/SPECT cross-curvature within each $2\times2$ voxel block while discarding spatial off-diagonal blocks. The prior blocks are recomputed once per epoch using the smoothed spectral Hessian and its voxel-wise singular-value decompositions, then held fixed within that epoch.
+
+After applying an eigenvalue floor $p_{\min}=10^{-6}$ to both operands, the application combines them using the scaled matrix Lehmer construction from Equation~\eqref{eq:matrix_lehmer_combination}. Specifically,
+\begin{equation}
+    C_n=P_{\mathrm D,n}^{-1/2}P_{\mathcal R,n}P_{\mathrm D,n}^{-1/2},
+    \qquad
+    P_n
+    =
+    \frac{1}{2}P_{\mathrm D,n}^{1/2}f_q(C_n)P_{\mathrm D,n}^{1/2},
+    \qquad
+    f_q(t)=\frac{t^q+1}{t^{q-1}+1},
+    \label{eq:90y_lehmer_preconditioner}
+\end{equation}
+with $q=0.01$. At $q=0$ this expression is the parallel sum. The Lewis--Sendov/$q=0.01$ setting was frozen for this application before the broader optimisation benchmark in Chapter~\ref{chapter:optimisation}; its use here reflects protocol continuity rather than selection as the universally best preconditioner.
 
 \subsection{Comparator: sequential hybrid kernel EM}
 \label{subsec:90y_shkem}
@@ -272,7 +271,7 @@ All reconstructions were implemented in the \acrfull{sirf} \cite{ovtchinnikov_si
 
 PET list-mode data were processed using the vendor toolchains to generate normalisation, attenuation, and additive corrections (randoms and scatter), which were held fixed during reconstruction \cite{stearns_random_2003, iatrou_3d_2006}. Reconstructions use a voxel size of $3.27\times 2.13\times 2.13~\mathrm{mm}^3$ (z,y,x) on a grid of $83\times 255\times 255$.
 
-Patient PET data were acquired across two partially overlapping bed positions. For all methods, these bed positions were reconstructed jointly in a single combined-bed image space, with separate forward- and back-projections for each bed position; for the variational methods, the image-domain prior is evaluated over the combined volume. This is the multi-bed formulation derived in Chapter~\ref{chapter:optimisation}, and avoids the overlap-region artefacts that can arise when edge-preserving priors are applied independently to each bed and stitched afterwards. Bed positions overlapped by 11 voxels. Phantom PET data were reconstructed using a single bed position.
+Patient PET data were acquired across two partially overlapping bed positions. For all methods, these bed positions were reconstructed jointly in a single combined-bed image space, with separate forward- and back-projections for each bed position; for the variational methods, the image-domain prior is evaluated over the combined volume. This is the multi-bed formulation derived in Chapter~\ref{chapter:optimisation}. It permits one edge-preserving prior to act over the combined field of view and was motivated by the qualitative overlap comparison in Figure~\ref{fig:optim_multibed_qualitative}. Bed positions overlapped by 11 voxels. Phantom PET data were reconstructed using a single bed position.
 
 Projection data are partitioned into staggered, view-interleaved subsets. For SHKEM we use $S=9$ PET subsets, following the comparator study. For SVRG-based reconstructions we use 18 PET subsets for phantom data and 18 subsets per PET bed position for clinical data, giving 36 PET subsets in total for two-bed patient reconstructions.
 
