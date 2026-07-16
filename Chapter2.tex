@@ -1,11 +1,11 @@
 \chapter{Penalised-Likelihood Reconstruction: Priors and Optimisation Algorithms}
 \label{chapter:reconstruction}
 
-Emission tomography reconstruction is an ill-posed inverse problem: the unknown activity must be inferred from noisy Poisson count data through a highly smoothing and poorly conditioned forward operator. While \acrfull{ml} approaches remain the clinical workhorse \cite{dempster_maximum_1977, shepp_maximum_1982}, their practical success relies heavily on early stopping, which acts as an implicit regulariser but can introduce iteration-dependent bias and compromise quantification \cite{veklerov_stopping_1987, wu_convergence_1983}. For quantitative, low-count, and multi-modality settings, precisely those that arise in modern \gls{pet}/\gls{spect} practice, explicit regularisation and fast, robust optimisation become essential.
+Emission tomography reconstruction is an ill-posed inverse problem: the unknown activity must be inferred from noisy Poisson count data through a highly smoothing and poorly conditioned forward operator. While \acrfull{ml} approaches remain the clinical workhorse \cite{dempsterMaximumLikelihoodIncomplete1977, sheppMaximumLikelihoodReconstruction1982}, their practical success relies heavily on early stopping, which acts as an implicit regulariser but can introduce iteration-dependent bias and compromise quantification \cite{veklerovStoppingRuleMLE1987, wuConvergencePropertiesEM1983}. For quantitative, low-count, and multi-modality settings, precisely those that arise in modern \gls{pet}/\gls{spect} practice, explicit regularisation and fast, robust optimisation become essential.
 
-This chapter reviews the modelling and algorithmic foundations that underpin the remainder of the thesis. We first formalise the Poisson statistical model and the penalised-likelihood reconstruction objective (often termed \acrfull{map}), highlighting where ill-conditioning and noise amplification enter the problem. We then present some regularisation strategies used in emission tomography: from classical quadratic smoothness priors and \acrfull{tv} \cite{rudin_nonlinear_1992}, through clinically deployed edge-preserving models such as the \acrfull{rdp} \cite{nuyts_concave_2002}, to anatomically guided methods that use aligned structural images (e.g.\ Bowsher \cite{bowsher_utilizing_2004}, \acrfull{pls} \cite{ehrhardt_vector-valued_2014}, and kernelised representations \cite{wang_pet_2015, hutchcroft_anatomically-aided_2016}. We then focus on synergistic regularisation, where multiple co-registered modalities are coupled during reconstruction, and motivate Jacobian-based vectorial priors such as \acrfull{jtv} and \acrfull{tnv} \cite{holt_total_2014, rigie_joint_2015, knoll_joint_2017}, which will form the basis of the synergistic models developed later in the thesis.
+This chapter reviews the modelling and algorithmic foundations that underpin the remainder of the thesis. We first formalise the Poisson statistical model and the penalised-likelihood reconstruction objective (often termed \acrfull{map}), highlighting where ill-conditioning and noise amplification enter the problem. We then present some regularisation strategies used in emission tomography: from classical quadratic smoothness priors and \acrfull{tv} \cite{rudinNonlinearTotalVariation1992}, through clinically deployed edge-preserving models such as the \acrfull{rdp} \cite{nuytsConcavePriorPenalizing2002}, to anatomically guided methods that use aligned structural images (e.g.\ Bowsher \cite{bowsherUtilizingMRIInformation2004}, \acrfull{pls} \cite{ehrhardtVectorValuedImageProcessing2014}, and kernelised representations \cite{wangPETImageReconstruction2015, hutchcroftAnatomicallyaidedPETReconstruction2016}. We then focus on synergistic regularisation, where multiple co-registered modalities are coupled during reconstruction, and motivate Jacobian-based vectorial priors such as \acrfull{jtv} and \acrfull{tnv} \cite{holtTotalNuclearVariation2014, rigieJointReconstructionMultichannel2015, knollJointMRPETReconstruction2017}, which will form the basis of the synergistic models developed later in the thesis.
 
-Finally, we review optimisation algorithms suitable for large-scale \gls{map} reconstruction. After discussing EM-type updates and their subset-accelerated variants, we highlight why subset methods can exhibit limit-cycle behaviour and why convergent penalised algorithms typically require relaxation (e.g.\ \acrfull{bsrem} \cite{ahn_globally_2002}). We then introduce variance-reduced subset methods (e.g.\ \acrfull{saga} and \acrfull{svrg}) as a mechanism to retain low per-iteration cost while suppressing subset-induced stochasticity, and discuss the role of preconditioning, including ``prior-aware'' diagonal curvature approximations, in accelerating and stabilising convergence \cite{ehrhardt_fast_2025, twyman_investigation_2022}.
+Finally, we review optimisation algorithms suitable for large-scale \gls{map} reconstruction. After discussing EM-type updates and their subset-accelerated variants, we highlight why subset methods can exhibit limit-cycle behaviour and why convergent penalised algorithms typically require relaxation (e.g.\ \acrfull{bsrem} \cite{ahnGloballyConvergentOrdered2002}). We then introduce variance-reduced subset methods (e.g.\ \acrfull{saga} and \acrfull{svrg}) as a mechanism to retain low per-iteration cost while suppressing subset-induced stochasticity, and discuss the role of preconditioning, including ``prior-aware'' diagonal curvature approximations, in accelerating and stabilising convergence \cite{ehrhardtFastPETReconstruction2025, twymanInvestigationStochasticVariance2022}.
 
 
 \section{The Inverse Problem in Emission Tomography}
@@ -45,7 +45,7 @@ Since the term $\sum_{i=1}^I \log(y_i!)$ does not depend on $x$, it can be dropp
 = \sum_{i=1}^I \left( \bar{y}_i(x) - y_i \log \bar{y}_i(x) \right).
  \end{equation}
 
-Unconstrained \gls{ml} solutions are dominated by noise due to the poor conditioning of $A$ and the Poisson noise inherent in $y$. While iterative \gls{em} methods such as MLEM and OSEM \cite{dempster_maximum_1977, shepp_maximum_1982} are the clinical standard, they rely on early stopping to act as an implicit regulariser. This yields clinically acceptable images but introduces solution-dependent bias that may not give reliable quantitative metrics \cite{veklerov_stopping_1987}. In addition, finding the \gls{ml} solution for quantification can be prohibitively slow \cite{wu_convergence_1983}.
+Unconstrained \gls{ml} solutions are dominated by noise due to the poor conditioning of $A$ and the Poisson noise inherent in $y$. While iterative \gls{em} methods such as MLEM and OSEM \cite{dempsterMaximumLikelihoodIncomplete1977, sheppMaximumLikelihoodReconstruction1982} are the clinical standard, they rely on early stopping to act as an implicit regulariser. This yields clinically acceptable images but introduces solution-dependent bias that may not give reliable quantitative metrics \cite{veklerovStoppingRuleMLE1987}. In addition, finding the \gls{ml} solution for quantification can be prohibitively slow \cite{wuConvergencePropertiesEM1983}.
 
 A robust alternative to early stopping is the Bayesian formulation. By Bayes' rule, we have
 \begin{equation}
@@ -91,9 +91,9 @@ One of the simplest forms of regularisation is Tikhonov regularisation, which im
     \mathcal{R}_{\mathrm{Quad}}(x)
     = \sum_{j=1}^J \sum_{k \in \mathcal{N}_j} w_{jk}\, (x_j - x_k)^2,
 \end{equation}
-where $\mathcal{N}_j$ denotes a local neighbourhood of voxel $j$ (e.g.\ 6, 18, or 26-connected in 3D) and $w_{jk}\ge 0$ are weights (often distance-based and symmetric). While strongly convex and computationally efficient, the quadratic penalty strongly discourages large local differences, which tends to oversmooth edges and suppress high-contrast structures \cite{geman_stochastic_1984}.
+where $\mathcal{N}_j$ denotes a local neighbourhood of voxel $j$ (e.g.\ 6, 18, or 26-connected in 3D) and $w_{jk}\ge 0$ are weights (often distance-based and symmetric). While strongly convex and computationally efficient, the quadratic penalty strongly discourages large local differences, which tends to oversmooth edges and suppress high-contrast structures \cite{gemanStochasticRelaxationGibbs1984}.
 
-To better preserve edges, \gls{tv} \cite{rudin_nonlinear_1992} replaces the squared penalty with an $\ell_1$-type penalty on local differences. A neighbourhood-difference form that makes the connection to $\mathcal{R}_{\mathrm{Quad}}$ explicit is
+To better preserve edges, \gls{tv} \cite{rudinNonlinearTotalVariation1992} replaces the squared penalty with an $\ell_1$-type penalty on local differences. A neighbourhood-difference form that makes the connection to $\mathcal{R}_{\mathrm{Quad}}$ explicit is
 \begin{equation}
     \mathcal{R}_{\mathrm{TV}}(x)
     = \sum_{j=1}^J \sum_{k \in \mathcal{N}_j} w_{jk}\, |x_j - x_k|.
@@ -113,7 +113,7 @@ where $\Delta_\ell$ denotes the Euclidean distance between voxels $j+\delta_\ell
     \mathcal{R}_{\mathrm{TV}}(x)
     = \sum_{j=1}^J |(D x)_j|,
 \end{equation}
-with an isotropic alternative, more common in emission tomography \cite{jonsson_total_1998, panin_total_1999},
+with an isotropic alternative, more common in emission tomography \cite{jonssonTotalVariationRegularization1998, paninTotalVariationRegulated1999},
 \begin{equation}\label{eq:tv}
         \mathcal{R}_{\mathrm{TV}}(x)
     = \sum_{j=1}^J \|(D x)_j\|_2.
@@ -126,7 +126,7 @@ For optimisation, it is common to use a smooth approximation to avoid nondiffere
     \qquad \epsilon>0.
 \end{equation}
 
-In clinical practice, adaptable edge-preserving priors are often preferred. The \gls{rdp} \cite{nuyts_concave_2002}, the core component of the GE ``Q.Clear'' algorithm, modifies the penalty to depend on the absolute intensity sums, penalising relative differences, as opposed to absolute ones.
+In clinical practice, adaptable edge-preserving priors are often preferred. The \gls{rdp} \cite{nuytsConcavePriorPenalizing2002}, the core component of the GE ``Q.Clear'' algorithm, modifies the penalty to depend on the absolute intensity sums, penalising relative differences, as opposed to absolute ones.
 \begin{equation}
     \mathcal{R}_{\mathrm{RDP}}(x)
     = \sum_{j=1}^J \sum_{k \in \mathcal{N}_j} w_{jk}
@@ -138,7 +138,7 @@ whereas if $\gamma|x_j-x_k|\gg (x_j+x_k)$ it behaves like an anisotropic \gls{tv
 \subsection{Anatomically Guided Regularisation}
 In low-count regimes, single-modality priors struggle to distinguish between noise and legitimate small structures. Anatomically guided reconstruction uses a high-resolution structural image $u$ (e.g., \gls{ct}) to modulate the regularisation of the emission image $x$.
 
-Geometric Alignment methods assume that if an edge exists in the emission image, it should be supported by corresponding boundaries in a registered anatomical guidance image. The seminal Bowsher prior \cite{bowsher_utilizing_2004} implements this idea by defining, for each voxel $j$, a data-adaptive and dynamic neighbourhood $\mathcal{B}_j(u)$ using the guidance image $u$. Concretely, from a fixed candidate neighbourhood $\mathcal{N}_j$, the Bowsher construction selects the $B$ voxels whose intensities in $u$ are most similar to $u_j$, i.e.\ those minimising a similarity metric such as
+Geometric Alignment methods assume that if an edge exists in the emission image, it should be supported by corresponding boundaries in a registered anatomical guidance image. The seminal Bowsher prior \cite{bowsherUtilizingMRIInformation2004} implements this idea by defining, for each voxel $j$, a data-adaptive and dynamic neighbourhood $\mathcal{B}_j(u)$ using the guidance image $u$. Concretely, from a fixed candidate neighbourhood $\mathcal{N}_j$, the Bowsher construction selects the $B$ voxels whose intensities in $u$ are most similar to $u_j$, i.e.\ those minimising a similarity metric such as
 \begin{equation}
     d_{jk}(u) \coloneqq |u_j-u_k| \quad (k\in\mathcal{N}_j),
 \end{equation}
@@ -149,14 +149,14 @@ and sets $\mathcal{B}_j(u)$ to be the indices of the $B$ smallest values of $d_{
 \end{equation}
 (or an alternative edge-preserving potential). By restricting the penalty to neighbours that are locally homogeneous in $u$, the prior encourages smoothing within anatomical regions while reducing smoothing across anatomical edges, thereby allowing sharp boundaries to form in $x$ when they are supported by the guidance image.
 
-An even more geometric framework is \gls{pls} \cite{ehrhardt_vector-valued_2014}. These methods encourage structural consistency by encouraging the gradient vectors of the emission image and the guidance image to be aligned, i.e.\ $D x_j \parallel D u_j$. A common formulation (often termed \gls{pls}1) penalises the magnitude of the component of $D x_j$ orthogonal to $D u_j$, which is proportional to the sine of the enclosed angle $\theta_j$:
+An even more geometric framework is \gls{pls} \cite{ehrhardtVectorValuedImageProcessing2014}. These methods encourage structural consistency by encouraging the gradient vectors of the emission image and the guidance image to be aligned, i.e.\ $D x_j \parallel D u_j$. A common formulation (often termed \gls{pls}1) penalises the magnitude of the component of $D x_j$ orthogonal to $D u_j$, which is proportional to the sine of the enclosed angle $\theta_j$:
 \begin{equation}
     R_{\mathrm{PLS1}}(x,u)
     = \sum_{j=1}^J \|D x_j\|_2\,\|D u_j\|_2\,|\sin\theta_j|.
 \end{equation}
 This term vanishes when $D x_j$ and $D u_j$ are parallel (or when either gradient is zero), and increases with the component of $D x_j$ orthogonal to $D u_j$. While numerically stable, \gls{pls}1 scales with $\|D u_j\|_2$ and therefore inherits the spatially varying gradient magnitude of the anatomical image, which can lead to over-weighting at strong anatomical edges and under-weighting in low-contrast regions.
 
-To decouple the directional information from the anatomical gradient magnitude, \gls{dtv} \cite{ehrhardt_pet_2016} introduces a normalised direction field
+To decouple the directional information from the anatomical gradient magnitude, \gls{dtv} \cite{ehrhardtPETReconstructionAnatomical2016} introduces a normalised direction field
 \begin{equation}\label{eq:xi}
     \xi_j
     = \frac{D u_j}{\sqrt{\|D u_j\|_2^2 + \eta^2}},
@@ -172,11 +172,11 @@ where $I$ is the $d\times d$ (number of dimensions, $d$, squared) identity matri
 \end{equation}
 which penalises predominantly the gradient component orthogonal to the anatomical level-set direction, thereby encouraging edges in $x$ to align with edges in $u$. In regions where $u$ is locally flat (so $\xi_j \approx 0$), $\Pi_j \approx I$ and \gls{dtv} reduces to standard isotropic \gls{tv}.
 
-Regularisation strategies also exist outside the standard Bayesian (penalised-likelihood) framework. A prominent example is the \gls{kem}, in which prior information is encoded directly in the image representation rather than through an explicit penalty term. Following Wang and Qi \cite{wang_pet_2015} and its anatomically-aided extension \cite{hutchcroft_anatomically-aided_2016}, the emission image is modelled as a linear combination of kernel-derived basis functions:
+Regularisation strategies also exist outside the standard Bayesian (penalised-likelihood) framework. A prominent example is the \gls{kem}, in which prior information is encoded directly in the image representation rather than through an explicit penalty term. Following Wang and Qi \cite{wangPETImageReconstruction2015} and its anatomically-aided extension \cite{hutchcroftAnatomicallyaidedPETReconstruction2016}, the emission image is modelled as a linear combination of kernel-derived basis functions:
 \begin{equation}
     x = K\alpha,
 \end{equation}
-where $\alpha \in \mathbb{R}^J$ is a coefficient image and $K\in\mathbb{R}^{J\times J}$ is a (typically sparse) kernel matrix whose entries encode similarity between voxels based on features extracted from a guidance image \cite{hutchcroft_anatomically-aided_2016}. Each voxel $j$ is assigned a feature vector $f_j$ (commonly a patch of intensities in the high-resolution guidance image), and a radial Gaussian kernel is often used,
+where $\alpha \in \mathbb{R}^J$ is a coefficient image and $K\in\mathbb{R}^{J\times J}$ is a (typically sparse) kernel matrix whose entries encode similarity between voxels based on features extracted from a guidance image \cite{hutchcroftAnatomicallyaidedPETReconstruction2016}. Each voxel $j$ is assigned a feature vector $f_j$ (commonly a patch of intensities in the high-resolution guidance image), and a radial Gaussian kernel is often used,
 \begin{equation}
     \kappa(f_j,f_k)=\exp\!\left(-\frac{\|f_j-f_k\|_2^2}{2\sigma^2}\right),
 \end{equation}
@@ -186,20 +186,20 @@ Substituting $x=K\alpha$ into the Poisson forward model gives a kernelised expec
 \begin{equation}
     \bar{y}(\alpha) = A(K\alpha) + b,
 \end{equation}
-so that reconstruction reduces to maximum-likelihood estimation of $\alpha$ under the same Poisson model, followed by $\hat{x}=K\hat{\alpha}$. Importantly, because the model remains linear in the unknown coefficients, an \gls{em}-type update can be derived with essentially the same structure as conventional MLEM/OSEM, but with $K$ embedded within the projector/backprojector operations. This yields a procedure that is straightforward to implement in existing \gls{em} pipelines, while often delivering improved bias--variance trade-offs at low counts by enforcing anatomically-informed, spatially adaptive smoothing in the image representation \cite{wang_pet_2015,hutchcroft_anatomically-aided_2016}.
+so that reconstruction reduces to maximum-likelihood estimation of $\alpha$ under the same Poisson model, followed by $\hat{x}=K\hat{\alpha}$. Importantly, because the model remains linear in the unknown coefficients, an \gls{em}-type update can be derived with essentially the same structure as conventional MLEM/OSEM, but with $K$ embedded within the projector/backprojector operations. This yields a procedure that is straightforward to implement in existing \gls{em} pipelines, while often delivering improved bias--variance trade-offs at low counts by enforcing anatomically-informed, spatially adaptive smoothing in the image representation \cite{wangPETImageReconstruction2015,hutchcroftAnatomicallyaidedPETReconstruction2016}.
 
-A known limitation of purely anatomy-derived kernels is \gls{pet}-unique feature suppression: structures present in the emission image but absent (or weak) in the guidance image can be over-smoothed or biased towards anatomically plausible but functionally incorrect solutions \cite{deidda_hybrid_2019}. To mitigate this, \gls{hkem} augments the kernel with synergistic information from the evolving \gls{pet} estimate itself, yielding an iteration-dependent kernel that combines anatomical and emission-driven similarity . In the \gls{hkem} formulation of Deidda \textit{et al.}, the hybrid kernel entry factorises as
+A known limitation of purely anatomy-derived kernels is \gls{pet}-unique feature suppression: structures present in the emission image but absent (or weak) in the guidance image can be over-smoothed or biased towards anatomically plausible but functionally incorrect solutions \cite{deiddaHybridPETMR2019}. To mitigate this, \gls{hkem} augments the kernel with synergistic information from the evolving \gls{pet} estimate itself, yielding an iteration-dependent kernel that combines anatomical and emission-driven similarity . In the \gls{hkem} formulation of Deidda \textit{et al.}, the hybrid kernel entry factorises as
 \begin{equation}
     k^{(n)}_{fj} = k_m(v_f,v_j)\,k_p(z^{(n)}_f,z^{(n)}_j),
 \end{equation}
-where $v_j$ denotes the (fixed) anatomical feature vector at voxel $j$ and $z^{(n)}_j$ is a feature derived from the current \gls{pet} update (updated each iteration) \cite{deidda_hybrid_2019}. Both factors are commonly chosen as Gaussian similarities modulated by spatial proximity,
+where $v_j$ denotes the (fixed) anatomical feature vector at voxel $j$ and $z^{(n)}_j$ is a feature derived from the current \gls{pet} update (updated each iteration) \cite{deiddaHybridPETMR2019}. Both factors are commonly chosen as Gaussian similarities modulated by spatial proximity,
 \begin{align}
     k_m(v_j,v_k) &= \exp\!\left(-\frac{\|v_j-v_k\|_2^2}{2\sigma_a^2}\right)
                    \exp\!\left(-\frac{\|x_j-x_k\|_2^2}{2\sigma_{da}^2}\right),\\
     k_p(z^{(n)}_j,z^{(n)}_k) &= \exp\!\left(-\frac{\|z^{(n)}_j-z^{(n)}_k\|_2^2}{2\sigma_p^2}\right)
                    \exp\!\left(-\frac{\|x_j-x_k\|_2^2}{2\sigma_{df}^2}\right),
 \end{align}
-where $x_j$ denotes the voxel coordinates and the parameters $\sigma_a,\sigma_f,\sigma_{da},\sigma_{df}$ control the relative influence of anatomical similarity, functional-driven (emission) similarity, and spatial locality. The functional term helps address emission--guidance mismatch and, crucially, reduces the tendency of anatomy-only kernels to suppress \gls{pet}-unique lesions by allowing the neighbourhood coupling to adapt to features emerging in the emission estimate. Empirically, Deidda \textit{et al.} report that this hybridisation can reduce negative bias under low-count conditions and improve lesion contrast while retaining the denoising benefits of kernelised reconstruction \cite{deidda_hybrid_2019}.
+where $x_j$ denotes the voxel coordinates and the parameters $\sigma_a,\sigma_f,\sigma_{da},\sigma_{df}$ control the relative influence of anatomical similarity, functional-driven (emission) similarity, and spatial locality. The functional term helps address emission--guidance mismatch and, crucially, reduces the tendency of anatomy-only kernels to suppress \gls{pet}-unique lesions by allowing the neighbourhood coupling to adapt to features emerging in the emission estimate. Empirically, Deidda \textit{et al.} report that this hybridisation can reduce negative bias under low-count conditions and improve lesion contrast while retaining the denoising benefits of kernelised reconstruction \cite{deiddaHybridPETMR2019}.
 
 Kernel approaches extend naturally to multiple guidance sources by enlarging the feature vectors (e.g.\ concatenating features from \gls{ct} and/or additional functional channels \cite{wangPETImageReconstruction2015}) and defining the kernel on the resulting joint feature space; this provides a flexible mechanism for sequential or multi-modality guidance without introducing an explicit Bayesian penalty term.
 
@@ -234,7 +234,7 @@ A practical way to exploit multiple modalities without solving a fully joint inv
 \end{equation}
 where $W_{m\leftarrow(m-1)}$ maps the image reconstructed in the previous stage, $\hat{x}_{m-1}$, into the spatial grid of modality $m$.
 
-Deidda \emph{et al.}~have previously investigated a similar method for \isotope[90]{Y} bremsstrahlung \gls{spect}--informed \gls{pet} reconstructions \cite{deidda_triple_2023}. Bremsstrahlung \gls{spect} images are first reconstructed using \gls{hkem} with \gls{ct} and \gls{spect} image-update information to obtain an enhanced \gls{spect} estimate. This \gls{spect} image is then resampled to the \gls{pet} grid and used as functional guidance for \gls{pet} reconstruction. 
+Deidda \emph{et al.}~have previously investigated a similar method for \isotope[90]{Y} bremsstrahlung \gls{spect}--informed \gls{pet} reconstructions \cite{deiddaTripleModalityImage2023}. Bremsstrahlung \gls{spect} images are first reconstructed using \gls{hkem} with \gls{ct} and \gls{spect} image-update information to obtain an enhanced \gls{spect} estimate. This \gls{spect} image is then resampled to the \gls{pet} grid and used as functional guidance for \gls{pet} reconstruction.
 \begin{equation}
     \hat{\alpha}_m \in \arg\min_{\alpha_m\in\mathcal{C}}
     \left\{
@@ -243,7 +243,7 @@ Deidda \emph{et al.}~have previously investigated a similar method for \isotope[
 \end{equation}
 The paper reports that this sequential design is particularly beneficial for low-count \gls{y90} \gls{pet}: \gls{spect} provides complementary denoising/uptake support within \gls{pet}--\gls{spect}-consistent regions, while \glsentryshort{ct} contributes primarily through resolution/edge information injected at the \gls{spect} stage, and the \gls{pet} image-update features reduce suppression of \gls{pet}-unique structures and mitigate inter-modality mismatch.
 
-Sequential guidance is limited by one-way dependency: errors in $u$ may propagate directly to $x$ and the shared information may not be fully utilised. Truly synergistic reconstruction estimates both images simultaneously, allowing information to flow bi-directionally. Perhaps the most obvious way to extend single modality regularisation to achieve a synergistic regulariser is \gls{jtv} \cite{blomgren_color_1998}, a simple extension of TV which sums gradient magnitudes:
+Sequential guidance is limited by one-way dependency: errors in $u$ may propagate directly to $x$ and the shared information may not be fully utilised. Truly synergistic reconstruction estimates both images simultaneously, allowing information to flow bi-directionally. Perhaps the most obvious way to extend single modality regularisation to achieve a synergistic regulariser is \gls{jtv} \cite{blomgrenColorTVTotal1998}, a simple extension of TV which sums gradient magnitudes:
 \begin{equation}
     \mathcal{R}_{\mathrm{JTV}}(\bm{z}) = \sum_{n=1}^N \sqrt{ \|D z_{1,n}\|^2 + \|D z_{2,n}\|^2 + \dots +\|D z_{M,n}\|^2 }.
 \end{equation}
@@ -256,7 +256,7 @@ D z_{1,n} & D z_{2,n} & \cdots & D z_{M,n}
 \end{bmatrix}
 \;\in\; \mathbb{R}^{d\times M}.
 \end{equation}
-When viewed in this way, \gls{jtv} can be redefined as a Schatten $2$-norm (also known as a Frobenius norm) applied to this jacobian \cite{holt_total_2014},
+When viewed in this way, \gls{jtv} can be redefined as a Schatten $2$-norm (also known as a Frobenius norm) applied to this jacobian \cite{holtTotalNuclearVariation2014},
 \begin{equation}\label{eq:jtv}
     \mathcal{R}_{\mathrm{JTV}}(\bm{z}) = \sum_{n=1}^N  \|\mathcal{G}_n(\bm{z})\|_F
 \end{equation}
@@ -268,11 +268,11 @@ for singular values $\sigma_\ell(Y)$ of a rank-$R$ matrix $Y$. Note that $R=\min
 \begin{equation}
     \|Y\|_* = \sum_{r=1}^{R}\sigma_r(Y).
 \end{equation}
-The nuclear norm is the convex envelope of the Rank function. Applied to the voxel-wise jacobians, it promotes singular value sparsity and has the effect of either driving functionally misaligned gradients to zero or parallel/anti-parallel, promoting edge-alignment. Applying this nuclear norm to the voxel-wise jacobians is known as \gls{tnv} \cite{holt_total_2014, rigie_joint_2015}. 
+The nuclear norm is the convex envelope of the Rank function. Applied to the voxel-wise jacobians, it promotes singular value sparsity and has the effect of either driving functionally misaligned gradients to zero or parallel/anti-parallel, promoting edge-alignment. Applying this nuclear norm to the voxel-wise jacobians is known as \gls{tnv} \cite{holtTotalNuclearVariation2014, rigieJointReconstructionMultichannel2015}.
 \begin{equation}\label{eq:tnv}
     \mathcal{R}_{\mathrm{TNV}}(\bm{z}) = \sum_{n=1}^N  \|\mathcal{G}_n(\bm{z})\|_*
 \end{equation}
-It has been applied to synergistic \gls{pet}/MR reconstruction through its extended variant, total generalised nuclear variation \cite{knoll_joint_2017}.
+It has been applied to synergistic \gls{pet}/MR reconstruction through its extended variant, total generalised nuclear variation \cite{knollJointMRPETReconstruction2017}.
 
 The benefits of using the nuclear norm over the Frobenius norm can be visualised in Figure~\ref{fig:norm_visualisation}, where the nuclear norm exhibits sharp grooves along the coordinate axes that encourage one singular value to vanish (promoting low-rank structure), whereas the Frobenius norm is smooth and tends to shrink singular values jointly without explicitly favouring rank reduction.
 
@@ -287,7 +287,7 @@ Total Nuclear variation will form the basis for the synergistic prior demonstrat
 
 \section{Optimisation Algorithms}\label{sec:optimisation}
 
-The reconstruction of \gls{map} (and, even more so, synergistic images) requires more nuanced algorithms. \gls{mlem} can be relatively simply extended for penalised reconstruction via Green's one-step-late-method \cite{green_bayesian_1990}. The one-step-late method constructs an EM-type multiplicative update by evaluating the penalty derivative  at the current iterate $x^{(n)}$ rather than at $x^{(n+1)}$. The resulting OSL-\gls{map} update is
+The reconstruction of \gls{map} (and, even more so, synergistic images) requires more nuanced algorithms. \gls{mlem} can be relatively simply extended for penalised reconstruction via Green's one-step-late-method \cite{greenBayesianReconstructionsEmission1990}. The one-step-late method constructs an EM-type multiplicative update by evaluating the penalty derivative  at the current iterate $x^{(n)}$ rather than at $x^{(n+1)}$. The resulting OSL-\gls{map} update is
 \begin{equation}
     x^{(n+1)}_j
     =
@@ -298,7 +298,7 @@ The reconstruction of \gls{map} (and, even more so, synergistic images) requires
     \frac{y_i}{\bar y_i\!\left(x^{(n)}\right)},
     \qquad j=1,\dots,J,
 \end{equation}
-The term $\left.\frac{\partial R}{\partial x_j}\right|_{x^{(n)}}$ acts as an iteration-dependent modification of the \glsentryshort{mlem} denominator, yielding an algorithm that is typically simple to implement for a broad class of differentiable priors. Unfortunately, the one-step-late method is not convergent and special attention must be paid to initialisation conditions for a reasonable reconstruction \cite{zeng_greens_2019}.
+The term $\left.\frac{\partial R}{\partial x_j}\right|_{x^{(n)}}$ acts as an iteration-dependent modification of the \glsentryshort{mlem} denominator, yielding an algorithm that is typically simple to implement for a broad class of differentiable priors. Unfortunately, the one-step-late method is not convergent and special attention must be paid to initialisation conditions for a reasonable reconstruction \cite{zengGreensOnesteplateAlgorithm2019}.
 
 Although too fragile for low count / synergistic reconstruction, the one-step-late algorithm has some useful takeaways. Primarily the joint update of data and prior functions with some kind of voxel-wise scaling. This is otherwise known as a preconditioner. \glsentryshort{mlem} has the multiplicative update equation for iteration $k$:
 \begin{equation}
@@ -400,7 +400,7 @@ where $A_s$ denotes the system matrix and data restricted to subset $s$.
     \label{fig:osem_limit_cycle}
 \end{figure}
 
-We seek a fast and convergent algorithm for \gls{map} reconstruction. A widely used approach is the (modified) \gls{bsrem} framework \cite{ahn_globally_2002}, which combines \glsentryshort{em}-type preconditioning and subset acceleration with a relaxation (diminishing step-size) to recover convergence while incorporating an explicit penalty. In a scaled-gradient form, a generic \glsentryshort{bsrem}-type update can be written as
+We seek a fast and convergent algorithm for \gls{map} reconstruction. A widely used approach is the (modified) \gls{bsrem} framework \cite{ahnGloballyConvergentOrdered2002}, which combines \glsentryshort{em}-type preconditioning and subset acceleration with a relaxation (diminishing step-size) to recover convergence while incorporating an explicit penalty. In a scaled-gradient form, a generic \glsentryshort{bsrem}-type update can be written as
 \begin{equation}
     x^{(k+1)}
     =
@@ -419,7 +419,7 @@ where $\varsigma_k>0$ is an iteration dependent step size. Convergence is promot
     \label{fig:relaxed_limit_cycle}
 \end{figure}
 
-However, we can do better. Variance-reduced subset methods have become increasingly popular in the \gls{pet} reconstruction literature because they retain the low per-iteration cost of subset updates while substantially reducing the subset-induced stochasticity that drives OSEM limit cycles. The key idea is to replace the raw subset gradient, which is a high-variance estimator of the full gradient, with a variance-reduced estimator that is (approximately) unbiased and whose variance decreases as the iterates approach a solution. This allows the use of larger (or non-vanishing) relaxation parameters than classical diminishing-step BSREM-type schemes, while maintaining stable convergence behaviour in practice \cite{ehrhardt_fast_2025,twyman_investigation_2022}.
+However, we can do better. Variance-reduced subset methods have become increasingly popular in the \gls{pet} reconstruction literature because they retain the low per-iteration cost of subset updates while substantially reducing the subset-induced stochasticity that drives OSEM limit cycles. The key idea is to replace the raw subset gradient, which is a high-variance estimator of the full gradient, with a variance-reduced estimator that is (approximately) unbiased and whose variance decreases as the iterates approach a solution. This allows the use of larger (or non-vanishing) relaxation parameters than classical diminishing-step BSREM-type schemes, while maintaining stable convergence behaviour in practice \cite{ehrhardtFastPETReconstruction2025,twymanInvestigationStochasticVariance2022}.
 
 A generic subset (stochastic) scaled-gradient step uses $g_{s_k}(x^{(k)})$ in place of $\nabla \mathcal{L}(x^{(k)})=\sum_s g_s(x^{(k)})$, i.e.
 \begin{equation}
@@ -458,7 +458,7 @@ A variance-reduced, prior-regularised update can then be written compactly as
     = x^{(k)} - \varsigma\,P^{(k)}
     \Big(\tilde g_k + \beta r(x^{(k)})\Big).
 \end{equation}
-Recent work indicates that incorporating the effect of the prior into $P^{(k)}$ (``prior-aware preconditioning'') can be crucial for fast and robust convergence. Ehrhardt \textit{et al.} \cite{ehrhardt_fast_2025} showed substantially improved convergence rates with \gls{rdp}-regularised \gls{pet} reconstruction when using harmonic averaging of the \gls{em}-type preconditioner and a scaled diagonal estimate of the inverse Hessian of the prior. Using only the diagonal elements of the \gls{rdp} Hessian
+Recent work indicates that incorporating the effect of the prior into $P^{(k)}$ (``prior-aware preconditioning'') can be crucial for fast and robust convergence. Ehrhardt \textit{et al.} \cite{ehrhardtFastPETReconstruction2025} showed substantially improved convergence rates with \gls{rdp}-regularised \gls{pet} reconstruction when using harmonic averaging of the \gls{em}-type preconditioner and a scaled diagonal estimate of the inverse Hessian of the prior. Using only the diagonal elements of the \gls{rdp} Hessian
 \begin{equation}
     \text{diag}\left(\mathcal{H}_{\mathrm{RDP}}(x_j)\right) = \sum_{k \in \mathcal{N}_j}\frac{x_k^2}{(x_j + x_k + \gamma |x_j - x_k|)^3},
 \end{equation}
@@ -466,7 +466,7 @@ they constructed a preconditioner as
 \begin{equation}
     P^{(k)} = \text{diag}\left( \frac{x^{(k)}+\delta}{A^T 1 + \alpha \;\text{diag}\!\left(\beta \mathcal{H}_{\mathrm{RDP}}\left(x^{(k)}\right)\right)\left(x^{(k)}+\delta\right)}\right)
 \end{equation}
-with scalar $\alpha$ tuned to correct for the loss of off-diagonal information. Although this is not emphasised explicitly in \cite{ehrhardt_fast_2025}, the harmonic averaging viewpoint can also be interpreted as a majorisation-preserving way to combine curvature information from the likelihood and the prior. In particular, the voxel-wise harmonic blend can be rearranged as
+with scalar $\alpha$ tuned to correct for the loss of off-diagonal information. Although this is not emphasised explicitly in \cite{ehrhardtFastPETReconstruction2025}, the harmonic averaging viewpoint can also be interpreted as a majorisation-preserving way to combine curvature information from the likelihood and the prior. In particular, the voxel-wise harmonic blend can be rearranged as
 \begin{equation}
 \left(\frac{1}{a}+\frac{1}{b}\right)^{-1},
 \end{equation}
@@ -474,13 +474,13 @@ so that combining two diagonal scalings $a$ and $b$ harmonically is equivalent t
 
 Preconditioning and stochastic variance reduction for synergistic \gls{map} reconstruction has not been well investigated in the literature so far and will form a part of this thesis.
 
-A widely used alternative to \gls{em}-type and subset-gradient schemes is the limited-memory BFGS algorithm with bound constraints (L-BFGS-B) \cite{broyden_convergence_1970, fletcher_new_1970, goldfarb_family_1970, shanno_conditioning_1970, liu_limited_1989, boyd_distributed_2010}, a quasi-Newton method that targets
+A widely used alternative to \gls{em}-type and subset-gradient schemes is the limited-memory BFGS algorithm with bound constraints (L-BFGS-B) \cite{broydenConvergenceClassDoublerank1970, fletcherNewApproachVariable1970, goldfarbFamilyVariablemetricMethods1970, shannoConditioningQuasiNewtonMethods1970, liuLimitedMemoryBFGS1989, boydDistributedOptimizationStatistical2010}, a quasi-Newton method that targets
 \(
 \min_{x\in\mathcal C}\{\mathcal{L}(x)+\beta\mathcal{R}(x)\}
 \)
 by iteratively building a low-rank approximation to the inverse Hessian from successive iterate and gradient differences. The “limited-memory” construction stores only a small number of correction pairs, making it viable for high-dimensional images, while the “B” variant enforces simple bounds (e.g.\ non-negativity) via an active-set strategy and projected search directions. In practice, L-BFGS-B can exhibit rapid local convergence on smooth penalised objectives, but each iteration requires one or more full objective and gradient evaluations (coupled with a line search), which is computationally burdensome in large-scale emission tomography when the likelihood is evaluated over all subsets. For this reason it is not used in the main reconstruction experiments in this thesis; nevertheless, it provides a useful reference optimiser and is employed later for a small demonstrative deconvolution problem in Chapter~\ref{chapter:deconvolution_pvc}.
 
-A practical limitation of vanilla L-BFGS-B in emission tomography is its sensitivity to poor variable scaling: the line search and the quasi-Newton curvature updates can be dominated by a small subset of high-sensitivity voxels, leading to slow progress. Tsai \textit{et al.}\ propose a diagonally preconditioned variant (L-BFGS-B-PC) that embeds analytic curvature information into the optimisation via a change of variables \cite{tsai_fast_2018}. We can choose a diagonal preconditioner $D$ from a cheap curvature surrogate (e.g.\ an \gls{em}-type diagonal approximation of the Hessian), and run L-BFGS-B on the transformed problem $Dx$). This rescales the objective so that gradients are more isotropic in the transformed coordinates, while bound constraints are preserved by transforming the box constraints accordingly. The resulting method combines low-cost, problem-specific diagonal curvature (from $D$) with the low-rank curvature learned by L-BFGS-B, typically yielding substantially faster and more robust convergence than unpreconditioned L-BFGS-B in penalised reconstructions.
+A practical limitation of vanilla L-BFGS-B in emission tomography is its sensitivity to poor variable scaling: the line search and the quasi-Newton curvature updates can be dominated by a small subset of high-sensitivity voxels, leading to slow progress. Tsai \textit{et al.}\ propose a diagonally preconditioned variant (L-BFGS-B-PC) that embeds analytic curvature information into the optimisation via a change of variables \cite{tsaiFastQuasiNewtonAlgorithms2018}. We can choose a diagonal preconditioner $D$ from a cheap curvature surrogate (e.g.\ an \gls{em}-type diagonal approximation of the Hessian), and run L-BFGS-B on the transformed problem $Dx$). This rescales the objective so that gradients are more isotropic in the transformed coordinates, while bound constraints are preserved by transforming the box constraints accordingly. The resulting method combines low-cost, problem-specific diagonal curvature (from $D$) with the low-rank curvature learned by L-BFGS-B, typically yielding substantially faster and more robust convergence than unpreconditioned L-BFGS-B in penalised reconstructions.
 
 
 \section{Summary and Research Gap}

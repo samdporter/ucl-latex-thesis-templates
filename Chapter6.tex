@@ -87,7 +87,7 @@ Let $\bm z=(z_1,z_2)$ denote the PET and SPECT images represented on a common re
 where $\mathcal{D}_i$ is a Poisson negative log-likelihood term composed with the relevant projector, image-space registration operator, and optional resolution model; $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ is the prior from Chapter~\ref{chapter:wdtnv}; and $\iota_{\mathbb{R}_+}$ enforces non-negativity.
 \SA{Just checking : have you defined how the non-negativity prior works ? As an additive prior it should be some kind of barrier function e.g. $\iota_z = \infty ~\textnormal{if}~ z < o, ~\textnormal{else}~ z $}
 
-The stochastic experiments use SVRG \cite{johnson_accelerating_2013,twyman_investigation_2022,ehrhardt_fast_2025}. Writing $\mathcal R=\mathcal{R}_{\mathrm{w\text{-}dTNV}}$, the implemented estimator keeps the complete prior outside the sampler. At anchor point $\widetilde{\bm z}$ it is
+The stochastic experiments use SVRG \cite{johnsonAcceleratingStochasticGradient2013,twymanInvestigationStochasticVariance2022,ehrhardtFastPETReconstruction2025}. Writing $\mathcal R=\mathcal{R}_{\mathrm{w\text{-}dTNV}}$, the implemented estimator keeps the complete prior outside the sampler. At anchor point $\widetilde{\bm z}$ it is
 \begin{equation}
     g^{(k)} = \nabla\mathcal R(\bm z^{(k)})
     + \nabla\mathcal D(\widetilde{\bm z})
@@ -143,7 +143,7 @@ The regions are evaluated separately over the whole image, the hot-sphere mask, 
 \section{Subset Selection}
 \label{sec:optimisation_subset_selection}
 
-Subset methods accelerate early iterations in emission tomography by replacing full data passes with stochastic or ordered blocks of projection data \cite{hudson_accelerated_1994}. Joint PET/SPECT reconstruction introduces a further choice: corresponding modality subsets can be added to form paired stochastic functions, or each modality subset can remain a separate function. The experiment below compares only these two organisations. In both cases the complete prior remains outside the sampler and is evaluated at every update, as in Equation~\eqref{eq:svrg_estimator_general}. \TODO{Add the Zenodo-managed citation for IEEE Xplore document 10654962.}
+Subset methods accelerate early iterations in emission tomography by replacing full data passes with stochastic or ordered blocks of projection data \cite{hudsonAcceleratedImageReconstruction1994}. Joint PET/SPECT reconstruction introduces a further choice: corresponding modality subsets can be added to form paired stochastic functions, or each modality subset can remain a separate function. The experiment below compares only these two organisations. In both cases the complete prior remains outside the sampler and is evaluated at every update, as in Equation~\eqref{eq:svrg_estimator_general}. \TODO{Add the Zenodo-managed citation for IEEE Xplore document 10654962.}
 
 \subsection{Data-Subset Organisation}
 \label{subsec:subset_data_organisation}
@@ -202,7 +202,7 @@ Figure~\ref{fig:optim_subset_organisation} shows faster convergence with modalit
 \label{sec:optimisation_preconditioners}
 \label{subsec:preconditioning}
 
-Preconditioning is critical for subset-based MAP reconstruction because the data term and the edge-preserving prior can have very different local curvature scales \cite{clinthorne_preconditioning_1993,ahn_globally_2002,de_pierro_fast_2001,ehrhardt_fast_2025}. The comparison below includes data-only BSREM scaling and four prior-aware curvature models for $\wdtnv$.
+Preconditioning is critical for subset-based MAP reconstruction because the data term and the edge-preserving prior can have very different local curvature scales \cite{clinthornePreconditioningMethodsImproved1993,ahnGloballyConvergentOrdered2002,depierroFastEMlikeMethods2001,ehrhardtFastPETReconstruction2025}. The comparison below includes data-only BSREM scaling and four prior-aware curvature models for $\wdtnv$.
 
 \subsection{Data Curvature}
 \label{subsec:optimisation_data_preconditioning}
@@ -314,7 +314,7 @@ and
 \end{equation}
 where $B_r=\mathrm{diag}(\beta_{1,r},\beta_{2,r})$ and $\circ$ denotes the Hadamard product.
 
-The fourth construction uses the exact Lewis--Sendov Hessian of the smoothed spectral penalty \cite{lewis_derivatives_1996}. If $H_{\mathcal R}=\nabla^2\mathcal R$ denotes the resulting image-space Hessian, the implemented approximation retains only its voxel-wise diagonal blocks,
+The fourth construction uses the exact Lewis--Sendov Hessian of the smoothed spectral penalty \cite{lewisDerivativesSpectralFunctions1996}. If $H_{\mathcal R}=\nabla^2\mathcal R$ denotes the resulting image-space Hessian, the implemented approximation retains only its voxel-wise diagonal blocks,
 \begin{equation}
     \widehat H_{\mathcal R}^{\mathrm{LS\text{-}block}}
     =

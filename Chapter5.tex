@@ -79,7 +79,7 @@ f(s)=\sum_{\ell=1}^{r} g(s_\ell),
 r=\min\{d,M\},
 \end{equation}
 is orthogonally invariant and depends on $Y$ only through its singular values $\sigma(Y)=(\sigma_1(Y),\dots,\sigma_r(Y))$.
-Since $g\in C^\infty([0,\infty))$ for $\epsilon>0$, the symmetric function $f$ is smooth and hence $\phi$ is differentiable, with gradient given by the standard formula for orthogonally invariant matrix functions \cite{lewis_convex_1995,lewis_derivatives_1996}.
+Since $g\in C^\infty([0,\infty))$ for $\epsilon>0$, the symmetric function $f$ is smooth and hence $\phi$ is differentiable, with gradient given by the standard formula for orthogonally invariant matrix functions \cite{lewisConvexAnalysisUnitarily1995,lewisDerivativesSpectralFunctions1996}.
 
 \paragraph{Jacobian-space gradient.}
 Let $\phi(\mathcal{G})=\sum_{\ell=1}^{\min(d,M)} g(\sigma_\ell(\mathcal{G}))$, where $\sigma_\ell(\mathcal{G})$ are the singular values of the voxel-wise Jacobian matrix $\mathcal{G}\in\mathbb{R}^{d\times M}$. A thin SVD
@@ -194,7 +194,7 @@ where $\operatorname{div}$ acts column-wise on $Q$.
 \section{Weighted Directional Total Nuclear Variation ($\wdtnv$)}
 \label{sec:wdtnv}
 
-This section extends TNV \cite{rigie_joint_2015, holt_total_2014} in two orthogonal ways:
+This section extends TNV \cite{rigieJointReconstructionMultichannel2015, holtTotalNuclearVariation2014} in two orthogonal ways:
 \begin{itemize}
     \item high-resolution anatomical information is incorporated directionally rather than as an additional coupled intensity channel;
     \item voxel-wise, modality-wise diagonal weighting compensates for heterogeneous scaling and spatially varying reliability across modalities.

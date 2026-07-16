@@ -8,16 +8,16 @@ Relative to Chapter~\ref{chapter:wdtnv}, the focus here is validation and compar
 \section{Motivation and clinical context}
 \label{sec:90y_motivation}
 
-Quantitative post-treatment imaging is required for personalised dosimetry following $^{90}$Y \glsentryshort{sirt} \cite{levillain_international_2021}. Pre-treatment planning based on $^{99\mathrm{m}}$Tc-\gls{maa} often mis-predicts microsphere deposition, motivating post-treatment verification of delivered activity distributions \cite{haste_correlation_2017}.
+Quantitative post-treatment imaging is required for personalised dosimetry following $^{90}$Y \glsentryshort{sirt} \cite{levillainInternationalRecommendationsPersonalised2021}. Pre-treatment planning based on $^{99\mathrm{m}}$Tc-\gls{maa} often mis-predicts microsphere deposition, motivating post-treatment verification of delivered activity distributions \cite{hasteCorrelationTechnetium99mMacroaggregated2017}.
 
 Two $^{90}$Y modalities are clinically available:
 \begin{itemize}
-    \item \textbf{$^{90}$Y PET}: detects the rare internal pair-production branch, providing comparatively high spatial resolution but extremely low count statistics \cite{selwyn_new_2007}.
-    \item \textbf{Bremsstrahlung SPECT}: has substantially higher corrected counts (about $15\times$ for the data studied here) but suffers from severe blur, septal penetration, and scatter due to the continuous emission spectrum \cite{rong_development_2012, minarik_evaluation_2008}.
+    \item \textbf{$^{90}$Y PET}: detects the rare internal pair-production branch, providing comparatively high spatial resolution but extremely low count statistics \cite{selwynNewInternalPair2007}.
+    \item \textbf{Bremsstrahlung SPECT}: has substantially higher corrected counts (about $15\times$ for the data studied here) but suffers from severe blur, septal penetration, and scatter due to the continuous emission spectrum \cite{rongDevelopmentEvaluationImproved2012, minarikEvaluationQuantitative90Y2008}.
 \end{itemize}
 Both modalities are typically acquired alongside CT for attenuation correction and anatomical localisation. Since PET and SPECT image the same underlying microsphere distribution while CTAC provides structural rather than activity information, independent reconstruction discards both a strong physical coupling and useful anatomical context.
 
-The sequential hybrid kernel expectation--maximisation (SHKEM) method of Deidda \textit{et al.} improves lesion contrast by reconstructing one modality to guide another \cite{deidda_triple_2023, deidda_hybrid_2022}. However, the sequential construction remains sensitive to iteration choice and noise amplification. This motivates a truly joint MAP formulation with a coupled regulariser that promotes shared geometry while allowing modality-specific contrast.
+The sequential hybrid kernel expectation--maximisation (SHKEM) method of Deidda \textit{et al.} improves lesion contrast by reconstructing one modality to guide another \cite{deiddaTripleModalityImage2023, deiddaHybridKernelisedExpectation2022}. However, the sequential construction remains sensitive to iteration choice and noise amplification. This motivates a truly joint MAP formulation with a coupled regulariser that promotes shared geometry while allowing modality-specific contrast.
 
 \section{Joint MAP formulation for PET/SPECT}
 \label{sec:90y_joint_map}
@@ -92,7 +92,7 @@ Weights are computed from early-stopped unregularised reconstructions represente
 \qquad m\in\{1,2\},
 \label{eq:90y_rhom_def}
 \end{equation}
-where $q_p(\cdot|_{\Omega'})$ denotes the $p$th percentile over voxels in $\Omega'$, and $\beta_m$ are user-controlled regularisation weights used for operating-point selection (Section~\ref{subsec:90y_hyperparams}). Percentile scaling provides a robust dynamic-range estimate and reduces sensitivity to outliers. This matches the intent of Section~\ref{subsec:voxelwise_weighting} while avoiding an additional spatially varying weight for this investigation \cite{tsai_benefits_2020}.
+where $q_p(\cdot|_{\Omega'})$ denotes the $p$th percentile over voxels in $\Omega'$, and $\beta_m$ are user-controlled regularisation weights used for operating-point selection (Section~\ref{subsec:90y_hyperparams}). Percentile scaling provides a robust dynamic-range estimate and reduces sensitivity to outliers. This matches the intent of Section~\ref{subsec:voxelwise_weighting} while avoiding an additional spatially varying weight for this investigation \cite{tsaiBenefitsUsingSpatiallyVariant2020}.
 
 \subsection{Directional finite-difference operator for PET/SPECT coupling}
 \label{subsec:90y_directional_stencil}
@@ -114,7 +114,7 @@ and use both one- and two-voxel steps, $\mathcal{E}=\mathcal{E}_1\cup\{2e:e\in\m
 \label{eq:90y_directional_D}
 \end{equation}
 with Neumann boundary conditions.
-This follows the ``extended Jacobian'' motivation for TNV-type coupling \cite{holt_total_2014} and empirically improved stability in the present PET/SPECT setting.
+This follows the ``extended Jacobian'' motivation for TNV-type coupling \cite{holtTotalNuclearVariation2014} and empirically improved stability in the present PET/SPECT setting.
 
 \subsection{The $w$-$d$TNV Jacobian and regulariser (two modalities)}
 \label{subsec:90y_wdtnv_def}
@@ -173,7 +173,7 @@ which reduces to a smoothed single-channel directional-TV penalty. This tests an
 \section{Optimisation and implementation}
 \label{sec:90y_optimisation}
 
-We minimise the joint objective \eqref{eq:90y_joint_obj} using a subset stochastic variance-reduced gradient (SVRG) method \cite{johnson_accelerating_2013}, consistent with the stochastic framework studied in Chapter~\ref{chapter:optimisation}. Let $N_{\mathrm d}$ be the total number of PET and SPECT data functions in the reconstruction being described, including separate functions for each PET bed position where applicable. The application implementation distributes the prior equally across these functions,
+We minimise the joint objective \eqref{eq:90y_joint_obj} using a subset stochastic variance-reduced gradient (SVRG) method \cite{johnsonAcceleratingStochasticGradient2013}, consistent with the stochastic framework studied in Chapter~\ref{chapter:optimisation}. Let $N_{\mathrm d}$ be the total number of PET and SPECT data functions in the reconstruction being described, including separate functions for each PET bed position where applicable. The application implementation distributes the prior equally across these functions,
 \begin{equation}
 \mathcal{O}(\bm{z})
 =
@@ -221,7 +221,7 @@ Reconstructions were run for 250 epochs, corresponding to approximately 500 full
 \subsection{Block-diagonal preconditioning}
 \label{subsec:90y_precond}
 
-For modality $m$, the data component is the EM-type scaling \cite{de_pierro_fast_2001,ahn_globally_2002}
+For modality $m$, the data component is the EM-type scaling \cite{depierroFastEMlikeMethods2001,ahnGloballyConvergentOrdered2002}
 \begin{equation}
     P_{\mathrm{data},m}
     =
@@ -256,12 +256,12 @@ with $q=0.01$. At $q=0$ this expression is the parallel sum. The Lewis--Sendov/$
 \subsection{Comparator: sequential hybrid kernel EM}
 \label{subsec:90y_shkem}
 
-We compare against the sequential hybrid kernel expectation--maximisation (SHKEM) method of Deidda \textit{et al.} \cite{deidda_triple_2023}, using the reconstruction order and hyperparameter settings reported as optimal in that work. The sequential order is CT-guided SPECT followed by CT/SPECT-guided PET: SPECT is reconstructed first using CT-derived anatomical features and hybrid kernel updates, and the resulting SPECT reconstruction is then used together with CT-derived features and the current PET iterate to construct the PET hybrid kernel \cite{deidda_hybrid_2022}. To reduce noise amplification we use frozen kernels, halting kernel updates after 27 PET subiterations and 72 SPECT subiterations, matching the comparator configuration in \cite{deidda_triple_2023}. All kernel parameters followed the original implementation from Deidda \textit{et al.} For clinical PET data, the SHKEM implementation is applied in the same joint multi-bed setting as the variational methods.
+We compare against the sequential hybrid kernel expectation--maximisation (SHKEM) method of Deidda \textit{et al.} \cite{deiddaTripleModalityImage2023}, using the reconstruction order and hyperparameter settings reported as optimal in that work. The sequential order is CT-guided SPECT followed by CT/SPECT-guided PET: SPECT is reconstructed first using CT-derived anatomical features and hybrid kernel updates, and the resulting SPECT reconstruction is then used together with CT-derived features and the current PET iterate to construct the PET hybrid kernel \cite{deiddaHybridKernelisedExpectation2022}. To reduce noise amplification we use frozen kernels, halting kernel updates after 27 PET subiterations and 72 SPECT subiterations, matching the comparator configuration in \cite{deiddaTripleModalityImage2023}. All kernel parameters followed the original implementation from Deidda \textit{et al.} For clinical PET data, the SHKEM implementation is applied in the same joint multi-bed setting as the variational methods.
 
 \subsection{Software implementation}
 \label{subsec:90y_software}
 
-All reconstructions were implemented in the \acrfull{sirf} \cite{ovtchinnikov_sirf_2017} using \acrfull{stir} projector backends \cite{thielemans_stir_2012, schramm_parallelprojopen-source_2024, fuster_integration_2013} and the Core Imaging Library \cite{jorgensen_core_2021}, with custom code for the proposed regulariser. The SHKEM implementation follows \cite{deidda_triple_2023}, extended here to the same joint multi-bed PET reconstruction setting used by the variational methods.
+All reconstructions were implemented in the \acrfull{sirf} \cite{ovtchinnikovSIRFSynergisticImage2017} using \acrfull{stir} projector backends \cite{thielemansSTIRSoftwareTomographic2012, schrammPARALLELPROJOpensourceFramework2024, fusterIntegrationAdvanced3D2013} and the Core Imaging Library \cite{jorgensenCoreImagingLibrary2021}, with custom code for the proposed regulariser. The SHKEM implementation follows \cite{deiddaTripleModalityImage2023}, extended here to the same joint multi-bed PET reconstruction setting used by the variational methods.
 
 \section{Forward models, corrections, and co-registration}
 \label{sec:90y_forward_models}
@@ -269,7 +269,7 @@ All reconstructions were implemented in the \acrfull{sirf} \cite{ovtchinnikov_si
 \subsection{PET forward model}
 \label{subsec:90y_pet_forward}
 
-PET list-mode data were processed using the vendor toolchains to generate normalisation, attenuation, and additive corrections (randoms and scatter), which were held fixed during reconstruction \cite{stearns_random_2003, iatrou_3d_2006}. Reconstructions use a voxel size of $3.27\times 2.13\times 2.13~\mathrm{mm}^3$ (z,y,x) on a grid of $83\times 255\times 255$.
+PET list-mode data were processed using the vendor toolchains to generate normalisation, attenuation, and additive corrections (randoms and scatter), which were held fixed during reconstruction \cite{stearnsRandomCoincidenceEstimation2003, iatrou3DImplementationScatter2006}. Reconstructions use a voxel size of $3.27\times 2.13\times 2.13~\mathrm{mm}^3$ (z,y,x) on a grid of $83\times 255\times 255$.
 
 Patient PET data were acquired across two partially overlapping bed positions. For all methods, these bed positions were reconstructed jointly in a single combined-bed image space, with separate forward- and back-projections for each bed position; for the variational methods, the image-domain prior is evaluated over the combined volume. This is the multi-bed formulation derived in Chapter~\ref{chapter:optimisation}. It permits one edge-preserving prior to act over the combined field of view and was motivated by the qualitative overlap comparison in Figure~\ref{fig:optim_multibed_qualitative}. Bed positions overlapped by 11 voxels. Phantom PET data were reconstructed using a single bed position.
 
@@ -280,9 +280,9 @@ Projection data are partitioned into staggered, view-interleaved subsets. For SH
 
 For bremsstrahlung SPECT we use a geometric projector with an analytic collimator--detector response and a simulated additive correction term. SPECT images are discretised on a $128\times128\times128$ grid with isotropic voxel size $4.18~\mathrm{mm}$.
 
-The collimator response is modelled as a depth-dependent Gaussian with linearly varying width, obtained by fitting an analytic collimator model \cite{anger_sensitivity_1966}. Bremsstrahlung blur is modelled as an isotropic Gaussian with energy-dependent width fitted to $^{90}$Y range simulations \cite{rault_fast_2010}; where multiple energy windows are used, effective blur parameters are obtained by count-weighted averaging across windows.
+The collimator response is modelled as a depth-dependent Gaussian with linearly varying width, obtained by fitting an analytic collimator model \cite{angerSensitivityResolutionLinearity1966}. Bremsstrahlung blur is modelled as an isotropic Gaussian with energy-dependent width fitted to $^{90}$Y range simulations \cite{raultFastSimulationYttrium902010}; where multiple energy windows are used, effective blur parameters are obtained by count-weighted averaging across windows.
 
-Scatter and septal penetration are incorporated via an additive term estimated by an outer reconstruct--simulate loop using \gls{simind} \cite{ljungberg_simind_2015, rong_development_2012}. We initialise this additive term using a learned estimate from a neural network \cite{xiang_deep_2020}. The additive estimate is then refined by alternating reconstruction and \glsentryshort{simind} simulation for 10 outer iterations, using a damped update
+Scatter and septal penetration are incorporated via an additive term estimated by an outer reconstruct--simulate loop using \gls{simind} \cite{ljungbergSIMINDMonteCarlo2015, rongDevelopmentEvaluationImproved2012}. We initialise this additive term using a learned estimate from a neural network \cite{xiangDeepNeuralNetwork2020}. The additive estimate is then refined by alternating reconstruction and \glsentryshort{simind} simulation for 10 outer iterations, using a damped update
 \begin{equation}
 b^{(k+1)}=\nu\,\hat b^{(k+1)}+(1-\nu)b^{(k)},
 \qquad
@@ -307,7 +307,7 @@ All quantitative image analysis is performed on PET reconstructions to preserve 
 \subsection{Phantom data}
 \label{subsec:90y_phantom}
 
-A \glsentryshort{nema} \glsentryshort{iec} Body Phantom with a sphere-to-background ratio of 8 was scanned at The Christie Hospital using a Siemens Biograph mCT PET/CT system and a GE Discovery 670 SPECT/CT system. \glsentryshort{pet} was acquired over \SI{15}{\hour} and \glsentryshort{spect} over \SI{15}{\minute}. From the \SI{15}{\hour} \glsentryshort{pet} acquisition, $B=20$ statistically independent \glsentryshort{pet} datasets equivalent to \SI{15}{\minute} were generated by sinogram bootstrapping \cite{markiewicz_assessment_2014}. The SPECT energy window was $39.84$--$128.16~\mathrm{keV}$.
+A \glsentryshort{nema} \glsentryshort{iec} Body Phantom with a sphere-to-background ratio of 8 was scanned at The Christie Hospital using a Siemens Biograph mCT PET/CT system and a GE Discovery 670 SPECT/CT system. \glsentryshort{pet} was acquired over \SI{15}{\hour} and \glsentryshort{spect} over \SI{15}{\minute}. From the \SI{15}{\hour} \glsentryshort{pet} acquisition, $B=20$ statistically independent \glsentryshort{pet} datasets equivalent to \SI{15}{\minute} were generated by sinogram bootstrapping \cite{markiewiczAssessmentBootstrapResampling2014}. The SPECT energy window was $39.84$--$128.16~\mathrm{keV}$.
 
 We quantify \glsentryshort{pet} reproducibility across bootstraps via voxel-wise \acrfull{cov}, and \glsentryshort{pet} quantification via \acrfullpl{rc} for spheres of diameters \SI{10}{mm}, \SI{13}{mm}, \SI{22}{mm}, \SI{28}{mm}, and \SI{37}{mm}. Three \glspl{voi} were defined (Figure~\ref{fig:90y_nema_bootstrap_overview}): a high-count (HC) VOI comprising five filled spheres (one sphere was excluded due to filling issues), a warm-background (BG) VOI comprising the phantom volume excluding the spheres plus a \SI{10}{mm} margin and excluding the lung insert plus a \SI{5}{mm} margin, and the cold lung insert (LI).
 
@@ -373,7 +373,7 @@ For each sphere size, many-to-one contrasts compare each method to the reference
 
 Clinical data were acquired at Oxford University Hospitals from 10 patients undergoing $^{90}$Y \glsentryshort{sirt}: one patient was used for hyperparameter selection and nine for testing. \glsentryshort{pet} was acquired on a GE Discovery 710 PET/CT system and \glsentryshort{spect} on a GE Discovery NM/CT 670 system. Informed consent is not necessary for retrospective image reviews of this nature at Oxford University Hospitals. \glsentryshort{pet} was acquired with two bed positions (\SI{15}{\minute} each) and \glsentryshort{spect} with \SI{15}{\minute}. Energy windows were $50$--$150~\mathrm{keV}$.
 
-Tumour \glspl{voi} were delineated once per patient on the vendor Q.Clear $\beta$-4000 \glsentryshort{pet} reconstruction using an automatic gradient-based method \cite{mikell_impact_2018} and propagated unchanged across reconstructions so that differences reflected reconstruction effects rather than VOI definition. A homogeneous liver background \glsentryshort{voi} was drawn manually, avoiding motion and visible artefacts. The training-patient lesion and background VOIs are shown in Figure~\ref{fig:90y_sirt3_rois}.
+Tumour \glspl{voi} were delineated once per patient on the vendor Q.Clear $\beta$-4000 \glsentryshort{pet} reconstruction using an automatic gradient-based method \cite{mikellImpact90YPET2018} and propagated unchanged across reconstructions so that differences reflected reconstruction effects rather than VOI definition. A homogeneous liver background \glsentryshort{voi} was drawn manually, avoiding motion and visible artefacts. The training-patient lesion and background VOIs are shown in Figure~\ref{fig:90y_sirt3_rois}.
 
 \begin{figure}[htbp]
     \centering
@@ -450,7 +450,7 @@ Planned many-to-one contrasts compare \dtv, \wtnv, and SHKEM to \wdtnv, with \gl
 \subsection{Hyperparameter selection}
 \label{subsec:90y_hyperparams}
 
-Regularisation weights $\beta_{\mathrm{PET}}$ and $\beta_{\mathrm{SPECT}}$ in \eqref{eq:90y_rhom_def} were tuned on a single training patient by sweeping the TBR--$\mathrm{CoV}_{\mathrm{bkg}}$ trade-off and selecting an operating point on the Pareto frontier \cite{pareto_new_1897} with background CoV approximately matched to the vendor reconstruction. The selected weights were then fixed for all phantom and clinical experiments:
+Regularisation weights $\beta_{\mathrm{PET}}$ and $\beta_{\mathrm{SPECT}}$ in \eqref{eq:90y_rhom_def} were tuned on a single training patient by sweeping the TBR--$\mathrm{CoV}_{\mathrm{bkg}}$ trade-off and selecting an operating point on the Pareto frontier \cite{paretoNewTheoriesEconomics1897} with background CoV approximately matched to the vendor reconstruction. The selected weights were then fixed for all phantom and clinical experiments:
 \begin{table}[htbp]
 \centering
 \caption{Selected regularisation weights (tuned on a single training patient) used for all phantom and clinical experiments.}
@@ -467,7 +467,7 @@ Regularisation weights $\beta_{\mathrm{PET}}$ and $\beta_{\mathrm{SPECT}}$ in \e
 \end{tabular}
 \end{table}
 
-For SHKEM, hyperparameters followed Deidda \textit{et al.} \cite{deidda_triple_2023}; the PET subiteration displayed and analysed here (27) was chosen to approximately match the background CoV of the vendor reconstruction.
+For SHKEM, hyperparameters followed Deidda \textit{et al.} \cite{deiddaTripleModalityImage2023}; the PET subiteration displayed and analysed here (27) was chosen to approximately match the background CoV of the vendor reconstruction.
 
 Figure~\ref{fig:90y_tradeoff} shows the training-patient trade-off curves for two representative lesions. Lesion~1 shows only a modest initial benefit from synergistic information and is largely insensitive to further increases in SPECT weighting until over-regularisation introduces negative bias. Lesion~2 shows a clearer synergistic benefit: increasing SPECT weighting shifts the TBR--$\mathrm{CoV}_{\mathrm{bkg}}$ curve towards higher TBR at comparable background CoV up to a distinct elbow region, after which excessive coupling reduces TBR and/or increases background CoV. For lesion~2, the PET image obtained with \wdtnv also exhibited features consistent with a CTAC artefact; this is discussed in Section~\ref{sec:90y_discussion}.
 

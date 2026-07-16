@@ -7,7 +7,7 @@ We first summarise the detection physics of \gls{pet} and \gls{spect} and presen
 
 \section{Principles of Emission Tomography}
 
-\gls{pet} fundamentally differs from anatomical modalities such as \gls{ct}. Rather than mapping the structural properties, \gls{et} measures the spatio-temporal distribution of a radiolabelled substance introduced into the physiological system. A representative example is \gls{fdg}\cite{boellaard_fdg_2015}. \gls{fdg} is a glucose-analogue, meaning energy-hungry cells take up an increased amount of the molecules, and therefore radionuclide. Cells are unable to metabolise \gls{fdg}, meaning it accumulates. The distribution of \gls{fdg} can be imaged using a \gls{pet} scanner, giving a functional view of glucose metabolism and highlighting any unusual uptake caused by overactive cells such as cancer.
+\gls{pet} fundamentally differs from anatomical modalities such as \gls{ct}. Rather than mapping the structural properties, \gls{et} measures the spatio-temporal distribution of a radiolabelled substance introduced into the physiological system. A representative example is \gls{fdg}\cite{boellaardFDGPETCT2015}. \gls{fdg} is a glucose-analogue, meaning energy-hungry cells take up an increased amount of the molecules, and therefore radionuclide. Cells are unable to metabolise \gls{fdg}, meaning it accumulates. The distribution of \gls{fdg} can be imaged using a \gls{pet} scanner, giving a functional view of glucose metabolism and highlighting any unusual uptake caused by overactive cells such as cancer.
 
 While the instrumentation differs between \gls{spect} and \gls{pet}, both involve a similar inverse problem: estimating the activity distribution from projection measurements governed by Poisson counting statistics, attenuation, scatter, and detector resolution. The continuous activity distribution is represented on a finite voxel grid as a non-negative image vector $x\in\mathbb{R}_+^J$. The primary contribution to the expected measurements is modelled using the non-negative system matrix $A\in\mathbb{R}_+^{I\times J}$. Including additive background contributions gives the affine forward model
 \begin{equation}
@@ -21,13 +21,13 @@ where $\bar{y}=\mathbb{E}[y]\in\mathbb{R}_+^I$ denotes the total expected measur
 \begin{equation}
     p \rightarrow n + e^+ + \nu_e.
 \end{equation}
-The decay energy is shared between the positron and the neutrino, resulting in a continuous positron energy spectrum. This positron traverses the tissue losing kinetic energy via Coulomb interactions (a distance known as the positron range) before thermalising. This range imposes an effective blurring limit on spatial resolution, with an effective positron range of approximately 0.5–0.7 mm for $^{18}$F and several millimetres for high-energy emitters such as $^{82}$Rb \cite{cherry_physics_2003}.
+The decay energy is shared between the positron and the neutrino, resulting in a continuous positron energy spectrum. This positron traverses the tissue losing kinetic energy via Coulomb interactions (a distance known as the positron range) before thermalising. This range imposes an effective blurring limit on spatial resolution, with an effective positron range of approximately 0.5–0.7 mm for $^{18}$F and several millimetres for high-energy emitters such as $^{82}$Rb \cite{cherryPhysicsNuclearMedicine2003}.
 
 Upon thermalisation, the positron interacts with an electron to form positronium, which rapidly decays via annihilation:
 \begin{equation}
     e^+ + e^- \rightarrow \gamma + \gamma
 \end{equation}
-The rest mass energy of the pair ($2 \times 511$ keV) is converted into two\footnote{Positron/electron pairs can also annihilate to produce more than two photons but this is much less likely ($p(3\gamma)/p(2\gamma)\approx$1/378)\cite{bass_colloquium_2023}} (near) anti-parallel\footnote{In order to conserve momentum, a certain a-collinearity will exist between the photons, introducing additional blurring \cite{shibuya_annihilation_2007}.} photons (Figure~\ref{fig:positron_annihilation}).
+The rest mass energy of the pair ($2 \times 511$ keV) is converted into two\footnote{Positron/electron pairs can also annihilate to produce more than two photons but this is much less likely ($p(3\gamma)/p(2\gamma)\approx$1/378)\cite{bassColloquiumPositroniumPhysics2023}} (near) anti-parallel\footnote{In order to conserve momentum, a certain a-collinearity will exist between the photons, introducing additional blurring \cite{shibuyaAnnihilationPhotonAcollinearity2007}.} photons (Figure~\ref{fig:positron_annihilation}).
 
 \begin{figure}
     \centering
@@ -58,7 +58,7 @@ The rest mass energy of the pair ($2 \times 511$ keV) is converted into two\foot
 \label{fig:pet_rings}
 \end{figure*}
 
-\gls{pet} imaging relies on a technique known as electronic collimation. A valid event is recorded only if two detectors register photons within a coincidence timing window $2\tau$ (typically 6--12 ns) \cite{cherry_physics_2003}. The measured coincidences (or counts) along a \gls{lor}, connecting detectors $1$ and $2$, denoted as $y_{i_{1,2}}$, is a superposition of three components:
+\gls{pet} imaging relies on a technique known as electronic collimation. A valid event is recorded only if two detectors register photons within a coincidence timing window $2\tau$ (typically 6--12 ns) \cite{cherryPhysicsNuclearMedicine2003}. The measured coincidences (or counts) along a \gls{lor}, connecting detectors $1$ and $2$, denoted as $y_{i_{1,2}}$, is a superposition of three components:
 \begin{equation}
     y_{i_{1,2}} = t_{i_{1,2}} + s_{i_{1,2}} + r_{i_{1,2}}
 \end{equation}
@@ -95,7 +95,7 @@ In \gls{pet}, the  matrix may be factorised as
 \begin{equation}
     A = A_{\mathrm{det,sens}}\,A_{\mathrm{det,blur}}\,A_{\mathrm{att}}\,A_{\mathrm{geom}}\,A_{\mathrm{ToF}}\,A_{\mathrm{positron}}.
 \end{equation}
-Here, $A_{\mathrm{positron}}$ models positron-range blurring, $A_{\mathrm{ToF}}$ models the timing localisation accuracy for \gls{tof} \gls{pet} (and is omitted for non-\gls{tof} \gls{pet}), $A_{\mathrm{geom}}$ is the geometric projection operator mapping voxels to lines of response in the absence of attenuation, $A_{\mathrm{att}}$ is a diagonal operator containing attenuation factors along each line of response, $A_{\mathrm{det,blur}}$ models detector-related resolution effects in reporting the true line-of-response positions, and $A_{\mathrm{det,sens}}$ is a diagonal sensitivity factor incorporating multiplicative effects such as detector efficiencies and normalisation \cite{bailey_nuclear_2014}. The additive term is commonly written as $b=s+r$, corresponding to scatter and randoms, respectively.
+Here, $A_{\mathrm{positron}}$ models positron-range blurring, $A_{\mathrm{ToF}}$ models the timing localisation accuracy for \gls{tof} \gls{pet} (and is omitted for non-\gls{tof} \gls{pet}), $A_{\mathrm{geom}}$ is the geometric projection operator mapping voxels to lines of response in the absence of attenuation, $A_{\mathrm{att}}$ is a diagonal operator containing attenuation factors along each line of response, $A_{\mathrm{det,blur}}$ models detector-related resolution effects in reporting the true line-of-response positions, and $A_{\mathrm{det,sens}}$ is a diagonal sensitivity factor incorporating multiplicative effects such as detector efficiencies and normalisation \cite{baileyNuclearMedicinePhysics2014}. The additive term is commonly written as $b=s+r$, corresponding to scatter and randoms, respectively.
 
 \section{Single Photon Emission Computed Tomography (\gls{spect})}
 
@@ -112,7 +112,7 @@ The sensitivity ($g$) of a parallel-hole collimator depends on the hole diameter
 \begin{equation}
     g \;\propto\; \frac{d^{4}}{L_e^{2}\,(d+t)^{2}},
 \end{equation}
-which makes explicit the trade-off between resolution and sensitivity: reducing $d$ improves geometric resolution but decreases sensitivity \cite{cherry_physics_2003}. In practice, the geometric efficiency of a (high-resolution) parallel-hole collimator can be very low (often $\lesssim 0.05\%$) \cite{anger_scintillation_1958}. In the context of bremsstrahlung imaging (Section~\ref{subsec:bremss}), this low efficiency is compounded by the continuous energy spectrum of the emissions, which limits the effectiveness of standard photopeak-based energy windowing for scatter rejection.
+which makes explicit the trade-off between resolution and sensitivity: reducing $d$ improves geometric resolution but decreases sensitivity \cite{cherryPhysicsNuclearMedicine2003}. In practice, the geometric efficiency of a (high-resolution) parallel-hole collimator can be very low (often $\lesssim 0.05\%$) \cite{angerScintillationCamera1958}. In the context of bremsstrahlung imaging (Section~\ref{subsec:bremss}), this low efficiency is compounded by the continuous energy spectrum of the emissions, which limits the effectiveness of standard photopeak-based energy windowing for scatter rejection.
 
 \subsection{The \gls{spect} model}\label{subsec:spect:model}
 \label{sec:spect_model}
@@ -127,12 +127,12 @@ For a parallel-hole collimator, septal penetration can be incorporated via an en
 \begin{equation}
     L_e(E) \;=\; l \;-\; \frac{2}{\mu_{\mathrm{}}(E)},
 \end{equation}
-where $l$ is the physical hole length and $\mu\mathrm(E)$ is the linear attenuation coefficient of the collimator material at photon energy $E$ \cite{cherry_physics_2003}. The combined intrinsic detector blur and collimator blur is commonly approximated by a depth-dependent Gaussian point-spread function embedded within $A_{\mathrm{geom,att}}$, with standard deviation $\sigma(z,E)$ increasing with source-to-collimator distance $z$ (and depending on $E$ through penetration).
+where $l$ is the physical hole length and $\mu\mathrm(E)$ is the linear attenuation coefficient of the collimator material at photon energy $E$ \cite{cherryPhysicsNuclearMedicine2003}. The combined intrinsic detector blur and collimator blur is commonly approximated by a depth-dependent Gaussian point-spread function embedded within $A_{\mathrm{geom,att}}$, with standard deviation $\sigma(z,E)$ increasing with source-to-collimator distance $z$ (and depending on $E$ through penetration).
 
 \section{Yttrium-90 Radioembolisation (\gls{sirt})}
 \label{sec:y90}
 
-\Gls{sirt} uses \gls{y90} microspheres for the locoregional treatment of hepatic malignancies. It is an established treatment for unresectable \gls{hcc} and liver metastases \cite{sundram_selective_2017}, recommended by NICE for unresectable \glsentryshort{hcc} and used for neuroendocrine and colorectal liver metastases in the UK \cite{national_institute_for_health_and_care_excellence_nice_selective_2021,national_institute_for_health_and_care_excellence_nice_selective_2024}. The reconstruction of post-\gls{sirt} microsphere distribution presents a severe ill-posed inverse problem, as \gls{y90} is designed for therapy, not imaging.
+\Gls{sirt} uses \gls{y90} microspheres for the locoregional treatment of hepatic malignancies. It is an established treatment for unresectable \gls{hcc} and liver metastases \cite{sundramSelectiveInternalRadiation2017}, recommended by NICE for unresectable \glsentryshort{hcc} and used for neuroendocrine and colorectal liver metastases in the UK \cite{nationalinstituteforhealthandcareexcellenceniceSelectiveInternalRadiation2021,nationalinstituteforhealthandcareexcellenceniceSelectiveInternalRadiation2024}. The reconstruction of post-\gls{sirt} microsphere distribution presents a severe ill-posed inverse problem, as \gls{y90} is designed for therapy, not imaging.
 
 \subsection{Decay Characteristics}
 \gls{y90} is an almost pure $\beta^-$ emitter decaying to the stable ground state of \gls{zr90} with a half-life of 64.1 hours:
@@ -143,7 +143,7 @@ The electrons have a high endpoint energy of \SI{2.28}{\mega\electronvolt}. The 
 
 \subsection{Bremsstrahlung \gls{spect}}
 \label{subsec:bremss}
-As high-energy $\beta^-$ particles decelerate in tissue through Coulomb interactions with charged particles, they emit Bremsstrahlung photons. These photons can be imaged with \gls{spect} systems. However, the continuous spectrum of bremsstrahlung photons (Figure~\ref{fig:brems_emission}) hugely reduces the suitability of traditional energy window scatter correction methods and bremsstrahlung range blurring (Figure~\ref{fig:bremsstrahlung} reduces resolution. Consequently, Bremsstrahlung \gls{spect} is often characterised by poor spatial resolution and limited quantitative accuracy \cite{simpkin_spatial_1992}.
+As high-energy $\beta^-$ particles decelerate in tissue through Coulomb interactions with charged particles, they emit Bremsstrahlung photons. These photons can be imaged with \gls{spect} systems. However, the continuous spectrum of bremsstrahlung photons (Figure~\ref{fig:brems_emission}) hugely reduces the suitability of traditional energy window scatter correction methods and bremsstrahlung range blurring (Figure~\ref{fig:bremsstrahlung} reduces resolution. Consequently, Bremsstrahlung \gls{spect} is often characterised by poor spatial resolution and limited quantitative accuracy \cite{simpkinSpatialEnergyDependence1992}.
 
 \begin{figure}
     \centering
@@ -171,7 +171,7 @@ As high-energy $\beta^-$ particles decelerate in tissue through Coulomb interact
         \caption{Simulated detected spectrum (10\,cm, AnyScan).}
         \label{fig:brems_detected_10cm}
     \end{subfigure}
-    \caption{Bremsstrahlung spectra: (a) emitted spectrum from \gls{gate} FastY90 model \cite{rault_fast_2010, jan_gate_2004} and (b) simulated detected spectra using AnyScan Trio \gls{gate} scanner model \cite{pells_quantitative_2023} with a visible k-edge at $\sim$~\SI{90}{\kilo\electronvolt} resulting from photoelectric absorption in the collimator}
+    \caption{Bremsstrahlung spectra: (a) emitted spectrum from \gls{gate} FastY90 model \cite{raultFastSimulationYttrium902010, janGATESimulationToolkit2004} and (b) simulated detected spectra using AnyScan Trio \gls{gate} scanner model \cite{pellsQuantitativeValidationMonte2023} with a visible k-edge at $\sim$~\SI{90}{\kilo\electronvolt} resulting from photoelectric absorption in the collimator}
     \label{fig:brems_spectra}
 \end{figure}
 
@@ -181,7 +181,7 @@ A minor decay branch ($31.86 \times 10^{-6}$) allows the nucleus to transition t
 \begin{equation}
     ^{90}\text{Y} \rightarrow ^{90}\text{Zr}^* + \dots \rightarrow ^{90}\text{Zr} + e^-_{IPP} + e^+_{IPP}
 \end{equation}
-The resulting positron annihilates to produce standard 511 keV photon pairs \cite{selwyn_new_2007}. While this enables quantitative \gls{pet} imaging, the acquisition is ``count-starved'' due to the extremely low branching ratio and noise-dominated due to the Bremsstrahlung background (Figure~\ref{fig:pet_y90_profile}).
+The resulting positron annihilates to produce standard 511 keV photon pairs \cite{selwynNewInternalPair2007}. While this enables quantitative \gls{pet} imaging, the acquisition is ``count-starved'' due to the extremely low branching ratio and noise-dominated due to the Bremsstrahlung background (Figure~\ref{fig:pet_y90_profile}).
 
 \begin{figure}
     \centering
@@ -198,4 +198,4 @@ Reconstructed \gls{ct} images are typically reported in \gls{hu}, calibrated suc
 
 In addition, \gls{ct} is routinely used for \gls{ctac} in both \gls{pet} and \gls{spect}. The reconstructed \gls{hu} image is first converted to an estimate of the linear attenuation coefficient map $\mu(E)\in\mathbb{R}_+^J$ at the relevant photon energy $E$ (e.g.\ $E=$~\SI{511}{\kilo\electronvolt} for \gls{pet}, or the photopeak energy for \gls{spect}) \cite{schneider_calibration_1996, carney_method_2006}. 
 
-Misregistration (e.g.\ respiratory motion), metal artefacts, and beam-hardening residuals can all propagate into \glsentryshort{ctac} and therefore bias quantitative \gls{pet}/\gls{spect} activity estimates \cite{singh_attenuation_2007, patton_spectct_2008}.
+Misregistration (e.g.\ respiratory motion), metal artefacts, and beam-hardening residuals can all propagate into \glsentryshort{ctac} and therefore bias quantitative \gls{pet}/\gls{spect} activity estimates \cite{singhAttenuationArtifactAttenuation2007, pattonSPECTCTPhysical2008}.

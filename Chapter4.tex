@@ -12,12 +12,12 @@ In this chapter we consider a deliberately simplified, image-domain inverse prob
     \item it provides a practical \glsentryshort{pvc} baseline that is straightforward to deploy on retrospectively reconstructed images.
 \end{enumerate}
 
-\acrfull{rl} deconvolution is a purely image-domain analogue of \glsentryshort{mlem} under the Poisson model $\bar y(x)=Cx+b$: it is the same \glsentryshort{em} update, with the system matrix $A$ replaced by the \glsentryshort{psf} convolution operator $C$ \cite{shepp_maximum_1982,sawatzky_em-tv_2013}. In this setting the ``sensitivity image'' simplifies substantially, since for a unit-sum \glsentryshort{psf} one has $C^{\mathsf T}\mathbf{1}\approx \mathbf{1}$, so the usual \glsentryshort{mlem} normalisation by $A^{\mathsf T}\mathbf{1}$ becomes approximately trivial. We extend \gls{rl} to a penalised deconvolution regime by incorporating a directional total variation prior (Equation~\ref{eq:dtv_defn}), and we construct kernelised deconvolution updates by substituting the kernel image model $x=K\alpha$, exactly as in \gls{kem}/\gls{hkem}. The resulting anatomy-aware deconvolution variants are referred to throughout as \gls{krl}, \gls{hkrl}, and \gls{rldtv}. Their basic update equations are derived in the following sections.
+\acrfull{rl} deconvolution is a purely image-domain analogue of \glsentryshort{mlem} under the Poisson model $\bar y(x)=Cx+b$: it is the same \glsentryshort{em} update, with the system matrix $A$ replaced by the \glsentryshort{psf} convolution operator $C$ \cite{sheppMaximumLikelihoodReconstruction1982,sawatzkyEMTVMethodsInverse2013}. In this setting the ``sensitivity image'' simplifies substantially, since for a unit-sum \glsentryshort{psf} one has $C^{\mathsf T}\mathbf{1}\approx \mathbf{1}$, so the usual \glsentryshort{mlem} normalisation by $A^{\mathsf T}\mathbf{1}$ becomes approximately trivial. We extend \gls{rl} to a penalised deconvolution regime by incorporating a directional total variation prior (Equation~\ref{eq:dtv_defn}), and we construct kernelised deconvolution updates by substituting the kernel image model $x=K\alpha$, exactly as in \gls{kem}/\gls{hkem}. The resulting anatomy-aware deconvolution variants are referred to throughout as \gls{krl}, \gls{hkrl}, and \gls{rldtv}. Their basic update equations are derived in the following sections.
 
 \section{Image-domain inverse problem and objective}
 \label{sec:deconv_model}
 
-Let $x\in\mathbb{R}^J_+$ denote the unknown (sharper) \gls{pet} activity image on a voxel grid, and let $y\in\mathbb{R}^J_+$ denote an observed blurred image. Although reconstructed \gls{pet} images are not independent raw count data, their local noise is often treated as approximately Poisson in post-reconstruction restoration models \cite{sawatzky_em-tv_2013}. We therefore use the following image-domain approximation:
+Let $x\in\mathbb{R}^J_+$ denote the unknown (sharper) \gls{pet} activity image on a voxel grid, and let $y\in\mathbb{R}^J_+$ denote an observed blurred image. Although reconstructed \gls{pet} images are not independent raw count data, their local noise is often treated as approximately Poisson in post-reconstruction restoration models \cite{sawatzkyEMTVMethodsInverse2013}. We therefore use the following image-domain approximation:
 \begin{equation}
     y_j \sim \mathrm{Poisson}(\bar y_j(x)),
     \qquad
@@ -60,7 +60,7 @@ Throughout, $C$ is non-negative and (approximately) intensity preserving: for a 
 \section{Baseline: Richardson--Lucy deconvolution}
 \label{sec:deconv_rl}
 
-The RL algorithm is the EM algorithm for the Poisson model \eqref{eq:deconv_forward_model} with $b=0$ \cite{shepp_maximum_1982}. Introducing elementwise multiplication and division, denoted $\odot$ and $\oslash$, the unit-sensitivity RL update is
+The RL algorithm is the EM algorithm for the Poisson model \eqref{eq:deconv_forward_model} with $b=0$ \cite{sheppMaximumLikelihoodReconstruction1982}. Introducing elementwise multiplication and division, denoted $\odot$ and $\oslash$, the unit-sensitivity RL update is
 \begin{equation}
     x^{(k+1)}
     =
@@ -97,7 +97,7 @@ This corresponds to an EM-type diagonal preconditioner analogous to $P_{EM}^{(k)
 \section{Kernelised Richardson--Lucy deconvolution}
 \label{sec:deconv_krl}
 
-Kernel methods were reviewed in Chapter~\ref{chapter:reconstruction} as an implicit regularisation strategy in which prior information enters through the image model $x=K\alpha$ rather than through an explicit penalty \cite{wang_pet_2015,hutchcroft_anatomically-aided_2016}. The same idea can be applied to image-domain deconvolution.
+Kernel methods were reviewed in Chapter~\ref{chapter:reconstruction} as an implicit regularisation strategy in which prior information enters through the image model $x=K\alpha$ rather than through an explicit penalty \cite{wangPETImageReconstruction2015,hutchcroftAnatomicallyaidedPETReconstruction2016}. The same idea can be applied to image-domain deconvolution.
 
 \subsection{Kernel image model}
 \label{sec:deconv_kernel_model}
@@ -143,14 +143,14 @@ As in \gls{kem}, the denominator can be precomputed once, and the update preserv
 \subsection{Hybrid KRL (HKRL)}
 \label{sec:deconv_hkrl}
 
-A known limitation of purely anatomy-derived kernels is suppression of \gls{pet}-unique structures when they are not supported by the guidance image \cite{deidda_hybrid_2019}. Hybrid kernels mitigate this by incorporating features derived from the evolving \gls{pet} estimate \cite{deidda_hybrid_2019}.
+A known limitation of purely anatomy-derived kernels is suppression of \gls{pet}-unique structures when they are not supported by the guidance image \cite{deiddaHybridPETMR2019}. Hybrid kernels mitigate this by incorporating features derived from the evolving \gls{pet} estimate \cite{deiddaHybridPETMR2019}.
 
 Because iteration-dependent kernels can propagate noise back into the coupling structure at late iterations, we adopt a frozen-kernel strategy consistent with the motivation in \gls{hkem}, freezing after 5 iterations (although this proved to be unnecessary for the sphere phantom as the best iteration was usually before this point).
 
 \section{Directional-TV regularised RL deconvolution}
 \label{sec:deconv_dtv}
 
-\acrfull{dtv} was introduced in Chapter~\ref{chapter:reconstruction} as an anatomically guided regulariser that promotes edge alignment between the emission image and a structural guidance image \cite{ehrhardt_pet_2016}. Here we use \gls{dtv} as an explicit penalty for deconvolution.
+\acrfull{dtv} was introduced in Chapter~\ref{chapter:reconstruction} as an anatomically guided regulariser that promotes edge alignment between the emission image and a structural guidance image \cite{ehrhardtPETReconstructionAnatomical2016}. Here we use \gls{dtv} as an explicit penalty for deconvolution.
 
 \subsection{Penalised objective and update}
 \label{sec:deconv_dtv_update}
@@ -259,7 +259,7 @@ For DTV reconstructions, we swept the regularisation weight
 \beta\in\{0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0\}.
 \]
 
-Kernel methods used a fixed number of neighbours ($48$-NN) within a cubic $9\times9\times9$ neighbourhood \cite{hutchcroft_anatomically-aided_2016}. Feature channels were normalised before computing Gaussian similarities, as in the kernel construction described in Chapter~\ref{chapter:reconstruction}; the reported $\sigma_a$ and $\sigma_f$ values are therefore interpreted in these normalised feature units. For KRL we swept the anatomical weighting $\sigma_a$. For HKRL we additionally swept the functional weighting $\sigma_f$. Because we used a k-NN neighbourhood strategy, distance weights ($\sigma_{df}, \sigma_{da}$) were not used.
+Kernel methods used a fixed number of neighbours ($48$-NN) within a cubic $9\times9\times9$ neighbourhood \cite{hutchcroftAnatomicallyaidedPETReconstruction2016}. Feature channels were normalised before computing Gaussian similarities, as in the kernel construction described in Chapter~\ref{chapter:reconstruction}; the reported $\sigma_a$ and $\sigma_f$ values are therefore interpreted in these normalised feature units. For KRL we swept the anatomical weighting $\sigma_a$. For HKRL we additionally swept the functional weighting $\sigma_f$. Because we used a k-NN neighbourhood strategy, distance weights ($\sigma_{df}, \sigma_{da}$) were not used.
 
 \begin{table}[hbtp]
 \centering
@@ -406,4 +406,4 @@ The present study should therefore be viewed as a proof-of-principle rather than
 \section{Summary}
 \label{sec:deconv_summary}
 
-This chapter formulated post-reconstruction \gls{pet} PVC as an approximate image-domain Poisson inverse problem $\bar y(x)=Cx+b$ and studied RL deconvolution and three anatomy-aware regularised variants. KRL and HKRL implement implicit regularisation through kernelised image models, consistent with the kernel framework reviewed in Chapter~\ref{chapter:reconstruction} \cite{wang_pet_2015,hutchcroft_anatomically-aided_2016,deidda_hybrid_2019}. RL--DTV implements explicit anatomically guided regularisation via a DTV penalty \cite{ehrhardt_pet_2016} using the same directional notation as Chapter~\ref{chapter:reconstruction}. Together, these methods provide a practical PVC baseline and a controlled setting in which to diagnose guidance-driven bias and noise amplification, informing the design choices for the synergistic priors and optimisation algorithms developed in subsequent chapters.
+This chapter formulated post-reconstruction \gls{pet} PVC as an approximate image-domain Poisson inverse problem $\bar y(x)=Cx+b$ and studied RL deconvolution and three anatomy-aware regularised variants. KRL and HKRL implement implicit regularisation through kernelised image models, consistent with the kernel framework reviewed in Chapter~\ref{chapter:reconstruction} \cite{wangPETImageReconstruction2015,hutchcroftAnatomicallyaidedPETReconstruction2016,deiddaHybridPETMR2019}. RL--DTV implements explicit anatomically guided regularisation via a DTV penalty \cite{ehrhardtPETReconstructionAnatomical2016} using the same directional notation as Chapter~\ref{chapter:reconstruction}. Together, these methods provide a practical PVC baseline and a controlled setting in which to diagnose guidance-driven bias and noise amplification, informing the design choices for the synergistic priors and optimisation algorithms developed in subsequent chapters.
