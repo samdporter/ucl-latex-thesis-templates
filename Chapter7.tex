@@ -314,12 +314,12 @@ Experiments are configured for a single-bed anthropomorphic phantom dataset and 
 \section{Subset Selection}
 \label{sec:optimisation_subset_selection}
 
-Subset methods accelerate early iterations in emission tomography by replacing full data passes with stochastic or ordered blocks of projection data \cite{hudson_accelerated_1994}. In synergistic PET/SPECT reconstruction there is an additional design choice: PET, SPECT, and the coupled prior can be grouped together or sampled separately. Previous work on synergistic subset selection \cite{porter_optimising_2024}\TODO{Zenodo-managed bibliography entry pending for \texttt{porter\_optimising\_2024}; IEEE Xplore document 10654962.} motivated a more systematic comparison of these choices under the current SVRG and preconditioning implementation.
+Subset methods accelerate early iterations in emission tomography by replacing full data passes with stochastic or ordered blocks of projection data \cite{hudson_accelerated_1994}. Joint PET/SPECT reconstruction introduces a further choice: corresponding modality subsets can be added to form paired stochastic functions, or each modality subset can remain a separate function. The experiment below compares only these two organisations. In both cases the complete prior remains outside the sampler and is evaluated at every update, as in Equation~\eqref{eq:svrg_estimator_general}. \TODO{Add the Zenodo-managed citation for IEEE Xplore document 10654962.}
 
 \subsection{Data-Subset Organisation}
 \label{subsec:subset_data_organisation}
 
-Two data-subset organisations are tested.
+The one-bed phantom data were divided into 18 PET and 18 SPECT subsets. Two organisations were tested.
 
 \paragraph{Separate subsets.}
 PET and SPECT subsets are treated as distinct stochastic functions. For a one-bed acquisition with $N_{\mathrm{PET}}=18$ and $N_{\mathrm{SPECT}}=18$, this gives
@@ -332,7 +332,6 @@ PET and SPECT subsets are treated as distinct stochastic functions. For a one-be
     \}.
     \label{eq:separate_subset_functions}
 \end{equation}
-For a two-bed PET acquisition with $9$ PET subsets per bed and $9$ SPECT subsets, the separate list contains $27$ data functions: $18$ PET bed-specific functions and $9$ SPECT functions.
 
 \paragraph{Paired subsets.}
 PET and SPECT subsets with matching indices are summed into one stochastic function. For one bed this gives
@@ -345,51 +344,30 @@ PET and SPECT subsets with matching indices are summed into one stochastic funct
     \qquad j=1,\ldots,18.
     \label{eq:paired_subset_functions}
 \end{equation}
-For two PET beds, each paired function contains both PET bed-position subsets and the corresponding SPECT subset,
-\begin{equation}
-    \mathcal{D}^{\mathrm{pair}}_j
-    =
-    \mathcal{D}_{\mathrm{PET},1,j}
-    +
-    \mathcal{D}_{\mathrm{PET},2,j}
-    +
-    \mathcal{D}_{\mathrm{SPECT},j},
-    \qquad j=1,\ldots,9.
-    \label{eq:paired_subset_functions_2bpos}
-\end{equation}
-The two-bed paired mode therefore requires equal PET and SPECT subset counts after partitioning.
-
-\subsection{Prior Sampling Strategy}
-\label{subsec:subset_prior_strategy}
-
-The prior is handled in two ways. In \emph{always} mode, the prior gradient is evaluated deterministically on every stochastic iteration and is not part of the sampler. In \emph{subset} mode, the prior is appended as an additional stochastic function and is sampled with a prescribed probability.
-
-Let $N_{\mathrm d}$ be the number of stochastic data functions after the selected data grouping, and let $u$ be the target number of prior updates per data epoch. The implemented prior-sampling probability is
-\begin{equation}
-    p_{\mathcal R}
-    =
-    \frac{u}{N_{\mathrm d}+u},
-    \label{eq:prior_sampling_probability}
-\end{equation}
-and each data function probability is scaled by $1-p_{\mathcal R}$. The epoch length is adjusted to
-\begin{equation}
-    K
-    =
-    \left\lceil
-    \frac{N_{\mathrm d}}{1-p_{\mathcal R}}
-    \right\rceil.
-    \label{eq:subset_epoch_length}
-\end{equation}
-For paired mode the default is $u=N_{\mathrm d}$, so the prior and data aggregate each receive probability $1/2$. For separate mode the default is $u=N_{\mathrm d}/2$, so the prior receives probability $1/3$ and the data aggregate receives probability $2/3$. These defaults keep the number of expected prior updates comparable to the paired setting while avoiding a prior update after every separate PET or SPECT subset.
-
-\subsection{Subset-Selection Experiment Methods}
+\subsection{Experiment Design and Work Accounting}
 \label{subsec:subset_selection_experiment_methods}
 
-The main subset-selection sweep crosses two subset organisations (\texttt{separate}, \texttt{paired}), two prior modes (\texttt{always}, \texttt{subset}), two preconditioner settings (data-only BSREM and the local diagonal \wdtnv{} curvature approximation), and the configured directional strength $\gamma_{\mathrm{TNV}}=0.02$. The one-bed configuration uses $18$ PET and $18$ SPECT subsets. The two-bed configuration uses $9$ PET subsets per bed position and $9$ SPECT subsets.
+All data functions were sampled uniformly with replacement. To compare the organisations on a common horizontal axis, one matched data pass is defined by 36 modality-specific data-subset evaluations. Paired organisation reaches this count after 18 joint PET+SPECT updates: each update evaluates one PET and one SPECT subset, and therefore the 18 updates comprise 36 data-subset evaluations and 18 complete prior-gradient evaluations. Separate organisation reaches the same data-projection count after 36 modality-specific updates, comprising the same 36 data-subset evaluations but 36 complete prior-gradient evaluations.
 
-All subset-selection runs use SVRG with random-with-replacement sampling, a snapshot interval equal to one adjusted epoch, $\alpha=\beta=1$, initial step size $1$, relaxation parameter $0.002$, and $25$ epochs. The prior is the directional TNV variant with a six-direction stencil, Neumann boundary conditions, Charbonnier smoothing, and no additional modality-specific priors. Sensitivity-derived support masks are enabled, and the EM preconditioner component is smoothed with a $5\,\mathrm{mm}$ Gaussian FWHM. The random seed is fixed at $42$ for reproducibility.
+This accounting matches data-projection work, but it does not match parameter-update count, prior-gradient work, or elapsed computation. Both organisations used the same objective and the MM local-diagonal curvature preconditioner, and were assessed with the common 20-pass protocol in Section~\ref{subsec:optimisation_evaluation_protocol}.
 
-Long-run reference reconstructions are generated using separate subset organisation, deterministic prior evaluation every iteration, the conservative voxel-block \wdtnv{} curvature majoriser, and $1000$ epochs. The results below compare objective histories and image-domain errors against these references at matched data-pass counts.
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}{0.99\linewidth}
+        \includegraphics[width=\linewidth]{figures/preconditioning/subsets/subsets_only/exp_subset_selection_1bpos_mm_diag_tight_alpha_1_prior_always.png}
+        \caption{PET.}
+    \end{subfigure}
+    \begin{subfigure}{0.99\linewidth}
+        \includegraphics[width=\linewidth]{figures/preconditioning/subsets/subsets_only/exp_subset_selection_1bpos_mm_diag_tight_alpha_1_SPECT_prior_always.png}
+        \caption{SPECT represented on the PET grid.}
+    \end{subfigure}
+    \caption{Convergence for paired and modality-separated subsets using the MM local-diagonal curvature preconditioner. Lines show the mean per-run NRMSE over five stochastic realisations and shading shows the pointwise minimum--maximum over the first 20 matched data passes. The complete prior gradient was evaluated at every update.}
+    \label{fig:optim_subset_organisation}
+\end{figure}
+
+\subsection{Results}
+
+Figure~\ref{fig:optim_subset_organisation} shows faster convergence with modality-separated subsets for both PET and SPECT, with the clearest differences in the hot- and cold-sphere regions. A plausible explanation is that the separate organisation performs 36 parameter updates per matched data pass, compared with 18 paired updates, and therefore makes more frequent progress for the same number of data-subset projections. The experiment does not isolate modality grouping from update frequency: the separate configuration also evaluates the complete prior twice as often. It should therefore be interpreted as a data-projection-matched comparison of the two implemented organisations, not as a compute-matched speed benchmark or a causal test of modality splitting alone.
 
 \section{Conclusion}
 \label{sec:optimisation_conclusion}
