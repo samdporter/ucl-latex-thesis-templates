@@ -12,12 +12,14 @@ The central aim of this thesis is therefore to develop and evaluate a synergisti
 
 The thesis is organised as follows:
 \begin{itemize}
-    \item \textbf{Chapter 1} introduces the \gls{pet}/\gls{spect}/\gls{ct} imaging problem, outlining the fundamental principles of each modality before describing the specific challenges of post-\gls{y90} imaging.
-    \item \textbf{Chapter 2} describes the inverse problem in emission tomographic reconstruction and reviews regularisation strategies and efficient optimisation methods.
-    \item \textbf{Chapter 3} addresses the specific challenges of post-\gls{sirt} bremsstrahlung imaging and develops practical improvements to the reconstruction system model.
-    \item \textbf{Chapter 4} studies anatomy-informed regularisation and optimisation in a controlled post-reconstruction deconvolution setting.
-    \item \textbf{Chapter 5} introduces the weighted directional total nuclear variation prior and its differentiable formulation.
-    \item \textbf{Chapter 6} develops the optimisation machinery used with \acrfull{wdtnv}, including prior-aware preconditioning, subset selection, and multi-bed \glsentryshort{pet} handling.
-    \item \textbf{Chapter 7} evaluates \glsentryshort{wdtnv} for joint \gls{y90} \glsentryshort{pet}/\glsentryshort{spect} reconstruction, compares it with the current state-of-the-art method \acrfull{shkem}, and discusses the main limitations and future directions.
+    \item \textbf{Chapter 1} motivates synergistic post-\gls{sirt} imaging and outlines the thesis contributions.
+    \item \textbf{Chapter 2} introduces the physics and measurement models of \glsentryshort{pet}, \glsentryshort{spect}, and \glsentryshort{ct}, with emphasis on post-\gls{y90} imaging.
+    \item \textbf{Chapter 3} formulates penalised-likelihood emission reconstruction and reviews reconstruction priors and optimisation algorithms.
+    \item \textbf{Chapter 4} develops practical improvements to the \gls{y90} bremsstrahlung \glsentryshort{spect} system model.
+    \item \textbf{Chapter 5} studies anatomy-informed regularisation in a controlled post-reconstruction deconvolution setting.
+    \item \textbf{Chapter 6} introduces the weighted directional total nuclear variation prior and its differentiable formulation.
+    \item \textbf{Chapter 7} investigates the optimisation of \glsentryshort{wdtnv}, including multi-bed \glsentryshort{pet} reconstruction, subset organisation, and prior-aware preconditioning.
+    \item \textbf{Chapter 8} evaluates \glsentryshort{wdtnv} for joint post-\gls{y90} \glsentryshort{pet}/\glsentryshort{spect} reconstruction with \glsentryshort{ctac}-derived guidance.
+    \item \textbf{Chapter 9} discusses the findings, limitations, and directions for future work, and concludes the thesis.
     \item \textbf{The Appendix} documents additional software and reproducibility material that supports the thesis workflow.
 \end{itemize}
