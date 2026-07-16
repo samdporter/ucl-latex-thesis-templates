@@ -1,43 +1,103 @@
 \chapter{Preconditioning and Subset Selection for Synergistic Reconstruction}
 \label{chapter:optimisation}
 
-Chapter~\ref{chapter:wdtnv} defined the smoothed weighted directional total nuclear variation prior. This chapter describes the optimisation machinery used to apply that prior in large-scale PET/SPECT reconstruction experiments. The emphasis is methodological: the experiments described here compare preconditioners and subset-selection strategies, but no numerical results are reported in this chapter.
+Chapter~\ref{chapter:wdtnv} defined the smoothed weighted directional total nuclear variation prior. Applying this coupled, edge-preserving prior at scale raises three linked optimisation questions. First, overlapping PET bed positions must be reconstructed into a common image if the prior is to act consistently across their overlap. Second, PET and SPECT subsets can be paired or treated as separate stochastic functions. Third, the very different data and prior curvature scales require an effective preconditioner. This chapter addresses these questions in turn and uses the resulting evidence to motivate the optimisation protocol carried forward into Chapter~\ref{chapter:paper}. That application protocol had already been frozen before the wider preconditioner comparison reported here.
 
-The implementation inspected for this chapter is the current reconstruction codebase. This is important because the active preconditioner-combination path has changed relative to the application study in Chapter~\ref{chapter:paper}: the paper reconstructions use a local diagonal \wdtnv{} curvature approximation combined with a floor-regularised Lehmer mean, whereas the current optimisation experiments use Hessian-sum inversion for the prior-aware preconditioners.
+\section{Multi-Bed PET Acquisition}
+\label{sec:multibed}
+
+Whole-liver PET commonly requires multiple partially overlapping bed positions. Reconstructing each bed independently and fusing the resulting images is awkward for an edge-preserving prior because the regularisation decisions on either side of the overlap are then made independently. A joint formulation instead estimates one activity image over the combined field of view.
+
+\subsection{Notation}
+\label{subsec:multibed_notation}
+
+Let $x$ be the PET activity image on the combined reconstruction grid. For bed position $b=1,\ldots,B$, let $R_b$ restrict the combined image to the axial support reconstructed by bed $b$. The expected PET data for bed $b$ are
+\begin{equation}
+    \bar y_b(x)
+    =
+    A_b R_b x + r_b,
+    \label{eq:multibed_forward_model}
+\end{equation}
+where $A_b$ is the bed-specific PET system matrix and $r_b$ collects additive corrections. The joint PET data term is
+\begin{equation}
+    \mathcal{D}_{\mathrm{PET}}^{\mathrm{multi}}(x)
+    =
+    \sum_{b=1}^{B}
+    \mathcal{D}_b
+    \left(
+        y_b \mid A_b R_b x + r_b
+    \right),
+    \label{eq:multibed_data_term}
+\end{equation}
+with gradient
+\begin{equation}
+    \nabla \mathcal{D}_{\mathrm{PET}}^{\mathrm{multi}}(x)
+    =
+    \sum_{b=1}^{B}
+    R_b^\top
+    A_b^\top
+    \nabla_{\bar y_b}
+    \mathcal{D}_b
+    \left(
+        y_b \mid A_b R_b x + r_b
+    \right).
+    \label{eq:multibed_gradient}
+\end{equation}
+The corresponding PET sensitivity image on the combined grid is
+\begin{equation}
+    s_{\mathrm{PET}}^{\mathrm{multi}}
+    =
+    \sum_{b=1}^{B}
+    R_b^\top A_b^\top \bm 1.
+    \label{eq:multibed_sensitivity}
+\end{equation}
+This sensitivity is used in the EM/BSREM data-curvature term in exactly the same way as the single-bed sensitivity in Equation~\eqref{eq:data_hessian_surrogate}.
+
+\subsection{Why Not Stitch Independent Reconstructions?}
+\label{subsec:stitching_failure}
+
+A common practical alternative is to reconstruct each PET bed independently and fuse the images using sensitivity-weighted stitching in the overlap. With an edge-preserving prior, however, each reconstruction makes its own noise-suppression and edge decisions before fusion. The qualitative example in Figure~\ref{fig:optim_multibed_qualitative} shows overlap-region noise and discontinuities after separate reconstruction and fusion. It is included to motivate the joint formulation; no quantitative comparison was performed. \TODO{Add the Zenodo-managed citation for the multi-bed PET work.}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.72\linewidth]{figures/PiW/comparison.png}
+    \caption{Qualitative comparison of separately reconstructed and fused PET bed positions with a joint multi-bed reconstruction using CT-guided edge-preserving regularisation. The shaded region marks the bed overlap and the cyan lines mark the displayed profiles. This example illustrates overlap-region behaviour only; no quantitative comparison was performed.}
+    \label{fig:optim_multibed_qualitative}
+\end{figure}
+
+\subsection{Joint Reconstruction}
+\label{subsec:joint_multibed}
+
+The joint formulation in Equation~\eqref{eq:multibed_data_term} estimates a single combined PET image. Each bed contributes its own data term and sensitivity, while the image-domain prior is evaluated over the complete combined field of view. The combined reconstruction therefore permits the edge-preserving prior to act consistently across the overlap, which is the behaviour required for the dual-bed application in Chapter~\ref{chapter:paper}. This construction does not itself guarantee an artefact-free reconstruction; the evidence here is qualitative.
 
 \section{Stochastic MAP Optimisation}
 \label{sec:optimisation_svrg}
 
-Let $\bm z=(z_1,z_2)$ denote the PET and SPECT images represented on a common reconstruction grid. The objective has the form
+Let $\bm z=(z_1,z_2)$ denote the PET and SPECT images represented on a common reconstruction grid. For $N_s$ sampled data functions, define $\mathcal D(\bm z)=\sum_{i=1}^{N_s}\mathcal D_i(\bm z)$. The objective is
 \begin{equation}
     \mathcal{O}(\bm z)
     =
-    \sum_{i=1}^{N_{\mathrm d}} \mathcal{D}_i(\bm z)
+    \mathcal D(\bm z)
     +
     \mathcal{R}_{\mathrm{w\text{-}dTNV}}(\bm z)
     +
     \iota_{\mathbb{R}_+}(\bm z),
     \label{eq:optimisation_objective}
 \end{equation}
-where $\mathcal{D}_i$ are subset data-fidelity terms, $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ is the prior from Chapter~\ref{chapter:wdtnv}, and $\iota_{\mathbb{R}_+}$ enforces non-negativity. Each $\mathcal{D}_i$ is a Poisson negative log-likelihood term composed with the relevant projector, image-space registration operator, and optional resolution model.
+where $\mathcal{D}_i$ is a Poisson negative log-likelihood term composed with the relevant projector, image-space registration operator, and optional resolution model; $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ is the prior from Chapter~\ref{chapter:wdtnv}; and $\iota_{\mathbb{R}_+}$ enforces non-negativity.
 
-The stochastic optimisation experiments use SVRG \cite{johnson_accelerating_2013,twyman_investigation_2022,ehrhardt_fast_2025}. For stochastic function list $\{\mathcal{O}_i\}_{i=1}^{N_s}$ and anchor point $\tilde{\bm z}$, the estimator is
+The stochastic experiments use SVRG \cite{johnson_accelerating_2013,twyman_investigation_2022,ehrhardt_fast_2025}. Writing $\mathcal R=\mathcal{R}_{\mathrm{w\text{-}dTNV}}$, the implemented estimator keeps the complete prior outside the sampler. At anchor point $\widetilde{\bm z}$ it is
 \begin{equation}
-    g^{(k)}
-    =
-    \nabla \mathcal{O}(\tilde{\bm z})
-    +
-    \frac{1}{p_{i_k}}
-    \left[
-        \nabla \mathcal{O}_{i_k}(\bm z^{(k)})
-        -
-        \nabla \mathcal{O}_{i_k}(\tilde{\bm z})
+    g^{(k)} = \nabla\mathcal R(\bm z^{(k)})
+    + \nabla\mathcal D(\widetilde{\bm z})
+    + N_s\!\left[
+        \nabla\mathcal D_{i_k}(\bm z^{(k)})
+        -\nabla\mathcal D_{i_k}(\widetilde{\bm z})
     \right],
-    \qquad
-    i_k\sim p,
+    \qquad i_k\sim\operatorname{Unif}\{1,\ldots,N_s\}.
     \label{eq:svrg_estimator_general}
 \end{equation}
-with probabilities $p_i$ determined by the selected subset strategy. In the implemented experiments the sampler draws with replacement. The full-gradient snapshot is refreshed once per epoch by setting the SVRG snapshot interval equal to the epoch length.
+The data functions are sampled uniformly with replacement. The complete prior gradient is evaluated at every stochastic update, and the full data-gradient snapshot is refreshed once per epoch.
 
 The image update is a projected, preconditioned gradient step,
 \begin{equation}
@@ -50,7 +110,7 @@ The image update is a projected, preconditioned gradient step,
     \right\}_{\geq 0},
     \label{eq:optimisation_projected_update}
 \end{equation}
-where $P^{(k)}$ is either a scalar diagonal preconditioner per modality or a voxel-wise $2\times2$ block preconditioner coupling PET and SPECT update components. The step size follows a linear decay rule,
+where $P^{(k)}$ is either a diagonal preconditioner or a voxel-wise $2\times2$ block preconditioner coupling the PET and SPECT update components. The step size follows the linear decay rule
 \begin{equation}
     \varsigma^{(k)}
     =
@@ -58,10 +118,26 @@ where $P^{(k)}$ is either a scalar diagonal preconditioner per modality or a vox
     \qquad
     \varsigma^{(0)}=1,
     \qquad
-    \eta_{\mathrm{relax}}=0.002
+    \eta_{\mathrm{relax}}=0.002,
     \label{eq:optimisation_step_size}
 \end{equation}
-for the preconditioner and subset-selection experiments described below.
+for the 20-pass comparisons described below.
+
+\subsection{Common Evaluation Protocol}
+\label{subsec:optimisation_evaluation_protocol}
+
+The convergence experiments used an anthropomorphic phantom scanned on the Mediso AnyScan at the National Physical Laboratory. PET and SPECT were each partitioned into 18 subsets. Each plotted comparison curve comprises five stochastic realisations and covers the first 20 complete data passes. A single 1000-epoch reconstruction of the same objective, run with more conservative optimisation settings, provided the reference image $x^\star$; it is a final long-run iterate rather than a known global minimiser.
+
+For each stochastic run and each saved iteration, the \acrfull{nrmse} in region $R$ is
+\begin{equation}
+    \operatorname{NRMSE}(x_k,x^\star;R)
+    =
+    \frac{\sqrt{N^{-1}\sum_{j\in R}(x_{k,j}-x^\star_j)^2}}
+         {\sqrt{N^{-1}\sum_{j\in R}(x^\star_j)^2}},
+    \qquad N=|R|.
+    \label{eq:optimisation_nrmse}
+\end{equation}
+The regions are evaluated separately over the whole image, the hot-sphere mask, and the cold-sphere mask. The plotted centre line is the arithmetic mean of the five per-run NRMSE values at each iteration, not the NRMSE of an averaged reconstruction; the envelope is their pointwise minimum--maximum. The long-run reference itself was generated once.
 
 \section{Prior-Aware Preconditioning}
 \label{sec:optimisation_preconditioners}
@@ -233,7 +309,7 @@ Four preconditioner settings are compared: data-only BSREM, the local diagonal \
 
 All sweep reconstructions use the same objective, prior settings, and initialisation within each dataset. The fixed sweep parameters are $\alpha=\beta=1$, $\gamma_{\mathrm{TNV}}=0.02$, initial step size $\varsigma^{(0)}=1$, relaxation parameter $\eta_{\mathrm{relax}}=0.002$, and $25$ epochs. Time-of-flight PET is disabled in these optimisation experiments. Sensitivity-derived support masks are enabled with relative threshold $10^{-3}$, and both EM and prior-aware preconditioner maximum-value caps are disabled. The EM component of the preconditioner is smoothed with a $5\,\mathrm{mm}$ Gaussian FWHM.
 
-Experiments are configured for a single-bed anthropomorphic phantom dataset and a two-bed clinical PET/SPECT dataset. For the one-bed sweep, the reconstruction is routed through the subset-selection runner with separate PET/SPECT subset functions and the prior evaluated deterministically every iteration. The two-bed sweep uses the corresponding two-bed reconstruction path. Objective values, saved images, and convergence metrics are recorded for subsequent comparison against long-run reference reconstructions. The reference reconstructions use the conservative block majoriser and extended epoch counts, but their numerical results are not reported here.
+Experiments are configured for a single-bed anthropomorphic phantom dataset and a two-bed clinical PET/SPECT dataset. For the one-bed sweep, the reconstruction is routed through the subset-selection runner with separate PET/SPECT subset functions and the prior evaluated deterministically every iteration. The two-bed sweep uses the corresponding two-bed reconstruction path. Objective values, saved images, and convergence metrics are recorded for comparison against long-run reference reconstructions. The corresponding numerical comparisons are reported below.
 
 \section{Subset Selection}
 \label{sec:optimisation_subset_selection}
@@ -313,69 +389,7 @@ The main subset-selection sweep crosses two subset organisations (\texttt{separa
 
 All subset-selection runs use SVRG with random-with-replacement sampling, a snapshot interval equal to one adjusted epoch, $\alpha=\beta=1$, initial step size $1$, relaxation parameter $0.002$, and $25$ epochs. The prior is the directional TNV variant with a six-direction stencil, Neumann boundary conditions, Charbonnier smoothing, and no additional modality-specific priors. Sensitivity-derived support masks are enabled, and the EM preconditioner component is smoothed with a $5\,\mathrm{mm}$ Gaussian FWHM. The random seed is fixed at $42$ for reproducibility.
 
-Long-run reference reconstructions are generated using separate subset organisation, deterministic prior evaluation every iteration, the conservative voxel-block \wdtnv{} curvature majoriser, and $1000$ epochs. The planned analysis compares objective histories and image-domain errors against these references at matched epoch counts. No subset-selection results are included in this methods-only chapter.
-
-\section{Multi-Bed PET Acquisition}
-\label{sec:multibed}
-
-The subset-selection and application experiments include PET acquisitions spanning multiple partially overlapping bed positions. This material is part of the optimisation chapter because it changes the data-fidelity organisation and the preconditioner sensitivity image, while the prior remains the same shared-grid $\wdtnv$ prior.
-
-\subsection{Notation}
-\label{subsec:multibed_notation}
-
-Let $x$ be the PET activity image on the combined reconstruction grid. For bed position $b=1,\ldots,B$, let $R_b$ restrict the combined image to the axial support reconstructed by bed $b$. The expected PET data for bed $b$ are
-\begin{equation}
-    \bar y_b(x)
-    =
-    A_b R_b x + r_b,
-    \label{eq:multibed_forward_model}
-\end{equation}
-where $A_b$ is the bed-specific PET system matrix and $r_b$ collects additive corrections. The joint PET data term is
-\begin{equation}
-    \mathcal{D}_{\mathrm{PET}}^{\mathrm{multi}}(x)
-    =
-    \sum_{b=1}^{B}
-    \mathcal{D}_b
-    \left(
-        y_b \mid A_b R_b x + r_b
-    \right),
-    \label{eq:multibed_data_term}
-\end{equation}
-with gradient
-\begin{equation}
-    \nabla \mathcal{D}_{\mathrm{PET}}^{\mathrm{multi}}(x)
-    =
-    \sum_{b=1}^{B}
-    R_b^\top
-    A_b^\top
-    \nabla_{\bar y_b}
-    \mathcal{D}_b
-    \left(
-        y_b \mid A_b R_b x + r_b
-    \right).
-    \label{eq:multibed_gradient}
-\end{equation}
-The corresponding PET sensitivity image on the combined grid is
-\begin{equation}
-    s_{\mathrm{PET}}^{\mathrm{multi}}
-    =
-    \sum_{b=1}^{B}
-    R_b^\top A_b^\top \bm 1.
-    \label{eq:multibed_sensitivity}
-\end{equation}
-This sensitivity is used in the EM/BSREM data curvature term in exactly the same way as the single-bed sensitivity in Equation~\eqref{eq:data_hessian_surrogate}.
-
-\subsection{Why Not Stitch Independent Reconstructions?}
-\label{subsec:stitching_failure}
-
-A common practical alternative is to reconstruct each PET bed independently and fuse the resulting images using sensitivity-weighted stitching in the overlap region. This is benign for some early-stopped or weakly regularised reconstructions, but it is problematic with edge-preserving priors. The prior is then evaluated separately on each bed image, so noise patterns and anatomical edge decisions in the overlap are made independently before fusion. This can create abrupt intensity changes or inconsistent edge placement across the bed boundary \cite{porter_simultaneous_2025}\TODO{Zenodo-managed bibliography entry pending for \texttt{porter\_simultaneous\_2025}; The PET is Wonderful multi-bed MAP reconstruction abstract.}.
-
-The joint formulation in Equation~\eqref{eq:multibed_data_term} avoids this by estimating a single combined PET image. Each bed contributes its own projection data and sensitivity, while the image-domain prior is evaluated once over the combined field of view.
-
-\subsection{Use in the Subset Experiments}
-\label{subsec:joint_multibed}
-
-In the two-bed subset-selection experiments, each bed position is partitioned into the same number of PET subsets. In separate mode, PET bed subsets remain separate stochastic functions. In paired mode, subset index $j$ groups PET bed $1$, PET bed $2$, and SPECT subset $j$ into a single stochastic function as in Equation~\eqref{eq:paired_subset_functions_2bpos}. The preconditioner receives the combined-bed PET sensitivity from Equation~\eqref{eq:multibed_sensitivity}, so overlap voxels naturally reflect the contribution of both bed positions.
+Long-run reference reconstructions are generated using separate subset organisation, deterministic prior evaluation every iteration, the conservative voxel-block \wdtnv{} curvature majoriser, and $1000$ epochs. The results below compare objective histories and image-domain errors against these references at matched data-pass counts.
 
 \section{Conclusion}
 \label{sec:optimisation_conclusion}
