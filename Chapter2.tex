@@ -45,7 +45,7 @@ Since the term $\sum_{i=1}^I \log(y_i!)$ does not depend on $x$, it can be dropp
 = \sum_{i=1}^I \left( \bar{y}_i(x) - y_i \log \bar{y}_i(x) \right).
  \end{equation}
 
-Unconstrained \gls{ml} solutions are dominated by noise due to the poor conditioning of $A$ and the Poisson noise inherent in $y$. While iterative \gls{em} methods such as MLEM and OSEM \cite{dempster_maximum_1977, shepp_maximum_1982} are the clinical standard, they rely on early stopping to act as an implicit regulariser. This yields clinically acceptable images but introduces solution-dependent bias and often fails to converge to a quantitative solution \cite{veklerov_stopping_1987}. In addition, finding the \gls{ml} solution for quantification can be prohibitively slow \cite{wu_convergence_1983}.
+Unconstrained \gls{ml} solutions are dominated by noise due to the poor conditioning of $A$ and the Poisson noise inherent in $y$. While iterative \gls{em} methods such as MLEM and OSEM \cite{dempster_maximum_1977, shepp_maximum_1982} are the clinical standard, they rely on early stopping to act as an implicit regulariser. This yields clinically acceptable images but introduces solution-dependent bias that may not give reliable quantitative metrics \cite{veklerov_stopping_1987}. In addition, finding the \gls{ml} solution for quantification can be prohibitively slow \cite{wu_convergence_1983}.
 
 A robust alternative to early stopping is the Bayesian formulation. By Bayes' rule, we have
 \begin{equation}
@@ -161,11 +161,11 @@ To decouple the directional information from the anatomical gradient magnitude, 
     \xi_j
     = \frac{D u_j}{\sqrt{\|D u_j\|_2^2 + \eta^2}},
 \end{equation}
-where $\eta>0$ is a small stabilisation parameter that prevents division by zero in homogeneous regions ($D u_j \approx 0$) and suppresses unreliable directions induced by noise or very fine-scale anatomical texture. Using $\xi_j$, one defines a local anisotropic projection operator
+where $\eta>0$ is a small stabilisation parameter that  suppresses unreliable directions induced by noise or very fine-scale anatomical texture. Using $\xi_j$, one defines a local anisotropic projection operator
 \begin{equation}\label{eq:directional_op}
     \Pi_j \coloneqq I - \gamma_j\, \xi_j \xi_j^{\mathsf T},
 \end{equation}
-where $I$ is the $d\times d$ identity matrix and $\gamma_j\in[0,1]$ controls the strength of directional guidance. The resulting \gls{dtv} prior is
+where $I$ is the $d\times d$ (number of dimensions, $d$, squared) identity matrix and $\gamma_j\in[0,1]$ controls the strength of directional guidance. The resulting \gls{dtv} prior is
 \begin{equation}\label{eq:dtv_defn}
     R_{\mathrm{dTV}}(x;u)
     = \sum_{j=1}^J \| \Pi_j D x_j \|_2,
@@ -186,9 +186,9 @@ Substituting $x=K\alpha$ into the Poisson forward model gives a kernelised expec
 \begin{equation}
     \bar{y}(\alpha) = A(K\alpha) + b,
 \end{equation}
-so that reconstruction reduces to maximum-likelihood estimation of $\alpha$ under the same Poisson model, followed by $x=K\hat{\alpha}$. Importantly, because the model remains linear in the unknown coefficients, an \gls{em}-type update can be derived with essentially the same structure as conventional MLEM/OSEM, but with $K$ embedded within the projector/backprojector operations. This yields a procedure that is straightforward to implement in existing \gls{em} pipelines, while often delivering improved bias--variance trade-offs at low counts by enforcing anatomically-informed, spatially adaptive smoothing in the image representation \cite{wang_pet_2015,hutchcroft_anatomically-aided_2016}.
+so that reconstruction reduces to maximum-likelihood estimation of $\alpha$ under the same Poisson model, followed by $\hat{x}=K\hat{\alpha}$. Importantly, because the model remains linear in the unknown coefficients, an \gls{em}-type update can be derived with essentially the same structure as conventional MLEM/OSEM, but with $K$ embedded within the projector/backprojector operations. This yields a procedure that is straightforward to implement in existing \gls{em} pipelines, while often delivering improved bias--variance trade-offs at low counts by enforcing anatomically-informed, spatially adaptive smoothing in the image representation \cite{wang_pet_2015,hutchcroft_anatomically-aided_2016}.
 
-A known limitation of purely anatomy-derived kernels is \gls{pet}-unique feature suppression: structures present in the emission image but absent (or weak) in the guidance image can be over-smoothed or biased towards anatomically plausible but functionally incorrect solutions \cite{deidda_hybrid_2019}. To mitigate this, \gls{hkem} augments the kernel with synergistic information from the evolving \gls{pet} estimate itself, yielding an iteration-dependent kernel that combines anatomical and emission-driven similarity . In the list-mode \gls{hkem} formulation of Deidda \textit{et al.}, the hybrid kernel entry factorises as
+A known limitation of purely anatomy-derived kernels is \gls{pet}-unique feature suppression: structures present in the emission image but absent (or weak) in the guidance image can be over-smoothed or biased towards anatomically plausible but functionally incorrect solutions \cite{deidda_hybrid_2019}. To mitigate this, \gls{hkem} augments the kernel with synergistic information from the evolving \gls{pet} estimate itself, yielding an iteration-dependent kernel that combines anatomical and emission-driven similarity . In the \gls{hkem} formulation of Deidda \textit{et al.}, the hybrid kernel entry factorises as
 \begin{equation}
     k^{(n)}_{fj} = k_m(v_f,v_j)\,k_p(z^{(n)}_f,z^{(n)}_j),
 \end{equation}
@@ -201,13 +201,13 @@ where $v_j$ denotes the (fixed) anatomical feature vector at voxel $j$ and $z^{(
 \end{align}
 where $x_j$ denotes the voxel coordinates and the parameters $\sigma_a,\sigma_f,\sigma_{da},\sigma_{df}$ control the relative influence of anatomical similarity, functional-driven (emission) similarity, and spatial locality. The functional term helps address emission--guidance mismatch and, crucially, reduces the tendency of anatomy-only kernels to suppress \gls{pet}-unique lesions by allowing the neighbourhood coupling to adapt to features emerging in the emission estimate. Empirically, Deidda \textit{et al.} report that this hybridisation can reduce negative bias under low-count conditions and improve lesion contrast while retaining the denoising benefits of kernelised reconstruction \cite{deidda_hybrid_2019}.
 
-Kernel approaches extend naturally to multiple guidance sources by enlarging the feature vectors (e.g.\ concatenating features from \gls{ct} and/or additional functional channels) and defining the kernel on the resulting joint feature space; this provides a flexible mechanism for sequential or multi-modality guidance without introducing an explicit Bayesian penalty term.
+Kernel approaches extend naturally to multiple guidance sources by enlarging the feature vectors (e.g.\ concatenating features from \gls{ct} and/or additional functional channels \cite{wangPETImageReconstruction2015}) and defining the kernel on the resulting joint feature space; this provides a flexible mechanism for sequential or multi-modality guidance without introducing an explicit Bayesian penalty term.
 
 \subsection{Synergistic Regularisation}\label{subsec:synergistic_recon}
 
-If multiple modalities are available that depict the same underlying anatomy or functional distribution, it can be advantageous to reconstruct them synergistically, allowing information to be shared across modalities throughout the reconstruction process. A prerequisite for such coupling is that the images are defined in a common spatial coordinate system. In practice, this requires geometric registration between modalities and resampling onto a common reconstruction grid, so that voxel index $n$ refers to the same physical location across all channels.
+If multiple modalities are available that depict the same underlying anatomy or functional distribution, it can be advantageous to reconstruct them synergistically, allowing information to be shared across modalities throughout the reconstruction process \cite{arridgeOverviewSynergisticReconstruction2021}. A prerequisite for such coupling is that the images are defined in a common spatial coordinate system. In practice, this requires geometric registration between modalities and resampling onto a common reconstruction grid, so that voxel index $n$ refers to the same physical location across all channels.
 
-When the native modalities are acquired on different grids or coordinate frames, we introduce spatial transforms $W_m$ (registration + resampling operators) and define the co-registered images on a shared grid, with $W_m: \mathbb{R}_+^{J_m} \rightarrow \mathbb{R}_+^N$:
+When the native modalities, indexed using $m$, are acquired on different grids or coordinate frames, we introduce spatial transforms $W_m$ (registration + resampling operators) and define the co-registered images on a shared grid, with $W_m: \mathbb{R}_+^{J_m} \rightarrow \mathbb{R}_+^N$:
 \begin{equation}
     z_m \coloneqq W_m x_m \in \mathbb{R}_+^{N}, \qquad m=1,\dots,M,
 \end{equation}
@@ -222,17 +222,17 @@ In the Bayesian  setting, a generic multi-modality reconstruction is given by
     \hat{\bm{x}} \in \arg\min_{\bm{x}\in\mathcal{C}}
     \left\{
         \sum_{m=1}^M \mathcal{L}_m(x_m)
-        + \beta\,\mathcal{R}(\bm{z})
+        + \beta\,\mathcal{R}(\bm{Wx})
     \right\},
 \end{equation}
-where $\bm{x}\coloneqq(x_1,\dots,x_M)$, $\bm{z}=\bm{W}\bm{x}$ with $\bm{W}\coloneqq\mathrm{diag}(W_1,\dots,W_M)$, and $\mathcal{R}(\bm{z})$ promotes cross-modality consistency (e.g.\ co-located edges or shared support) in the co-registered domain.
+where $\bm{x}\coloneqq(x_1,\dots,x_M)$ and $\bm{W}\coloneqq\mathrm{diag}(W_1,\dots,W_M)$, and $\mathcal{R}(\bm{Wx})$ promotes cross-modality consistency (e.g.\ co-located edges or shared support) in the co-registered domain.
 
 A practical way to exploit multiple modalities without solving a fully joint inverse problem is sequential reconstruction, in which one modality is first reconstructed, and the resulting image is then used as side-information to guide the reconstruction of another modality. In the Bayesian regime, this is
 \begin{equation}
         \hat{x}_m \in \arg\min_{x_m\in\mathcal{C}}
 \left\{\mathcal{L}_m(x_m) + \beta\,\mathcal{R}(x_m;W_{m\leftarrow(m-1)}x_{m-1})\right\},
 \end{equation}
-where $W_{m\leftarrow(m-1)}$ maps the previous-stage estimate $\hat{x}_{m-1}$ into the spatial grid of modality $m$.
+where $W_{m\leftarrow(m-1)}$ maps the image reconstructed in the previous stage, $\hat{x}_{m-1}$, into the spatial grid of modality $m$.
 
 Deidda \emph{et al.}~have previously investigated a similar method for \isotope[90]{Y} bremsstrahlung \gls{spect}--informed \gls{pet} reconstructions \cite{deidda_triple_2023}. Bremsstrahlung \gls{spect} images are first reconstructed using \gls{hkem} with \gls{ct} and \gls{spect} image-update information to obtain an enhanced \gls{spect} estimate. This \gls{spect} image is then resampled to the \gls{pet} grid and used as functional guidance for \gls{pet} reconstruction. 
 \begin{equation}

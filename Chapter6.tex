@@ -19,7 +19,9 @@ Let $\bm z=(z_1,z_2)$ denote the PET and SPECT images represented on a common re
     \iota_{\mathbb{R}_+}(\bm z),
     \label{eq:optimisation_objective}
 \end{equation}
-where $\mathcal{D}_i$ are subset data-fidelity terms, $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ is the prior from Chapter~\ref{chapter:wdtnv}, and $\iota_{\mathbb{R}_+}$ enforces non-negativity. Each $\mathcal{D}_i$ is a Poisson negative log-likelihood term composed with the relevant projector, image-space registration operator, and optional resolution model.
+where $\mathcal{D}_i$ are subset data-fidelity terms, $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ is the prior from Chapter~\ref{chapter:wdtnv}, and $\iota_{\mathbb{R}_+}$ enforces non-negativity. 
+\SA{Just checking : have you defined how the non-negativity prior works ? As an additive prior it should be some kind of barrier function e.g. $\iota_z = \infty ~\textnormal{if}~ z < o, ~\textnormal{else}~ z $}
+Each $\mathcal{D}_i$ is a Poisson negative log-likelihood term composed with the relevant projector, image-space registration operator, and optional resolution model.
 
 The stochastic optimisation experiments use SVRG \cite{johnson_accelerating_2013,twyman_investigation_2022,ehrhardt_fast_2025}. For stochastic function list $\{\mathcal{O}_i\}_{i=1}^{N_s}$ and anchor point $\tilde{\bm z}$, the estimator is
 \begin{equation}
@@ -109,7 +111,7 @@ The current prior-aware preconditioners use the \acrfull{mm}/\acrfull{irls} curv
     \right]\in\mathbb{R}^{d\times2}
     \label{eq:optimisation_weighted_jacobian}
 \end{equation}
-be the weighted directional Jacobian from Chapter~\ref{chapter:wdtnv}. The active code forms the modality-space \glsentryshort{mm} weight
+be the weighted directional Jacobian from Chapter~\ref{chapter:wdtnv} \SA{Give an equation referenc and/or page reference}. The active code forms the modality-space \glsentryshort{mm} weight
 \begin{equation}
     C_n
     =
@@ -121,7 +123,7 @@ be the weighted directional Jacobian from Chapter~\ref{chapter:wdtnv}. The activ
     \end{pmatrix}.
     \label{eq:mm_weight_current_code}
 \end{equation}
-This matrix is the same $2\times2$ inverse square-root used in the gradient calculation, now interpreted as the local quadratic-surrogate weight.
+This matrix is the same $2\times2$ inverse square-root used in the gradient calculation\SA{Refer to where that was done}, now interpreted as the local quadratic-surrogate weight.
 
 For diagonal preconditioning, the finite-difference stencil and directional projectors are collapsed to a per-voxel participation factor $\tau_{m,n}$. This factor includes the number of valid forward/backward stencil incidences at voxel $n$, the squared finite-difference scale factors, and the diagonal entries of $\Pi_{m,n}^\top\Pi_{m,n}$. The local diagonal \wdtnv{} curvature approximation is
 \begin{equation}
