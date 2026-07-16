@@ -54,7 +54,7 @@ Given a \emph{fixed} $b$, \glsentryshort{osem} yields an approximate maximum-lik
 
 \subsection{Initial scatter estimate via a pre-trained deep network}
 
-To initialise $b$ we use a deep-learning scatter estimator that predicts scatter projections directly from the measured emission projections (and \glsentryshort{ct}-derived attenuation information), following the  approach by Xiang \textem{et al.}~ who trained a convolutional neural network to regress \glsentryshort{mc}-derived ``true'' scatter \cite{xiang_deep_2020}.
+To initialise $b$ we use a deep-learning scatter estimator that predicts scatter projections directly from the measured emission projections (and \glsentryshort{ct}-derived attenuation information), following the  approach by Xiang \emph{et al.}~ who trained a convolutional neural network to regress \glsentryshort{mc}-derived ``true'' scatter \cite{xiang_deep_2020}.
 
 In our case this initialisation is explicitly heuristic: the available pre-trained network was developed and trained under a different hardware/protocol configuration (scanner, collimation, energy windowing, and number of views) than the Siemens and Mediso datasets used in this thesis \cite{xiang_deep_2020}. In particular, the network was trained on data acquired on a Symbia Intevo SPECT/CT system with high-energy collimation and a 105--195~keV window with 80 projections, whereas our reconstructions were performed on Siemens or Mediso systems with different energy windows and either MEGP (Siemens) or MLEGP (Mediso) collimation. Despite this domain shift, we found that the predicted scatter term fits the measured data sufficiently well to provide a sensible starting point for subsequent model-based refinement (Figure \ref{fig:nema_scatter_est}). 
 
