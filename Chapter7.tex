@@ -1,454 +1,681 @@
-\chapter{Preconditioning and Subset Selection for Synergistic Reconstruction}
-\label{chapter:optimisation}
+\chapter{Weighted Directional Total Nuclear Variation for Joint $^{90}$Y PET/SPECT Reconstruction with CTAC-derived Guidance}
+\label{chapter:paper}
 
-Chapter~\ref{chapter:wdtnv} defined the smoothed weighted directional total nuclear variation prior. Applying this coupled, edge-preserving prior at scale raises three linked optimisation questions. First, overlapping PET bed positions must be reconstructed into a common image if the prior is to act consistently across their overlap. Second, PET and SPECT subsets can be paired or treated as separate stochastic functions. Third, the very different data and prior curvature scales require an effective preconditioner. This chapter addresses these questions in turn and uses the resulting evidence to motivate the optimisation protocol carried forward into Chapter~\ref{chapter:paper}. That application protocol had already been frozen before the wider preconditioner comparison reported here.
+This chapter applies the \acrfull{wdtnv} prior developed in Chapter~\ref{chapter:wdtnv} to the clinically relevant problem of post-treatment $^{90}$Y activity imaging after \glsentryshort{sirt}. We consider joint reconstruction of low-count $^{90}$Y \glsentryshort{pet} and bremsstrahlung \glsentryshort{spect}, using \acrfull{ctac} information directionally (via the \glsentryshort{ctac}-derived attenuation map $\mu$) to stabilise edge geometry without enforcing intensity correlation.
 
-\section{Multi-Bed PET Acquisition}
-\label{sec:multibed}
+Relative to Chapter~\ref{chapter:wdtnv}, the focus here is validation and comparison with other methods: we specify modality-dependent forward models, co-registration operators, practical normalisation for heterogeneous \glsentryshort{pet}/\glsentryshort{spect} scales, and a reproducible evaluation protocol on a \acrfull{nema} \acrfull{iec} phantom with \glsentryshort{pet} bootstrapping and on a post-\glsentryshort{sirt} patient cohort.
 
-Whole-liver PET commonly requires multiple partially overlapping bed positions. Reconstructing each bed independently and fusing the resulting images is awkward for an edge-preserving prior because the regularisation decisions on either side of the overlap are then made independently. A joint formulation instead estimates one activity image over the combined field of view.
+\section{Motivation and clinical context}
+\label{sec:90y_motivation}
 
-\subsection{Notation}
-\label{subsec:multibed_notation}
+Quantitative post-treatment imaging is required for personalised dosimetry following $^{90}$Y \glsentryshort{sirt} \cite{levillain_international_2021}. Pre-treatment planning based on $^{99\mathrm{m}}$Tc-\gls{maa} often mis-predicts microsphere deposition, motivating post-treatment verification of delivered activity distributions \cite{haste_correlation_2017}.
 
-Let $x$ be the PET activity image on the combined reconstruction grid. For bed position $b=1,\ldots,B$, let $R_b$ restrict the combined image to the axial support reconstructed by bed $b$. The expected PET data for bed $b$ are
+Two $^{90}$Y modalities are clinically available:
+\begin{itemize}
+    \item \textbf{$^{90}$Y PET}: detects the rare internal pair-production branch, providing comparatively high spatial resolution but extremely low count statistics \cite{selwyn_new_2007}.
+    \item \textbf{Bremsstrahlung SPECT}: has substantially higher corrected counts (about $15\times$ for the data studied here) but suffers from severe blur, septal penetration, and scatter due to the continuous emission spectrum \cite{rong_development_2012, minarik_evaluation_2008}.
+\end{itemize}
+Both modalities are typically acquired alongside CT for attenuation correction and anatomical localisation. Since PET and SPECT image the same underlying microsphere distribution while CTAC provides structural rather than activity information, independent reconstruction discards both a strong physical coupling and useful anatomical context.
+
+The sequential hybrid kernel expectation--maximisation (SHKEM) method of Deidda \textit{et al.} improves lesion contrast by reconstructing one modality to guide another \cite{deidda_triple_2023, deidda_hybrid_2022}. However, the sequential construction remains sensitive to iteration choice and noise amplification. This motivates a truly joint MAP formulation with a coupled regulariser that promotes shared geometry while allowing modality-specific contrast.
+
+\section{Joint MAP formulation for PET/SPECT}
+\label{sec:90y_joint_map}
+
+We use the joint MAP framework introduced in Section~\ref{subsec:synergistic_recon}. For the present application we set $M=2$ modalities, with $m=1$ denoting PET and $m=2$ denoting SPECT\@. Let $z_m\in\mathbb{R}_+^{N}$ denote the image for modality $m$ represented on a shared grid and let $y_m\in\mathbb{N}^{I_m}$ denote the corresponding projection data.
+
+The native image grid for modality $m$ may differ from the shared grid. Once registration is fixed, let $W_m:\mathbb{R}_+^{J_m}\to\mathbb{R}_+^{N}$ denote the discrete resampling operator from the native grid to the shared grid, and let $W_m^\ast:\mathbb{R}_+^{N}\to\mathbb{R}_+^{J_m}$ denote its discrete adjoint with respect to the chosen image-space inner products. The adjoint maps shared-grid variables back to the native grid before application of the system matrix. For each modality we therefore use the affine Poisson model
 \begin{equation}
-    \bar y_b(x)
-    =
-    A_b R_b x + r_b,
-    \label{eq:multibed_forward_model}
+\bar y_m(z_m) = A_m W_m^\ast z_m + b_m,
 \end{equation}
-where $A_b$ is the bed-specific PET system matrix and $r_b$ collects additive corrections. The joint PET data term is
+where $A_m$ is the system matrix and $b_m$ collects additive corrections. For example, randoms and scatter for PET and simulated scatter/penetration terms for SPECT (see Sections~\ref{subsec:90y_pet_forward} and~\ref{subsec:90y_spect_forward}).
+
+The joint objective is
 \begin{equation}
-    \mathcal{D}_{\mathrm{PET}}^{\mathrm{multi}}(x)
-    =
-    \sum_{b=1}^{B}
-    \mathcal{D}_b
-    \left(
-        y_b \mid A_b R_b x + r_b
-    \right),
-    \label{eq:multibed_data_term}
+\hat{\bm{z}}
+=
+\arg\min_{\bm{z}\ge 0}
+\left\{
+\sum_{m=1}^{2}\mathcal{D}_m\!\left(y_m \mid A_m W_m^\ast z_m + b_m\right)
++
+\mathcal{R}(\bm{z})
+\right\},
+\label{eq:90y_joint_obj}
 \end{equation}
-with gradient
+where $\mathcal{D}_m$ is the Poisson negative log-likelihood (up to an additive constant),
 \begin{equation}
-    \nabla \mathcal{D}_{\mathrm{PET}}^{\mathrm{multi}}(x)
-    =
-    \sum_{b=1}^{B}
-    R_b^\top
-    A_b^\top
-    \nabla_{\bar y_b}
-    \mathcal{D}_b
-    \left(
-        y_b \mid A_b R_b x + r_b
-    \right).
-    \label{eq:multibed_gradient}
+\mathcal{D}_m(y_m\mid \bar y_m)=\sum_{i=1}^{I_m}\left((\bar y_m)_i - (y_m)_i\log (\bar y_m)_i\right),
 \end{equation}
-The corresponding PET sensitivity image on the combined grid is
+and $\mathcal{R}$ is the coupled prior. In this chapter, $\mathcal{R}$ is the smoothed $w$-$d$TNV prior $\tilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}$ defined in Section~\ref{sec:wdtnv} (Chapter~\ref{chapter:wdtnv}), specialised to PET/SPECT with CTAC guidance and practical global modality normalisation. The overall regularisation strength is carried by the modality weights introduced below, so no additional scalar $\lambda$ is used in the implementation.
+
+\section{$w$-$d$TNV instantiated for $^{90}$Y PET/SPECT with CTAC guidance}
+\label{sec:90y_wdtnv}
+
+\subsection{Directional guidance from the CTAC-derived $\mu$-map}
+\label{subsec:90y_mu_guidance}
+
+As in Section~\ref{subsec:directional_from_guidance}, we use CT information directionally rather than appending CT as a third coupled channel. Here the guidance image is the CTAC-derived attenuation map $\mu$ (resampled to the PET grid). We pre-smooth $\mu$ with a small blurring kernel ($\mathrm{FWHM}=\SI{2}{\milli\metre}$) to reduce high-frequency CT noise while retaining high guidance edge resolution. We then compute a stabilised direction field in the discrete gradient space,
 \begin{equation}
-    s_{\mathrm{PET}}^{\mathrm{multi}}
-    =
-    \sum_{b=1}^{B}
-    R_b^\top A_b^\top \bm 1.
-    \label{eq:multibed_sensitivity}
+\xi_n
+=
+\frac{(D\mu)_n}{\|(D\mu)_n\|_2 + \eta},
+\qquad
+\eta = 0.05\cdot \max_{n}\|(D\mu)_n\|_2,
+\label{eq:90y_xi_def}
 \end{equation}
-This sensitivity is used in the EM/BSREM data-curvature term in exactly the same way as the single-bed sensitivity in Equation~\eqref{eq:data_hessian_surrogate}.
+where $D$ is the chosen directional finite-difference operator (specified in Section~\ref{subsec:90y_directional_stencil}). The stabiliser $\eta$ prevents amplification of small-magnitude $\mu$ differences in homogeneous regions.
 
-\subsection{Why Not Stitch Independent Reconstructions?}
-\label{subsec:stitching_failure}
-
-A common practical alternative is to reconstruct each PET bed independently and fuse the images using sensitivity-weighted stitching in the overlap. With an edge-preserving prior, however, each reconstruction makes its own noise-suppression and edge decisions before fusion. The qualitative example in Figure~\ref{fig:optim_multibed_qualitative} shows overlap-region noise and discontinuities after separate reconstruction and fusion. It is included to motivate the joint formulation; no quantitative comparison was performed. \TODO{Add the Zenodo-managed citation for the multi-bed PET work.}
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.72\linewidth]{figures/PiW/comparison.png}
-    \caption{Qualitative comparison of separately reconstructed and fused PET bed positions with a joint multi-bed reconstruction using CT-guided edge-preserving regularisation. The shaded region marks the bed overlap and the cyan lines mark the displayed profiles. This example illustrates overlap-region behaviour only; no quantitative comparison was performed.}
-    \label{fig:optim_multibed_qualitative}
-\end{figure}
-
-\subsection{Joint Reconstruction}
-\label{subsec:joint_multibed}
-
-The joint formulation in Equation~\eqref{eq:multibed_data_term} estimates a single combined PET image. Each bed contributes its own data term and sensitivity, while the image-domain prior is evaluated over the complete combined field of view. The combined reconstruction therefore permits the edge-preserving prior to act consistently across the overlap, which is the behaviour required for the dual-bed application in Chapter~\ref{chapter:paper}. This construction does not itself guarantee an artefact-free reconstruction; the evidence here is qualitative.
-
-\section{Stochastic MAP Optimisation}
-\label{sec:optimisation_svrg}
-
-Let $\bm z=(z_1,z_2)$ denote the PET and SPECT images represented on a common reconstruction grid. For $N_s$ sampled data functions, define $\mathcal D(\bm z)=\sum_{i=1}^{N_s}\mathcal D_i(\bm z)$. The objective is
+We can then form the modality-wise directional operators $\Pi_{m,n}\in\mathbb{R}^{d\times d}$ using the construction already adopted in Chapter~\ref{chapter:wdtnv}:
 \begin{equation}
-    \mathcal{O}(\bm z)
-    =
-    \mathcal D(\bm z)
-    +
-    \mathcal{R}_{\mathrm{w\text{-}dTNV}}(\bm z)
-    +
-    \iota_{\mathbb{R}_+}(\bm z),
-    \label{eq:optimisation_objective}
+\Pi_{m,n}
+=
+I_d - \gamma_m\,\xi_n\xi_n^\top,
+\qquad
+\gamma_m\in[0,1].
+\label{eq:90y_Pi_def}
 \end{equation}
-where $\mathcal{D}_i$ is a Poisson negative log-likelihood term composed with the relevant projector, image-space registration operator, and optional resolution model; $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ is the prior from Chapter~\ref{chapter:wdtnv}; and $\iota_{\mathbb{R}_+}$ enforces non-negativity.
+Unless stated otherwise, we set $\gamma_1=\gamma_2=1$. Since $\xi_n$ is stabilised and generally has norm less than one, this should be interpreted as anisotropic shrinkage of gradient components parallel to the local $\mu$-edge normal direction rather than as a hard projection.
 
-The stochastic experiments use SVRG \cite{johnson_accelerating_2013,twyman_investigation_2022,ehrhardt_fast_2025}. Writing $\mathcal R=\mathcal{R}_{\mathrm{w\text{-}dTNV}}$, the implemented estimator keeps the complete prior outside the sampler. At anchor point $\widetilde{\bm z}$ it is
+\subsection{Global modality normalisation as a constant diagonal weighting}
+\label{subsec:90y_global_weights}
+
+Chapter~\ref{chapter:wdtnv} introduced a general voxel-wise diagonal modality weighting $B_n=\mathrm{diag}(\beta_{1,n},\ldots,\beta_{M,n})$. In the present study we use a spatially uniform normalisation to mitigate the dominant scale disparity between $^{90}$Y PET and bremsstrahlung SPECT:
 \begin{equation}
-    g^{(k)} = \nabla\mathcal R(\bm z^{(k)})
-    + \nabla\mathcal D(\widetilde{\bm z})
-    + N_s\!\left[
-        \nabla\mathcal D_{i_k}(\bm z^{(k)})
-        -\nabla\mathcal D_{i_k}(\widetilde{\bm z})
-    \right],
-    \qquad i_k\sim\operatorname{Unif}\{1,\ldots,N_s\}.
-    \label{eq:svrg_estimator_general}
+B_n \equiv B := \mathrm{diag}(\rho_1,\rho_2),
+\qquad \rho_1,\rho_2>0.
 \end{equation}
-The data functions are sampled uniformly with replacement. The complete prior gradient is evaluated at every stochastic update, and the full data-gradient snapshot is refreshed once per epoch.
-
-The image update is a projected, preconditioned gradient step,
+Weights are computed from early-stopped unregularised reconstructions represented on the shared grid, $z_m^{\mathrm{init}}$, via robust dynamic-range (percentile) scaling over a CTAC-derived foreground mask $\Omega'$:
 \begin{equation}
-    \bm z^{(k+1)}
-    =
-    \left\{
-    \bm z^{(k)}
-    -
-    \varsigma^{(k)} P^{(k)} g^{(k)}
-    \right\}_{\geq 0},
-    \label{eq:optimisation_projected_update}
+\rho_m
+=
+\frac{\beta_m}{q_{0.99}\!\bigl(z_m^{\mathrm{init}}|_{\Omega'}\bigr)-q_{0.01}\!\bigl(z_m^{\mathrm{init}}|_{\Omega'}\bigr)},
+\qquad m\in\{1,2\},
+\label{eq:90y_rhom_def}
 \end{equation}
-where $P^{(k)}$ is either a diagonal preconditioner or a voxel-wise $2\times2$ block preconditioner coupling the PET and SPECT update components. The step size follows the linear decay rule
+where $q_p(\cdot|_{\Omega'})$ denotes the $p$th percentile over voxels in $\Omega'$, and $\beta_m$ are user-controlled regularisation weights used for operating-point selection (Section~\ref{subsec:90y_hyperparams}). Percentile scaling provides a robust dynamic-range estimate and reduces sensitivity to outliers. This matches the intent of Section~\ref{subsec:voxelwise_weighting} while avoiding an additional spatially varying weight for this investigation \cite{tsai_benefits_2020}.
+
+\subsection{Directional finite-difference operator for PET/SPECT coupling}
+\label{subsec:90y_directional_stencil}
+
+We use the generic finite-difference definition from Chapter~\ref{chapter:wdtnv} (Section~\ref{sec:tv_to_tnv}) but specify the set of offsets to better accommodate SPECT blur and modest registration error. Let $\Delta=(\Delta_x,\Delta_y,\Delta_z)$ denote the voxel sizes in SI units. We define a nine-direction half-stencil
 \begin{equation}
-    \varsigma^{(k)}
-    =
-    \frac{\varsigma^{(0)}}{1+\eta_{\mathrm{relax}} k},
-    \qquad
-    \varsigma^{(0)}=1,
-    \qquad
-    \eta_{\mathrm{relax}}=0.002,
-    \label{eq:optimisation_step_size}
+\mathcal{E}_1
+=
+\{(1,0,0),(0,1,0),(0,0,1)\}
+\cup
+\{(\pm1,1,0),(\pm1,0,1),(0,1,\pm1)\},
 \end{equation}
-for the 20-pass comparisons described below.
-
-\subsection{Common Evaluation Protocol}
-\label{subsec:optimisation_evaluation_protocol}
-
-The convergence experiments used an anthropomorphic phantom scanned on the Mediso AnyScan at the National Physical Laboratory. PET and SPECT were each partitioned into 18 subsets. Each plotted comparison curve comprises five stochastic realisations and covers the first 20 complete data passes. A single 1000-epoch reconstruction of the same objective, run with more conservative optimisation settings, provided the reference image $x^\star$; it is a final long-run iterate rather than a proven global minimiser. Appendix~\ref{app:baseline_convergence} reports the objective and iterate diagnostics supporting its effective stationarity relative to the best observed iterate.
-
-For each stochastic run and each saved iteration, the \acrfull{nrmse} in region $R$ is
+and use both one- and two-voxel steps, $\mathcal{E}=\mathcal{E}_1\cup\{2e:e\in\mathcal{E}_1\}$, yielding $d=18$ directions. For a set of offsets $\mathcal{E}=\{e_\ell\}_{\ell=1}^{d}$, define the $d$-directional forward difference operator $D$ by
 \begin{equation}
-    \operatorname{NRMSE}(x_k,x^\star;R)
-    =
-    \frac{\sqrt{N^{-1}\sum_{j\in R}(x_{k,j}-x^\star_j)^2}}
-         {\sqrt{N^{-1}\sum_{j\in R}(x^\star_j)^2}},
-    \qquad N=|R|.
-    \label{eq:optimisation_nrmse}
+\big((D z)_n\big)^{(\ell)} :=
+\frac{z_{n+e_\ell}-z_n}{\|e_\ell\|_\Delta},
+\qquad
+\|e\|_\Delta := \sqrt{(e_x\Delta_x)^2+(e_y\Delta_y)^2+(e_z\Delta_z)^2},
+\label{eq:90y_directional_D}
 \end{equation}
-The regions are evaluated separately over the whole image, the hot-sphere mask, and the cold-sphere mask. The plotted centre line is the arithmetic mean of the five per-run NRMSE values at each iteration, not the NRMSE of an averaged reconstruction; the envelope is their pointwise minimum--maximum. The long-run reference itself was generated once.
+with Neumann boundary conditions.
+This follows the ``extended Jacobian'' motivation for TNV-type coupling \cite{holt_total_2014} and empirically improved stability in the present PET/SPECT setting.
 
-\section{Subset Selection}
-\label{sec:optimisation_subset_selection}
+\subsection{The $w$-$d$TNV Jacobian and regulariser (two modalities)}
+\label{subsec:90y_wdtnv_def}
 
-Subset methods accelerate early iterations in emission tomography by replacing full data passes with stochastic or ordered blocks of projection data \cite{hudson_accelerated_1994}. Joint PET/SPECT reconstruction introduces a further choice: corresponding modality subsets can be added to form paired stochastic functions, or each modality subset can remain a separate function. The experiment below compares only these two organisations. In both cases the complete prior remains outside the sampler and is evaluated at every update, as in Equation~\eqref{eq:svrg_estimator_general}. \TODO{Add the Zenodo-managed citation for IEEE Xplore document 10654962.}
-
-\subsection{Data-Subset Organisation}
-\label{subsec:subset_data_organisation}
-
-The one-bed phantom data were divided into 18 PET and 18 SPECT subsets. Two organisations were tested.
-
-\paragraph{Separate subsets.}
-PET and SPECT subsets are treated as distinct stochastic functions. For a one-bed acquisition with $N_{\mathrm{PET}}=18$ and $N_{\mathrm{SPECT}}=18$, this gives
+Using the notation of Chapter~\ref{chapter:wdtnv}, we form the guided gradients $\Pi_{m,n}(D z_m)_n\in\mathbb{R}^d$ and define the weighted directional Jacobian
 \begin{equation}
-    \{\mathcal{D}_i\}_{i=1}^{36}
-    =
-    \{
-    \mathcal{D}_{\mathrm{PET},1},\ldots,\mathcal{D}_{\mathrm{PET},18},
-    \mathcal{D}_{\mathrm{SPECT},1},\ldots,\mathcal{D}_{\mathrm{SPECT},18}
-    \}.
-    \label{eq:separate_subset_functions}
+Y_n := Y^{\mathrm{w\text{-}dTNV}}_n(\bm{z})
+=
+\left[\Pi_{1,n}(D z_1)_n \;\Big|\; \Pi_{2,n}(D z_2)_n\right]\,B
+\in\mathbb{R}^{d\times 2}.
+\label{eq:90y_Yn_def}
 \end{equation}
-
-\paragraph{Paired subsets.}
-PET and SPECT subsets with matching indices are summed into one stochastic function. For one bed this gives
+The regulariser is the smoothed spectral potential introduced in Chapter~\ref{chapter:wdtnv}, weighted by the voxel volume $V_{\mathrm{vox}}$,
 \begin{equation}
-    \mathcal{D}^{\mathrm{pair}}_j
-    =
-    \mathcal{D}_{\mathrm{PET},j}
-    +
-    \mathcal{D}_{\mathrm{SPECT},j},
-    \qquad j=1,\ldots,18.
-    \label{eq:paired_subset_functions}
+\tilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}(\bm{z})
+=
+V_{\mathrm{vox}}\sum_{n=1}^{N}\phi(Y_n),
+\qquad
+\phi(Y)=\sum_{\ell=1}^{2} g(\sigma_\ell(Y)),
+\label{eq:90y_R_def}
 \end{equation}
-\subsection{Experiment Design and Work Accounting}
-\label{subsec:subset_selection_experiment_methods}
-
-All data functions were sampled uniformly with replacement. To compare the organisations on a common horizontal axis, one matched data pass is defined by 36 modality-specific data-subset evaluations. Paired organisation reaches this count after 18 joint PET+SPECT updates: each update evaluates one PET and one SPECT subset, and therefore the 18 updates comprise 36 data-subset evaluations and 18 complete prior-gradient evaluations. Separate organisation reaches the same data-projection count after 36 modality-specific updates, comprising the same 36 data-subset evaluations but 36 complete prior-gradient evaluations.
-
-This accounting matches data-projection work, but it does not match parameter-update count, prior-gradient work, or elapsed computation. Both organisations used the same objective and the MM local-diagonal curvature preconditioner, and were assessed with the common 20-pass protocol in Section~\ref{subsec:optimisation_evaluation_protocol}.
-
-\begin{figure}[htbp]
-    \centering
-    \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/subsets/subsets_only/exp_subset_selection_1bpos_mm_diag_tight_alpha_1_prior_always.png}
-        \caption{PET.}
-    \end{subfigure}
-    \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/subsets/subsets_only/exp_subset_selection_1bpos_mm_diag_tight_alpha_1_SPECT_prior_always.png}
-        \caption{SPECT represented on the PET grid.}
-    \end{subfigure}
-    \caption{Convergence for paired and modality-separated subsets using the MM local-diagonal curvature preconditioner. Lines show the mean per-run NRMSE over five stochastic realisations and shading shows the pointwise minimum--maximum over the first 20 matched data passes. The complete prior gradient was evaluated at every update.}
-    \label{fig:optim_subset_organisation}
-\end{figure}
-
-\subsection{Results}
-
-Figure~\ref{fig:optim_subset_organisation} shows faster convergence with modality-separated subsets for both PET and SPECT, with the clearest differences in the hot- and cold-sphere regions. A plausible explanation is that the separate organisation performs 36 parameter updates per matched data pass, compared with 18 paired updates, and therefore makes more frequent progress for the same number of data-subset projections. The experiment does not isolate modality grouping from update frequency: the separate configuration also evaluates the complete prior twice as often. It should therefore be interpreted as a data-projection-matched comparison of the two implemented organisations, not as a compute-matched speed benchmark or a causal test of modality splitting alone.
-
-\section{Prior-Aware Preconditioning}
-\label{sec:optimisation_preconditioners}
-\label{subsec:preconditioning}
-
-Preconditioning is critical for subset-based MAP reconstruction because the data term and the edge-preserving prior can have very different local curvature scales \cite{clinthorne_preconditioning_1993,ahn_globally_2002,de_pierro_fast_2001,ehrhardt_fast_2025}. The comparison below includes data-only BSREM scaling and four prior-aware curvature models for $\wdtnv$.
-
-\subsection{Data Curvature}
-\label{subsec:optimisation_data_preconditioning}
-
-For modality $m$, let $s_m$ denote the sensitivity image on the shared grid,
+where $g$ is the Charbonnier smoothing (Equation~\ref{eq:charbonnier_g}) and $\sigma_\ell(Y)$ are singular values. We set the smoothing parameter $\epsilon$ relative to initial joint-gradient magnitudes:
 \begin{equation}
-    s_m
-    =
-    W_m A_m^\top \bm 1,
-    \label{eq:shared_grid_sensitivity}
+\epsilon
+=
+0.05\cdot \mathrm{median}_{n\in\Omega'}\,\sigma_1\!\left(Y_n^{\mathrm{init}}\right),
+\qquad
+Y_n^{\mathrm{init}}:=Y^{\mathrm{w\text{-}dTNV}}_n(\bm{z}^{\mathrm{init}}),
+\label{eq:90y_epsilon_def}
 \end{equation}
-where $A_m$ is the native-grid system matrix and $W_m$ maps native images to the shared prior grid. The data-only EM/BSREM preconditioner is
-\begin{equation}
-    P_{\mathrm{BSREM},m}
-    =
-    (z_m+\epsilon_x)\oslash s_m,
-    \label{eq:bsrem_preconditioner}
-\end{equation}
-with element-wise division. This scaling models the data term only; it contains no prior curvature. Equivalently, the corresponding diagonal data Hessian surrogate is
-\begin{equation}
-    \widehat H_{\mathrm{data},m}
-    =
-    s_m \oslash (z_m+\epsilon_x).
-    \label{eq:data_hessian_surrogate}
-\end{equation}
-The implementation optionally smooths the numerator image used in the EM preconditioner with a Gaussian filter. In the experiments below the smoothing FWHM is $5\,\mathrm{mm}$ in each direction.
+with $\bm{z}^{\mathrm{init}}=(W_1 x_1^{\mathrm{init}},W_2 x_2^{\mathrm{init}})$.
 
-\subsection{Prior Curvature Models}
-\label{subsec:optimisation_prior_preconditioning}
+If $\Pi_{2,n}(D z_2)_n\approx 0$ at some voxel (e.g.\ SPECT locally uniform after guidance), then $Y_n$ has an effectively single nonzero column and $\phi(Y_n)$ reduces to a TV-type penalty on the remaining modality column. This is the same ``no forced edges'' behaviour discussed in Chapter~\ref{chapter:wdtnv}.
 
-Four prior-curvature constructions were considered: three based on a local \acrfull{mm}/\acrfull{irls} surrogate and one based on the Lewis--Sendov Hessian of the smoothed spectral penalty. The term MM describes the derivation of the first family; none of the implemented preconditioners has been established as a majoriser of the complete objective, and no monotone-descent guarantee is claimed.
+\subsection{Ablation comparators}
+\label{subsec:90y_ablations}
 
-For the MM family, at voxel $n$ let
+To separate the contributions of PET/SPECT coupling and CTAC-derived directional guidance, we compare \wdtnv with two variational ablations. The first is weighted TNV (\wtnv), which keeps the two-modality Jacobian and the same modality normalisation but removes directional CTAC guidance by setting $\Pi_{m,n}=I_d$ for both modalities:
 \begin{equation}
-    Y_n
-    =
-    \left[
-        \beta_{1,n}\Pi_{1,n}(Dz_1)_n
-        \;\middle|\;
-        \beta_{2,n}\Pi_{2,n}(Dz_2)_n
-    \right]\in\mathbb{R}^{d\times2}
-    \label{eq:optimisation_weighted_jacobian}
+Y_n^{\mathrm{w\text{-}TNV}}(\bm{z})
+=
+\left[(D z_1)_n \;\Big|\; (D z_2)_n\right]B.
 \end{equation}
-be the weighted directional Jacobian from Chapter~\ref{chapter:wdtnv}. The active code forms the modality-space \glsentryshort{mm} weight
+This tests PET/SPECT coupling without anatomical anisotropy.
+
+The second is directional TV (\dtv), which keeps CTAC-derived directional guidance but removes PET/SPECT coupling. It is obtained by applying the same directional operator only to the PET gradient,
 \begin{equation}
-    C_n
+\tilde{\mathcal{R}}_{\mathrm{dTV}}(z_1)
+=
+V_{\mathrm{vox}}
+\sum_{n=1}^{N}
+\phi\!\left(\rho_1\Pi_{1,n}(D z_1)_n\right),
+\end{equation}
+which reduces to a smoothed single-channel directional-TV penalty. This tests anatomical anisotropy without using SPECT as a coupled functional channel. All variational methods use the same forward models, registration, foreground mask, dynamic-range normalisation, and optimisation framework; only the regulariser structure is changed.
+
+\section{Optimisation and implementation}
+\label{sec:90y_optimisation}
+
+We minimise the joint objective \eqref{eq:90y_joint_obj} using a subset stochastic variance-reduced gradient (SVRG) method \cite{johnson_accelerating_2013}, consistent with the stochastic framework studied in Chapter~\ref{chapter:optimisation}. Let $N_{\mathrm d}$ be the total number of PET and SPECT data functions in the reconstruction being described, including separate functions for each PET bed position where applicable. The application implementation distributes the prior equally across these functions,
+\begin{equation}
+\mathcal{O}(\bm{z})
+=
+\sum_{i=1}^{N_{\mathrm d}}
+\mathcal{O}_i(\bm{z}),
+\qquad
+\mathcal{O}_i(\bm{z})
+=
+\mathcal{D}_i(\bm{z})
++
+\frac{1}{N_{\mathrm d}}
+\tilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}(\bm{z}),
+\end{equation}
+so that summing all stochastic functions recovers one complete prior term. This differs organisationally from the Chapter~\ref{chapter:optimisation} experiments, in which the complete prior was held outside the data-function sampler. Here every stochastic function includes the scaled prior contribution; the prior is not sampled as a separate subset. Data functions are formed using staggered, view-interleaved partitioning and are split by modality, so each $\mathcal D_i$ contains either PET or SPECT data.
+
+At iteration $k$, with anchor point $\tilde{\bm{z}}$ refreshed once per epoch, we use the SVRG estimator
+\begin{equation}
+g^{(k)}
+=
+\nabla \mathcal{O}(\tilde{\bm{z}})
++
+N_{\mathrm d}\left[\nabla \mathcal{O}_{i_k}(\bm{z}^{(k)})-\nabla \mathcal{O}_{i_k}(\tilde{\bm{z}})\right],
+\qquad
+i_k\sim\mathrm{Unif}\{1,\dots,N_{\mathrm d}\},
+\end{equation}
+and apply a projected voxel-block-preconditioned update
+\begin{equation}
+\bm{z}^{(k+1)}
+=
+\left\{
+\bm{z}^{(k)} - \varsigma^{(k)} P^{(k)} g^{(k)}
+\right\}_{\ge 0},
+\label{eq:90y_update}
+\end{equation}
+with a decaying step size
+\begin{equation}
+\varsigma^{(k)} = \frac{\varsigma^{(0)}}{1+\delta k},
+\qquad
+\varsigma^{(0)}=1,
+\qquad
+\delta=0.005.
+\end{equation}
+Reconstructions were run for 250 epochs, corresponding to approximately 500 full data passes because the full-gradient snapshot is recomputed once per epoch. This fixed stopping point was used for all methods rather than a case-specific convergence criterion.
+
+\subsection{Block-diagonal preconditioning}
+\label{subsec:90y_precond}
+
+For modality $m$, the data component is the EM-type scaling \cite{de_pierro_fast_2001,ahn_globally_2002}
+\begin{equation}
+    P_{\mathrm{data},m}
     =
-    \left(Y_n^\top Y_n + \epsilon^2 I_2\right)^{-1/2}
+    z_m \oslash \left(W_m A_m^\top \mathbf{1}\right),
+    \label{eq:90y_Pdata}
+\end{equation}
+represented on the shared grid. At voxel $n$, these modality-specific values form the diagonal block
+\begin{equation}
+    P_{\mathrm D,n}
     =
     \begin{pmatrix}
-        c_{11,n} & c_{12,n}\\
-        c_{12,n} & c_{22,n}
+        P_{\mathrm{data},1,n} & 0\\
+        0 & P_{\mathrm{data},2,n}
     \end{pmatrix}.
-    \label{eq:mm_weight_current_code}
+    \label{eq:90y_PD_block}
 \end{equation}
-This matrix is the same $2\times2$ inverse square-root used in the gradient calculation, now interpreted as the local quadratic-surrogate weight.
+The prior component $P_{\mathcal R,n}$ is obtained by inverting the Lewis--Sendov voxel-block diagonal of the exact smoothed spectral Hessian described in Section~\ref{subsec:optimisation_prior_preconditioning}. It retains the PET/SPECT cross-curvature within each $2\times2$ voxel block while discarding spatial off-diagonal blocks. The prior blocks are recomputed once per epoch using the smoothed spectral Hessian and its voxel-wise singular-value decompositions, then held fixed within that epoch.
 
-For diagonal preconditioning, the finite-difference stencil and directional projectors are collapsed to a per-voxel participation factor $\tau_{m,n}$. This factor includes the number of valid forward/backward stencil incidences at voxel $n$, the squared finite-difference scale factors, and the diagonal entries of $\Pi_{m,n}^\top\Pi_{m,n}$. The local diagonal \wdtnv{} curvature approximation is
+After applying an eigenvalue floor $p_{\min}=10^{-6}$ to both operands, the application combines them using the scaled matrix Lehmer construction from Equation~\eqref{eq:matrix_lehmer_combination}. Specifically,
 \begin{equation}
-    \widehat H_{\mathcal R,m,n}^{\mathrm{loc\text{-}diag}}
-    =
-    V_{\mathrm{vox}}\,
-    \beta_{m,n}^2\,c_{mm,n}\,\tau_{m,n}.
-    \label{eq:diag_tight_preconditioner}
-\end{equation}
-This is the diagonal extraction of the local \glsentryshort{mm} curvature surrogate. A more conservative Gershgorin-inflated diagonal surrogate adds the magnitude of the cross-modal term,
-\begin{equation}
-    \widehat H_{\mathcal R,1,n}^{\mathrm{diag\text{-}G}}
-    =
-    V_{\mathrm{vox}}\,
-    \beta_{1,n}^2\,(c_{11,n}+|c_{12,n}|)\,\tau_{1,n},
+    C_n=P_{\mathrm D,n}^{-1/2}P_{\mathcal R,n}P_{\mathrm D,n}^{-1/2},
     \qquad
-    \widehat H_{\mathcal R,2,n}^{\mathrm{diag\text{-}G}}
+    P_n
     =
-    V_{\mathrm{vox}}\,
-    \beta_{2,n}^2\,(c_{22,n}+|c_{12,n}|)\,\tau_{2,n}.
-    \label{eq:diag_gersh_preconditioner}
-\end{equation}
-
-For block preconditioning, the PET and SPECT update components at each voxel are coupled by a $2\times2$ block. Let $\mathcal{N}(n)$ be the set of target voxels whose finite-difference stencil depends on source voxel $n$. For target voxel $r\in\mathcal{N}(n)$, let $c_{r\leftarrow n}\in\mathbb{R}^d$ be the finite-difference impulse vector produced in the directional channels when source voxel $n$ is perturbed. The local voxel-block curvature approximation uses
-\begin{equation}
-    \alpha_{r\leftarrow n}^{mm'}
-    =
-    c_{r\leftarrow n}^\top
-    \Pi_{m,r}^\top
-    \Pi_{m',r}
-    c_{r\leftarrow n},
-    \label{eq:block_alpha}
-\end{equation}
-and
-\begin{equation}
-    \widehat H_{\mathcal R,n}^{\mathrm{loc\text{-}block}}
-    =
-    V_{\mathrm{vox}}
-    \sum_{r\in\mathcal{N}(n)}
-    \left[
-        B_r C_r B_r
-    \right]
-    \circ
-    A_{r\leftarrow n},
+    \frac{1}{2}P_{\mathrm D,n}^{1/2}f_q(C_n)P_{\mathrm D,n}^{1/2},
     \qquad
-    A_{r\leftarrow n}
-    =
-    \begin{pmatrix}
-        \alpha_{r\leftarrow n}^{11} & \alpha_{r\leftarrow n}^{12}\\
-        \alpha_{r\leftarrow n}^{21} & \alpha_{r\leftarrow n}^{22}
-    \end{pmatrix},
-    \label{eq:block_tight_preconditioner}
+    f_q(t)=\frac{t^q+1}{t^{q-1}+1},
+    \label{eq:90y_lehmer_preconditioner}
 \end{equation}
-where $B_r=\mathrm{diag}(\beta_{1,r},\beta_{2,r})$ and $\circ$ denotes the Hadamard product.
+with $q=0.01$. At $q=0$ this expression is the parallel sum. The Lewis--Sendov/$q=0.01$ setting was frozen for this application before the broader optimisation benchmark in Chapter~\ref{chapter:optimisation}; its use here reflects protocol continuity rather than selection as the universally best preconditioner.
 
-The fourth construction uses the exact Lewis--Sendov Hessian of the smoothed spectral penalty \cite{lewis_derivatives_1996}. If $H_{\mathcal R}=\nabla^2\mathcal R$ denotes the resulting image-space Hessian, the implemented approximation retains only its voxel-wise diagonal blocks,
+\subsection{Comparator: sequential hybrid kernel EM}
+\label{subsec:90y_shkem}
+
+We compare against the sequential hybrid kernel expectation--maximisation (SHKEM) method of Deidda \textit{et al.} \cite{deidda_triple_2023}, using the reconstruction order and hyperparameter settings reported as optimal in that work. The sequential order is CT-guided SPECT followed by CT/SPECT-guided PET: SPECT is reconstructed first using CT-derived anatomical features and hybrid kernel updates, and the resulting SPECT reconstruction is then used together with CT-derived features and the current PET iterate to construct the PET hybrid kernel \cite{deidda_hybrid_2022}. To reduce noise amplification we use frozen kernels, halting kernel updates after 27 PET subiterations and 72 SPECT subiterations, matching the comparator configuration in \cite{deidda_triple_2023}. All kernel parameters followed the original implementation from Deidda \textit{et al.} For clinical PET data, the SHKEM implementation is applied in the same joint multi-bed setting as the variational methods.
+
+\subsection{Software implementation}
+\label{subsec:90y_software}
+
+All reconstructions were implemented in the \acrfull{sirf} \cite{ovtchinnikov_sirf_2017} using \acrfull{stir} projector backends \cite{thielemans_stir_2012, schramm_parallelprojopen-source_2024, fuster_integration_2013} and the Core Imaging Library \cite{jorgensen_core_2021}, with custom code for the proposed regulariser. The SHKEM implementation follows \cite{deidda_triple_2023}, extended here to the same joint multi-bed PET reconstruction setting used by the variational methods.
+
+\section{Forward models, corrections, and co-registration}
+\label{sec:90y_forward_models}
+
+\subsection{PET forward model}
+\label{subsec:90y_pet_forward}
+
+PET list-mode data were processed using the vendor toolchains to generate normalisation, attenuation, and additive corrections (randoms and scatter), which were held fixed during reconstruction \cite{stearns_random_2003, iatrou_3d_2006}. Reconstructions use a voxel size of $3.27\times 2.13\times 2.13~\mathrm{mm}^3$ (z,y,x) on a grid of $83\times 255\times 255$.
+
+Patient PET data were acquired across two partially overlapping bed positions. For all methods, these bed positions were reconstructed jointly in a single combined-bed image space, with separate forward- and back-projections for each bed position; for the variational methods, the image-domain prior is evaluated over the combined volume. This is the multi-bed formulation derived in Chapter~\ref{chapter:optimisation}. It permits one edge-preserving prior to act over the combined field of view and was motivated by the qualitative overlap comparison in Figure~\ref{fig:optim_multibed_qualitative}. Bed positions overlapped by 11 voxels. Phantom PET data were reconstructed using a single bed position.
+
+Projection data are partitioned into staggered, view-interleaved subsets. For SHKEM we use $S=9$ PET subsets, following the comparator study. For SVRG-based reconstructions we use 18 PET subsets for phantom data and 18 subsets per PET bed position for clinical data, giving 36 PET subsets in total for two-bed patient reconstructions.
+
+\subsection{SPECT forward model}
+\label{subsec:90y_spect_forward}
+
+For bremsstrahlung SPECT we use a geometric projector with an analytic collimator--detector response and a simulated additive correction term. SPECT images are discretised on a $128\times128\times128$ grid with isotropic voxel size $4.18~\mathrm{mm}$.
+
+The collimator response is modelled as a depth-dependent Gaussian with linearly varying width, obtained by fitting an analytic collimator model \cite{anger_sensitivity_1966}. Bremsstrahlung blur is modelled as an isotropic Gaussian with energy-dependent width fitted to $^{90}$Y range simulations \cite{rault_fast_2010}; where multiple energy windows are used, effective blur parameters are obtained by count-weighted averaging across windows.
+
+Scatter and septal penetration are incorporated via an additive term estimated by an outer reconstruct--simulate loop using \gls{simind} \cite{ljungberg_simind_2015, rong_development_2012}. We initialise this additive term using a learned estimate from a neural network \cite{xiang_deep_2020}. The additive estimate is then refined by alternating reconstruction and \glsentryshort{simind} simulation for 10 outer iterations, using a damped update
 \begin{equation}
-    \widehat H_{\mathcal R}^{\mathrm{LS\text{-}block}}
-    =
-    \operatorname{blkdiag}
-    \left(
-        [H_{\mathcal R}]_{11},\ldots,[H_{\mathcal R}]_{NN}
-    \right),
-    \qquad
-    [H_{\mathcal R}]_{nn}\in\mathbb R^{2\times2}.
-    \label{eq:ls_block_preconditioner}
+b^{(k+1)}=\nu\,\hat b^{(k+1)}+(1-\nu)b^{(k)},
+\qquad
+\nu=0.2,
 \end{equation}
-It therefore retains PET/SPECT cross-curvature within each voxel but discards spatial off-diagonal blocks. Evaluating the smoothed spectral Hessian requires the voxel-wise singular-value decompositions used by the Lewis--Sendov construction. Recomputing this block model once per epoch consequently has a non-negligible cost.
+where $\hat b^{(k+1)}$ is the newly simulated additive estimate and $b^{(k)}$ is the previous estimate. The final additive estimate is fixed during the stochastic optimisation.
 
-\subsection{Combining Data and Prior Curvature}
-\label{subsec:optimisation_preconditioner_combination}
+SPECT projection data are partitioned into staggered subsets, with $S=12$ for both SVRG-based reconstructions and SHKEM.
 
-Let $P_{\mathrm D}=\widehat H_{\mathrm D}^{-1}$ denote the data preconditioner and $P_{\mathcal R}=\widehat H_{\mathcal R}^{-1}$ the preconditioner obtained from one of the prior-curvature models above. For block methods, $\widehat H_{\mathrm D}$ is the $2\times2$ diagonal matrix containing the modality-specific data curvatures at each voxel. The principal comparison combines the operands through the inverse-sum, or parallel-sum, rule
+\subsection{Co-registration and warp operators}
+\label{subsubsec:90y_warps}
+
+\glsentryshort{ctac} provides the anatomical reference for co-registration and for guidance via the $\mu$-map. The shared reconstruction grid is the PET grid. The PET CTAC is therefore downsampled to the PET reconstruction grid and used both to define the attenuation map $\mu$ and as the anatomical reference space for the coupled prior, so $W_1$ is the identity on the shared grid.
+
+The PET and SPECT CTAC volumes were retained in their native acquisition grids before registration. Since patient arm positioning differed between modalities (arms down in PET, arms up in SPECT), registration was restricted to the trunk. A trunk mask was obtained automatically from each CTAC using TotalSegmentator \cite{TODO_totalsegmentator_2023}\TODO{Zenodo-managed bibliography entry pending for TotalSegmentator; replace \texttt{TODO\_totalsegmentator\_2023} once imported.}, and the native-grid SPECT CTAC was registered to the PET CTAC using a rigid transformation followed by deformable registration initialised from the rigid solution. The resulting native-SPECT-to-PET deformation defines $W_2$. The corresponding operator $W_2^\ast$ in the data-fidelity term is the discrete adjoint of this resampling operator, not merely a matrix transpose; linear interpolation was used so that the forward and adjoint warp pair were implemented consistently.
+
+\section{Data and evaluation protocol}
+\label{sec:90y_data_eval}
+
+All quantitative image analysis is performed on PET reconstructions to preserve direct comparability with SHKEM, where PET is the target modality and SPECT provides guidance. SPECT reconstructions are shown for completeness but are not included in the quantitative endpoints. Reconstruction hyperparameters are tuned once using the clinical training patient (SIRT3) and then fixed for all phantom and clinical reconstructions. This single-patient tuning strategy avoids repeated adjustment on the evaluation cohort, but it does not constitute a robustness study of the selected weights. Throughout, \dtv, \wtnv, and SHKEM are compared against the reference method \wdtnv.
+
+\subsection{Phantom data}
+\label{subsec:90y_phantom}
+
+A \glsentryshort{nema} \glsentryshort{iec} Body Phantom with a sphere-to-background ratio of 8 was scanned at The Christie Hospital using a Siemens Biograph mCT PET/CT system and a GE Discovery 670 SPECT/CT system. \glsentryshort{pet} was acquired over \SI{15}{\hour} and \glsentryshort{spect} over \SI{15}{\minute}. From the \SI{15}{\hour} \glsentryshort{pet} acquisition, $B=20$ statistically independent \glsentryshort{pet} datasets equivalent to \SI{15}{\minute} were generated by sinogram bootstrapping \cite{markiewicz_assessment_2014}. The SPECT energy window was $39.84$--$128.16~\mathrm{keV}$.
+
+We quantify \glsentryshort{pet} reproducibility across bootstraps via voxel-wise \acrfull{cov}, and \glsentryshort{pet} quantification via \acrfullpl{rc} for spheres of diameters \SI{10}{mm}, \SI{13}{mm}, \SI{22}{mm}, \SI{28}{mm}, and \SI{37}{mm}. Three \glspl{voi} were defined (Figure~\ref{fig:90y_nema_bootstrap_overview}): a high-count (HC) VOI comprising five filled spheres (one sphere was excluded due to filling issues), a warm-background (BG) VOI comprising the phantom volume excluding the spheres plus a \SI{10}{mm} margin and excluding the lung insert plus a \SI{5}{mm} margin, and the cold lung insert (LI).
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.39\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,trim=0 0 0 1.8in,clip]{figures/Chapter6/phantoms/manc_nema/bootstrap_mask.png}
+    \end{subfigure}%
+    \hfill
+    \begin{subfigure}[b]{0.58\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,trim=0 0 0 1.8in,clip]{figures/Chapter6/phantoms/manc_nema/bootstrap_umap.png}
+    \end{subfigure}
+    \caption{NEMA phantom analysis regions. Left: warm-background (BG), lung insert (LI), and high-count (HC) VOIs. Right: CTAC-derived attenuation map showing sphere edges, the lung insert, and the under-filled sphere excluded from the HC VOI.}
+    \label{fig:90y_nema_bootstrap_overview}
+\end{figure}
+
+Let $x^{(r)}_{b,j}$ be the reconstructed PET intensity at voxel $j$ for method $r$ in bootstrap realisation $b\in\{1,\dots,B\}$. Define the inter-bootstrap mean and standard deviation
 \begin{equation}
-    P_{\parallel}
-    =
-    \left(P_{\mathrm D}^{-1}+P_{\mathcal R}^{-1}\right)^{-1}
-    =
-    \left(\widehat H_{\mathrm D}+\widehat H_{\mathcal R}\right)^{-1}.
-    \label{eq:parallel_sum_combination}
+\mu^{(r)}_j := \frac{1}{B}\sum_{b=1}^{B} x^{(r)}_{b,j},
+\qquad
+s^{(r)}_j := \sqrt{\frac{\sum_{b=1}^{B}\left(x^{(r)}_{b,j}-\mu^{(r)}_j\right)^2}{B-1}},
 \end{equation}
-The same expression applies to diagonal and voxel-block operands, with numerical floors used before inversion. It is a combination of approximate curvature preconditioners, not a statement that either operand or their sum majorises the full objective.
+and voxel-wise
+\begin{equation}
+\mathrm{CoV}^{(r)}_j = \frac{s^{(r)}_j}{\mu^{(r)}_j}.
+\end{equation}
+For a \glsentryshort{voi} $\mathcal{V}$ we report the \glsentryshort{voi}-averaged statistic
+\begin{equation}
+T^{(r)}_{\mathcal{V}}=\frac{1}{|\mathcal{V}|}\sum_{j\in \mathcal{V}} \mathrm{CoV}^{(r)}_{j}.
+\end{equation}
 
-The preconditioner is updated once per epoch and held fixed between updates. This limits curvature-computation cost, particularly for the Lewis--Sendov construction, but means the preconditioner becomes progressively stale within each epoch.
+For sphere $s$, let $\bar{C}^{(r)}_{b,s}$ denote the mean reconstructed intensity within the sphere and $\bar{C}^{(r)}_{b,\mathrm{bkg}}$ the mean within BG for the same $(r,b)$. With true ratio $R_{\mathrm{true}}=8$, define
+\begin{equation}
+\mathrm{RC}^{(r)}_{b,s} = \frac{\bar{C}^{(r)}_{b,s}}{\bar{C}^{(r)}_{b,\mathrm{bkg}}\,R_{\mathrm{true}}}.
+\end{equation}
 
+To assess statistical significance of inter-bootstrap CoV, we compare each method $r$ with the reference $r_0=\wdtnv$ using a paired row-swap permutation test on $\log(T^{(r)}_{\mathcal{V}})$. Let $X^{(r)}_{\mathcal{V}}\in\mathbb{R}^{B\times|\mathcal{V}|}$ be the bootstrap-by-voxel stack restricted to VOI $\mathcal{V}$, and define the observed difference $\Delta=\log(T^{(r_0)}_{\mathcal{V}})-\log(T^{(r)}_{\mathcal{V}})$. Under the null of exchangeability, each bootstrap index is independently swapped between the paired stacks with probability $1/2$ to form permuted differences $\Delta_{\mathrm{perm}}$. We use $N_{\mathrm{perm}}=5000$ permutations and compute the two-sided p-value
+\begin{equation}
+p =
+\frac{1+\sum_{i=1}^{N_{\mathrm{perm}}}\mathbf{1}\!\left(|\Delta_{\mathrm{perm},i}|\ge |\Delta|\right)}
+{N_{\mathrm{perm}}+1},
+\end{equation}
+with \acrfull{bh} adjustment across methods within each VOI\@. No thresholding was applied to exclude near-zero voxels, so CoV estimates in the cold lung insert should be interpreted as a noise-realisation stability measure rather than a conventional percentage variability around a substantial mean signal.
+
+Inference for RC uses a linear mixed model on
+\begin{equation}
+y_{b,r,s} := \log\!\left(\mathrm{RC}^{(r)}_{b,s}\right),
+\qquad b=1,\ldots,B,
+\end{equation}
+with a random intercept for bootstrap replicate and fixed effects for method, sphere, and their interaction:
+\begin{align}
+y_{b,r,s} &= \beta_0 + \alpha_r + \gamma_s + (\alpha\gamma)_{r,s} + u_b + \varepsilon_{b,r,s}, \nonumber \\
+u_b &\overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau_b^2),
+\qquad
+\varepsilon_{b,r,s} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2).
+\end{align}
+For each sphere size, many-to-one contrasts compare each method to the reference $r_0=\wdtnv$, with Benjamini--Hochberg adjustment across planned comparisons within that sphere. Since the model is fitted on the log scale, $\exp(\Delta_{r,s})<1$ indicates lower recovery than \wdtnv for sphere $s$.
+
+\subsection{Clinical data}
+\label{subsec:90y_clinical}
+
+Clinical data were acquired at Oxford University Hospitals from 10 patients undergoing $^{90}$Y \glsentryshort{sirt}: one patient was used for hyperparameter selection and nine for testing. \glsentryshort{pet} was acquired on a GE Discovery 710 PET/CT system and \glsentryshort{spect} on a GE Discovery NM/CT 670 system. Informed consent is not necessary for retrospective image reviews of this nature at Oxford University Hospitals. \glsentryshort{pet} was acquired with two bed positions (\SI{15}{\minute} each) and \glsentryshort{spect} with \SI{15}{\minute}. Energy windows were $50$--$150~\mathrm{keV}$.
+
+Tumour \glspl{voi} were delineated once per patient on the vendor Q.Clear $\beta$-4000 \glsentryshort{pet} reconstruction using an automatic gradient-based method \cite{mikell_impact_2018} and propagated unchanged across reconstructions so that differences reflected reconstruction effects rather than VOI definition. A homogeneous liver background \glsentryshort{voi} was drawn manually, avoiding motion and visible artefacts. The training-patient lesion and background VOIs are shown in Figure~\ref{fig:90y_sirt3_rois}.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter6/patients/sirt3/lesion_1.png}
+    \end{subfigure}%
+    \hfill
+    \begin{subfigure}[b]{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter6/patients/sirt3/lesion_2.png}
+    \end{subfigure}%
+    \hfill
+    \begin{subfigure}[b]{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter6/patients/sirt3/lesion_3.png}
+    \end{subfigure}%
+    \vspace{-0.4cm}
+    \begin{subfigure}[b]{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter6/patients/sirt3/lesion_4.png}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter6/patients/sirt3/lesion_5.png}
+    \end{subfigure}%
+    \hfill
+    \begin{subfigure}[b]{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter6/patients/sirt3/background.png}
+    \end{subfigure}
+    \caption{Training-patient VOIs. The five identified lesions and the background reference region are shown on the vendor PET reconstruction with registered attenuation maps. Top row: lesions 1--3. Bottom row: lesions 4--5 and background.}
+    \label{fig:90y_sirt3_rois}
+\end{figure}
+
+For patient $p$, lesion $l$, and method $r$, define \acrfull{tbr}
+\begin{equation}
+\mathrm{TBR}_{p,l,r}=\frac{\bar{C}_{p,l,r}}{\bar{C}_{p,\mathrm{bkg},r}},
+\end{equation}
+and background noise (percentage CoV)
+\begin{equation}
+\mathrm{CoV}_{p,r}(\%) = 100\,\frac{s_{p,r}}{\bar{C}_{p,\mathrm{bkg},r}},
+\end{equation}
+where $s_{p,r}$ is the within-background-VOI standard deviation.
+
+We analyse $\log(\mathrm{TBR})$ using a linear mixed-effects model with fixed method effects and random intercepts for patient and lesion-within-patient:
+\begin{equation}
+\begin{aligned}
+y_{p,l,r} &:= \log\!\left(\mathrm{TBR}_{p,l,r}\right)
+= \beta_0 + \alpha_r + u_p + v_{p,l} + \varepsilon_{p,l,r},\\
+u_p &\overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2_{\mathrm{p}}),
+\qquad
+v_{p,l} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2_{\mathrm{l}}),
+\qquad
+\varepsilon_{p,l,r} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2).
+\end{aligned}
+\end{equation}
+Background noise is analysed analogously at the patient level using
+\begin{equation}
+\begin{aligned}
+z_{p,r} &:= \log\!\left(\mathrm{CoV}_{p,r}(\%)\right)
+= \beta_0 + \alpha_r + u_p + \varepsilon_{p,r},\\
+u_p &\overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2_{\mathrm{p,CoV}}),
+\qquad
+\varepsilon_{p,r} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\psi^2).
+\end{aligned}
+\end{equation}
+Planned many-to-one contrasts compare \dtv, \wtnv, and SHKEM to \wdtnv, with \glsentryshort{bh} adjustment across the three comparisons within each endpoint. Results are reported as ratios $\exp(\Delta)$ on the original scale, where values below one indicate lower TBR or lower background CoV than \wdtnv.
+
+\section{Results}
+\label{sec:90y_results}
+
+\subsection{Hyperparameter selection}
+\label{subsec:90y_hyperparams}
+
+Regularisation weights $\beta_{\mathrm{PET}}$ and $\beta_{\mathrm{SPECT}}$ in \eqref{eq:90y_rhom_def} were tuned on a single training patient by sweeping the TBR--$\mathrm{CoV}_{\mathrm{bkg}}$ trade-off and selecting an operating point on the Pareto frontier \cite{pareto_new_1897} with background CoV approximately matched to the vendor reconstruction. The selected weights were then fixed for all phantom and clinical experiments:
 \begin{table}[htbp]
 \centering
-\caption{Preconditioner models used in the principal comparison. The four prior-aware models use the inverse-sum combination in Equation~\eqref{eq:parallel_sum_combination}.}
-\label{tab:preconditioner_settings}
+\caption{Selected regularisation weights (tuned on a single training patient) used for all phantom and clinical experiments.}
+\label{tab:90y_hyperparams}
 \small
-\begin{tabular}{p{0.25\linewidth}p{0.45\linewidth}p{0.19\linewidth}}
+\begin{tabular}{lcc}
 \toprule
-Preconditioner & Prior-curvature construction & Combination\\
+\textbf{Method} & $\boldsymbol{\beta_{\mathrm{PET}}}$ & $\boldsymbol{\beta_{\mathrm{SPECT}}}$ \\
 \midrule
-Data-only BSREM & None; EM data scaling only & Not applicable\\
-MM local diagonal & Diagonal extraction of the local MM curvature surrogate & Inverse sum\\
-MM Gershgorin-inflated diagonal & Local diagonal inflated by the magnitude of cross-modal coupling & Inverse sum\\
-MM local voxel-block & Voxel-wise $2\times2$ local MM curvature surrogate & Inverse sum\\
-Lewis--Sendov block-diagonal & Voxel-block diagonal of the exact smoothed spectral Hessian & Inverse sum\\
+\wdtnv & 0.01   & 0.02 \\
+\wtnv  & 0.0075 & 0.02 \\
+\dtv   & 0.02   & -- \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{Preconditioner Comparison Methods}
-\label{subsec:preconditioner_experiment_methods}
+For SHKEM, hyperparameters followed Deidda \textit{et al.} \cite{deidda_triple_2023}; the PET subiteration displayed and analysed here (27) was chosen to approximately match the background CoV of the vendor reconstruction.
 
-Five settings are compared: data-only BSREM, MM local diagonal, MM Gershgorin-inflated diagonal, MM local voxel-block, and Lewis--Sendov block-diagonal preconditioning. These settings are summarised in Table~\ref{tab:preconditioner_settings}. The four prior-aware settings use the inverse-sum combination.
+Figure~\ref{fig:90y_tradeoff} shows the training-patient trade-off curves for two representative lesions. Lesion~1 shows only a modest initial benefit from synergistic information and is largely insensitive to further increases in SPECT weighting until over-regularisation introduces negative bias. Lesion~2 shows a clearer synergistic benefit: increasing SPECT weighting shifts the TBR--$\mathrm{CoV}_{\mathrm{bkg}}$ curve towards higher TBR at comparable background CoV up to a distinct elbow region, after which excessive coupling reduces TBR and/or increases background CoV. For lesion~2, the PET image obtained with \wdtnv also exhibited features consistent with a CTAC artefact; this is discussed in Section~\ref{sec:90y_discussion}.
 
-The comparison uses the one-bed anthropomorphic phantom, modality-separated subsets, and the complete prior gradient at every update. All methods use the same objective, initialisation, long-run reference, initial step $\varsigma^{(0)}=1$, and relaxation parameter $\eta_{\mathrm{relax}}=0.002$. Five stochastic realisations are evaluated for the first 20 matched data passes. Sensitivity-derived support masks are enabled with relative threshold $10^{-3}$, and the data component is smoothed with a $5\,\mathrm{mm}$ Gaussian FWHM.
+\begin{figure*}[htbp]
+    \centering
+    \begin{subfigure}[b]{\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter6/patients/sirt3/lesion_1_2_constant_pet.png}
+    \vspace{-0.5cm}
+    \end{subfigure}
+    \begin{subfigure}[b]{\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter6/patients/sirt3/lesion_1_2_constant_spect.png}
+    \end{subfigure}
+    \caption{Training-patient hyperparameter sweep. Impact of varying PET weighting while holding SPECT regularisation constant (top row) and varying SPECT weighting while holding PET regularisation constant (bottom row) on TBR and $\mathrm{CoV}_{\mathrm{bkg}}$ for lesions 1 and 2. The first and third columns show \wdtnv; the second and fourth show \wtnv.}
+    \label{fig:90y_tradeoff}
+\end{figure*}
 
-The reference is separate from this five-method comparison: it is a single 1000-epoch run with the same objective, a Gershgorin-diagonal MM preconditioner, and more conservative optimisation settings, including $\eta_{\mathrm{relax}}=10^{-4}$. It provides $x^\star$ for the NRMSE calculation rather than an additional candidate method.
+\subsection{Phantom results}
+\label{subsec:90y_phantom_results}
 
-\subsection{Preconditioner Comparison}
-
+A representative reconstruction from a single bootstrapped PET realisation is shown in Figure~\ref{fig:90y_phantom_recon_comparison} (PET and corresponding SPECT; for SHKEM, SPECT is the separately reconstructed guidance image; \dtv does not reconstruct SPECT).
 \begin{figure}[htbp]
     \centering
-    \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_limited.png}
-        \caption{Count-limited PET.}
+    \begin{subfigure}[b]{0.99\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter6/phantoms/manc_nema/bootstrap_random_pet.png}
     \end{subfigure}
-    \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_SPECT.png}
-        \caption{SPECT represented on the PET grid.}
+    \vspace{-0.5cm}
+    \begin{subfigure}[b]{0.99\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter6/phantoms/manc_nema/bootstrap_random_spect.png}
     \end{subfigure}
-    \caption{Convergence of data-only BSREM and the four prior-aware preconditioners in Table~\ref{tab:preconditioner_settings}. All methods use the same objective and long-run reference within each modality. Lines show the mean per-run NRMSE over five stochastic realisations, and shading shows the pointwise minimum--maximum over the first 20 matched data passes.}
-    \label{fig:optim_preconditioners}
+    \caption{Visual comparison of NEMA phantom reconstructions for a randomly chosen bootstrap. From left to right: \wdtnv, \dtv, \wtnv, SHKEM (subiteration 27). PET reconstructions are shown on the top row and SPECT on the bottom row (SPECT guidance for SHKEM). Images are displayed in reconstruction intensity units, proportional to activity concentration.}
+    \label{fig:90y_phantom_recon_comparison}
 \end{figure}
 
-The four prior-aware constructions in Figure~\ref{fig:optim_preconditioners} behave broadly similarly. Their ordering varies between regions, and the differences are small compared with the distinction between prior-aware and data-only scaling; there is no universal winner. For count-limited PET, the whole-image data-only BSREM trajectory leaves the displayed range, indicating divergence under the tested schedule, whereas the prior-aware methods remain bounded and continue to reduce the hot- and cold-sphere errors. Prior curvature was therefore required for stable PET convergence under this common step-size schedule.
+Figure~\ref{fig:90y_rc_spheres_comparison} and Table~\ref{tab:90y_effect_ratio_rc} summarise sphere recovery. Quantitative analysis demonstrated that \wdtnv achieved significantly higher recovery than \dtv and \wtnv for all sphere sizes $\leq\SI{22}{\milli\metre}$. \wdtnv showed similar recovery to SHKEM in the larger spheres but significantly improved recovery for the two smallest spheres at the matched operating point.
+\begin{figure*}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{figures/Chapter6/phantoms/manc_nema/bootstrap_rc.png}
+    \caption{Recovery coefficient (RC) for NEMA phantom spheres for \wdtnv, \dtv, \wtnv and SHKEM (subiteration 27). Also shown are the equivalent RCs for a high-count, long-OSEM reconstruction. The grey line indicates perfect recovery. Statistical significance is reported for paired comparisons versus \wdtnv (Benjamini--Hochberg adjusted): $^*$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$.}
+    \label{fig:90y_rc_spheres_comparison}
+\end{figure*}
 
-SPECT is more robust. All five methods remain stable, and data-only BSREM is competitive with, or slightly faster than, the prior-aware alternatives in the sphere regions. This contrast suggests that the tested prior-aware scalings can be conservative for SPECT even though they are needed to stabilise the limited-count PET case.
+\begin{table}[htbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{l l c l l}
+\toprule
+Method & $s$ & $\exp(\Delta_{r,s})$ & 95\% CI & $p_{\mathrm{BH}}$ \\
+\midrule
+\dtv & 37\,mm & 0.9113 & [0.8001,\,1.0380] & 0.2472 \\
+     & 28\,mm & 0.8543 & [0.7500,\,0.9730] & 0.0267 \\
+     & 22\,mm & 0.8165 & [0.7168,\,0.9300] & 0.0034 \\
+     & 13\,mm & 0.7819 & [0.6865,\,0.8906] & 0.00043\\
+     & 10\,mm & 0.7706 & [0.6766,\,0.8777] & $<10^{-4}$ \\
+\addlinespace
+\wtnv & 37\,mm & 0.9108 & [0.7997,\,1.0374] & 0.2472 \\
+      & 28\,mm & 0.8544 & [0.7502,\,0.9732] & 0.0267 \\
+      & 22\,mm & 0.8090 & [0.7103,\,0.9215] & 0.0034 \\
+      & 13\,mm & 0.7598 & [0.6671,\,0.8654] & 0.0001 \\
+      & 10\,mm & 0.7384 & [0.6483,\,0.8410] & $<10^{-4}$ \\
+\addlinespace
+SHKEM (27) & 37\,mm & 0.9931 & [0.8720,\,1.1312] & 0.9175 \\
+           & 28\,mm & 0.9739 & [0.8551,\,1.1093] & 0.6906 \\
+           & 22\,mm & 0.9616 & [0.8443,\,1.0953] & 0.5559 \\
+           & 13\,mm & 0.8723 & [0.7659,\,0.9936] & 0.0397 \\
+           & 10\,mm & 0.7381 & [0.6480,\,0.8407] & $<10^{-4}$ \\
+\bottomrule
+\end{tabular}
+\caption{Effect ratios $\exp(\Delta_{r,s})$ (comparator vs.\ baseline \wdtnv) with 95\% confidence intervals and BH-adjusted $p$-values, reported by sphere diameter $s$. Values below one indicate lower recovery coefficient than \wdtnv.}
+\label{tab:90y_effect_ratio_rc}
+\end{table}
 
-\subsection{Sensitivity to the Initial Step Size}
-
+Figure~\ref{fig:90y_phantom_cov} summarises voxel-wise reproducibility across bootstraps. At the matched operating point, \dtv and \wtnv yield lower voxel-wise CoV than \wdtnv in the evaluated VOIs, consistent with stronger effective smoothing. SHKEM exhibits higher variability in background and high-count regions but improved stability in the cold lung insert. Sphere-level CoV trends were consistent with the voxel-wise analysis, with \wtnv and \dtv generally providing the lowest variability across the evaluated sphere diameters and SHKEM the highest.
 \begin{figure}[htbp]
     \centering
-    \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_step1_2_limited.png}
-        \caption{Count-limited PET.}
-    \end{subfigure}
-    \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_step1_2_SPECT.png}
-        \caption{SPECT represented on the PET grid.}
-    \end{subfigure}
-    \caption{Sensitivity to the common initial step size for the displayed preconditioners. Solid curves use $\varsigma^{(0)}=1$ and dashed curves use $\varsigma^{(0)}=2$. Lines and envelopes again show the five-run mean and pointwise minimum--maximum over 20 matched data passes.}
-    \label{fig:optim_step_size}
+    \includegraphics[width=\linewidth]{figures/Chapter6/phantoms/manc_nema/bootstrap_voxelwise_cov.png}
+    \caption{Mean voxel-wise coefficient of variation (CoV) across 20 bootstrapped PET realisations within each VOI\@. Statistical significance is reported for paired comparisons versus \wdtnv (BH-adjusted): $^*$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$.}
+    \label{fig:90y_phantom_cov}
 \end{figure}
 
-Doubling the common initial step improves SPECT convergence across the three regions in Figure~\ref{fig:optim_step_size}, but destabilises the limited-count PET reconstruction. A single shared relaxation schedule is therefore not equally well calibrated to both modalities. Modality-dependent initial steps or relaxation rates are a natural direction for future work, but were not tested here.
+\subsection{Clinical results}
+\label{subsec:90y_clinical_results}
 
-\subsection{Lehmer Combination}
+Figure~\ref{fig:90y_sirt3_visuals} shows representative PET and SPECT reconstructions for the training patient. These images illustrate the operating-point behaviour used to select the fixed regularisation weights: \wdtnv improves lesion contrast where the SPECT and CTAC-derived guidance contain useful structural information, while the response is weaker where there is no clear anatomical correlate.
 
-The inverse sum is one member of a broader matrix Lehmer family. For voxel-wise symmetric positive-definite preconditioners $B=P_{\mathcal R}$ and $D=P_{\mathrm D}$, define
-\begin{equation}
-    C=D^{-1/2}BD^{-1/2},
-    \qquad
-    L_q(B,D)=D^{1/2}f_q(C)D^{1/2},
-    \qquad
-    f_q(t)=\frac{t^q+1}{t^{q-1}+1},
-    \label{eq:matrix_lehmer_combination}
-\end{equation}
-where $f_q(C)$ is evaluated spectrally. The implemented preconditioner is $\tfrac12L_q(B,D)$. At $q=0$ this reduces exactly to the parallel sum,
-\begin{equation}
-    \tfrac12L_0(P_{\mathcal R},P_{\mathrm D})
-    =
-    \left(P_{\mathrm D}^{-1}+P_{\mathcal R}^{-1}\right)^{-1}.
-    \label{eq:lehmer_parallel_equivalence}
-\end{equation}
-The legends in Figure~\ref{fig:optim_lehmer_parallel} use $p$ for the same order denoted by $q$ in the text.
+\begin{figure*}[hbtp]
+    \centering
+    \begin{minipage}[htbp]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter6/patients/sirt3/recons/pet_axial.png}\par
+        \includegraphics[width=\linewidth]{figures/Chapter6/patients/sirt3/recons/spect_axial.png}\par
+        \textbf{Axial views}.
+    \end{minipage}\hfill
+    \begin{minipage}[htbp]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter6/patients/sirt3/recons/pet_coronal.png}\par
+        \includegraphics[width=\linewidth]{figures/Chapter6/patients/sirt3/recons/spect_coronal.png}\par
+        \textbf{Coronal views}.
+    \end{minipage}
+    \caption{Visual comparison of reconstruction methods for training patient SIRT3. Columns show \wdtnv, \dtv, \wtnv and SHKEM (subiteration 27). The upper two quadrants show PET reconstructions; the lower two show SPECT reconstructions or guidance images. Images are displayed in reconstruction intensity units, proportional to activity concentration.}
+    \label{fig:90y_sirt3_visuals}
+\end{figure*}
 
+Across the test cohort, \wdtnv yields higher lesion TBR than \dtv, \wtnv, and SHKEM at the matched operating point, while background CoV differences are smaller and method-dependent. SHKEM reconstructions appeared visually smoother and, as in the phantom, appeared more effective at suppressing cold-background noise:
 \begin{figure}[htbp]
     \centering
-    \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/lehmer_vs_parallel_1bpos_ls_block_diag.png}
-        \caption{Count-limited PET.}
-    \end{subfigure}
-    \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/lehmer_vs_parallel_1bpos_ls_block_diag_SPECT.png}
-        \caption{SPECT represented on the PET grid.}
-    \end{subfigure}
-    \caption{Parallel-sum and Lehmer combinations for the Lewis--Sendov block-diagonal prior model. This experiment changes only the combination rule; lines and shading show the five-run mean and pointwise minimum--maximum over 20 matched data passes. The plot legend denotes the Lehmer order by $p$, whereas the text uses $q$.}
-    \label{fig:optim_lehmer_parallel}
+    \begin{subfigure}[b]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter6/patients/all_lesions_tbr_mean.png}
+    \end{subfigure}%
+    \hfill
+    \begin{subfigure}[b]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter6/patients/all_lesions_bg_cov.png}
+    \end{subfigure}%
+    \caption{Clinical cohort summary: lesion-wise mean TBR (left) and patient-wise background CoV (right). Statistical significance is reported for comparisons versus \wdtnv (BH-adjusted): $^*$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$.}
+    \label{fig:90y_patient_summary}
 \end{figure}
 
-For the Lewis--Sendov block model, $q=0.01$ is marginally better than the inverse-sum result in these curves, but the difference is small. This comparison does not establish that the same order is preferable for the MM-derived preconditioners. Chapter~\ref{chapter:paper} had already frozen the Lewis--Sendov block-diagonal model with $q=0.01$ before the broader benchmark in this chapter. Retaining it therefore provides protocol continuity, not a post-hoc claim that Lewis--Sendov or $q=0.01$ is universally optimal.
+\begin{table}[htbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{l c l l}
+\toprule
+Method & $\exp(\Delta)$ & 95\% CI & $p_{\mathrm{BH}}$ \\
+\midrule
+\dtv        & 0.802 & [0.758,\,0.849] & $<10^{-4}$ \\
+\wtnv       & 0.915 & [0.865,\,0.968] & 0.004 \\
+SHKEM (27)  & 0.935 & [0.884,\,0.990] & 0.020 \\
+\bottomrule
+\end{tabular}
+\caption{Effect ratios $\exp(\Delta)$ with 95\% confidence intervals and BH-adjusted $p$-values for mean tumour-to-background ratio (TBR), comparing each method to \wdtnv. Values below one indicate lower TBR than \wdtnv.}
+\label{tab:90y_effect_ratio_tb}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{l c l l}
+\toprule
+Method & $\exp(\Delta)$ & 95\% CI & $p_{\mathrm{BH}}$ \\
+\midrule
+\dtv        & 1.183 & [0.903,\,1.549] & 0.35 \\
+\wtnv       & 1.007 & [0.833,\,1.167] & 0.984 \\
+SHKEM (27)  & 1.339 & [0.933,\,1.913] & 0.093 \\
+\bottomrule
+\end{tabular}
+\caption{Effect ratios $\exp(\Delta)$ with 95\% confidence intervals and BH-adjusted $p$-values for background CoV, comparing each method to \wdtnv. Values above one indicate higher background CoV than \wdtnv.}
+\label{tab:90y_effect_ratio_cov}
+\end{table}
+
+\section{Discussion}
+\label{sec:90y_discussion}
+
+The phantom results indicate that functional coupling alone (\wtnv) is insufficient to recover small-sphere boundaries at the matched operating point, and that anatomical guidance (explicit in \wdtnv, implicit in SHKEM through CT-informed kernel features) is beneficial for boundary localisation. The recovery gain for \wdtnv relative to \wtnv and \dtv is most pronounced for the smallest spheres, consistent with guidance stabilising edge geometry when PET statistics are poor and SPECT resolution is limited.
+
+The reproducibility analysis highlights a trade-off: \dtv and \wtnv provide lower voxel-wise CoV than \wdtnv at the selected operating point, consistent with stronger effective smoothing. All three variational methods outperform SHKEM in background and high-count repeatability, whereas SHKEM is most stable in the cold lung insert. A plausible mechanism is that SHKEM kernel weights in near-zero regions favour local averaging among consistently low voxels, so ``zeros reinforce zeros'' under positivity constraints, improving cold-region stability while not necessarily improving reproducibility elsewhere.
+
+Notably, \dtv and \wtnv produced broadly similar PET appearances in the phantom, despite \dtv including $\mu$-directional guidance and \wtnv including PET/SPECT coupling. This suggests that, in this experiment, neither CTAC-derived directional guidance alone nor isotropic PET/SPECT coupling alone was sufficient to recover the smallest structures. The improved recovery observed with \wdtnv is therefore consistent with a complementary mechanism: the higher-count SPECT image provides additional functional support for the location of activity transitions, while the $\mu$-derived directional field reduces penalisation of gradients aligned with anatomical boundaries.
+
+Clinically, lesion responses to synergy and directional guidance are heterogeneous. Lesions with clear anatomical correlates (e.g.\ calcification or liver capsule boundaries visible in the $\mu$-map) tend to benefit more from $\mu$-guided anisotropy and PET/SPECT coupling, while lesions lacking such correlates may show limited benefit. This heterogeneity is consistent with the design goal of \wdtnv: CTAC guidance steers \emph{orientation} preferences, but cannot invent edges unsupported by the functional data.
+
+For example, lesion 2 in the training patient shows substantial improvement in the TBR--CoV trade-off as SPECT weighting is increased (Figure~\ref{fig:90y_tradeoff}). Post-hoc examination indicates that this lesion lies adjacent to a calcified region visible in the $\mu$-map, providing a sharp anatomical edge that coincides with the functional boundary. Lesion 3 also improves under both \wdtnv and \wtnv; this lesion abuts the liver on three sides, where the soft-tissue interface generates reasonably strong anatomical contrast. For \wdtnv, the $\mu$-map liver boundary provides explicit directional guidance aligned with the functional uptake margin, while for \wtnv the SPECT boundary may be sufficiently well defined to support PET/SPECT coupling even without directional CTAC guidance.
+
+Conversely, lesion 1 shows little benefit from increasing SPECT weighting until excessive weighting introduces negative bias. Visual inspection shows no obvious anatomical correlate at the tumour margin, and the PET and SPECT images appear already well aligned. The reason for this lesion's limited response to synergistic reconstruction remains unclear.
+
+A practical limitation is sensitivity to CTAC artefacts. Since $\xi_n$ in \eqref{eq:90y_xi_def} depends on $D\mu$, structured CT artefacts (e.g.\ arms-down streaking) can imprint into $\|\xi\|$ and therefore into the directional weighting field, providing a pathway for artefact transfer into the emission reconstructions. In the training patient, the low-dose PET CTAC was acquired with arms alongside the torso, introducing streaking and beam-hardening artefacts in the $\mu$-map. The stabiliser $\eta$ mitigates amplification of small gradients but cannot reliably suppress coherent high-contrast artefacts. SHKEM anatomical guidance was derived from the SPECT attenuation map, acquired with arms raised, rather than from the low-dose PET CTAC used to construct the \wdtnv directional weights; this difference in guidance input may contribute to the absence of streak-related artefacts in the SHKEM reconstructions.
+
+\begin{figure*}[t]
+    \centering
+    \begin{minipage}[t]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter6/patients/sirt3/axial_ddiff.png}\par
+        \textbf{Axial slice}.
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter6/patients/sirt3/coronal_ddiff.png}\par
+        \textbf{Coronal slice}.
+    \end{minipage}
+    \caption{Training-patient CTAC-derived guidance. The CTAC-derived attenuation map $\mu$ (top row; cm$^{-1}$) and magnitude of the \wdtnv directional weighting field $\|\xi\|$ (bottom row) are shown for lesions 1 and 2. CTAC streak artefacts are visible in $\mu$ and are reproduced in $\|\xi\|$, providing a pathway for artefact transfer into the emission reconstruction.}
+    \label{fig:90y_patient_ctac_xi}
+\end{figure*}
+
+The contrast with the NEMA phantom is instructive (Figure~\ref{fig:90y_nema_ctac_xi}). In the phantom, the CTAC is largely free of coherent streak artefacts and the resulting $\|\xi\|$ follows the true boundaries and insert edges. In this setting, directional smoothing attenuates small high-frequency fluctuations without introducing structured bias.
+
+\begin{figure}[hbtp]
+    \centering
+    \includegraphics[width=\linewidth]{figures/Chapter6/phantoms/manc_nema/axial_ddiff.png}
+    \caption{NEMA phantom, central axial slice. CTAC-derived attenuation map $\mu$ (left; cm$^{-1}$) and magnitude of the \wdtnv directional weighting field $\|\xi\|$ (right). With a high-quality CTAC free of prominent streak artefacts, $\|\xi\|$ concentrates around true object boundaries and insert edges, enabling stable $\mu$-map-guided directional smoothing.}
+    \label{fig:90y_nema_ctac_xi}
+\end{figure}
+
+These observations motivate future work on robust direction-field estimation and artefact-aware guidance strategies. From a practical perspective, if a low-dose CTAC is used to provide directional information, acquisition protocols that minimise artefacts, such as arms raised where feasible, are preferable.
+
+To preserve direct comparability with SHKEM, regularisation weights were selected once on the clinical training case and quantitative evaluation focused on PET\@. This means the robustness of the chosen weights across acquisition protocols and lesion presentations was not fully characterised. The jointly reconstructed SPECT images were assessed qualitatively only. Although they appeared visually less noisy while maintaining lesion conspicuity, a rigorous assessment of SPECT quantification would require modality-specific lesion delineation and evaluation protocols. The sensitivity of \wdtnv to residual PET/SPECT/CT registration error also remains an important topic for future work.
+
+More broadly, this chapter focuses on the favourable case in which PET and SPECT image the same underlying $^{90}$Y microsphere distribution. The same framework may be extendable to settings with non-identical functional distributions but shared anatomy, such as planning--treatment image pairs ($^{99\mathrm{m}}$Tc-MAA versus post-treatment $^{90}$Y), multi-nuclide imaging, or multi-timepoint studies. In such cases, the directional/anatomical component remains well motivated, but the inter-modality coupling strength may need to be relaxed or made spatially adaptive to avoid transferring modality-specific or temporally evolving uptake features.
 
 \section{Conclusion}
-\label{sec:optimisation_conclusion}
+\label{sec:90y_conclusion}
 
-Joint reconstruction of the PET bed positions is required for the edge-preserving prior to act consistently across their overlap; the qualitative example showed the noise and discontinuities that can remain after separate reconstruction and fusion. For the one-bed convergence study, modality-separated subsets converged faster than paired subsets under matched data-projection work, although they also performed twice as many parameter updates and prior-gradient evaluations per pass.
+This chapter validated the $w$-$d$TNV prior of Chapter~\ref{chapter:wdtnv} in joint $^{90}$Y PET/SPECT reconstruction with CTAC-derived directional guidance. The key modelling choice is to use CTAC information directionally (via $\Pi_{m,n}$) while preserving a two-modality Jacobian, retaining the computational advantages of the $2\times 2$ Gram structure (Chapter~\ref{chapter:wdtnv}) and avoiding unstable intensity coupling to CT.
 
-Prior-aware preconditioning was required for stable convergence of the count-limited PET reconstruction under the tested shared step schedule. SPECT was more robust, and data-only BSREM was sometimes competitive, suggesting that the prior-aware methods can be conservative for that modality. The four prior-curvature models behaved similarly overall, with no universal winner. Increasing the common initial step improved SPECT but destabilised PET, motivating modality-dependent relaxation as future work.
-
-The Lewis--Sendov Lehmer experiment found only a small advantage for $q=0.01$ over the parallel sum. Chapter~\ref{chapter:paper} retains the previously frozen Lewis--Sendov block-diagonal/$q=0.01$ configuration for protocol continuity. Its use in that chapter should not be interpreted as selection of the best method after the wider comparison reported here.
+On a bootstrapped NEMA IEC phantom, \wdtnv improves small-object recovery relative to \wtnv, \dtv, and a sequential hybrid kernel baseline at a matched noise operating point, with significant gains over the isotropic and non-synergistic variational baselines. Repeatability improves relative to SHKEM in the background and high-count regions, although it is reduced relative to the more strongly smoothing \wtnv and \dtv baselines and SHKEM remains most stable in the cold lung insert. In a post-SIRT patient cohort of 45 lesions in nine patients, \wdtnv yields significantly higher lesion TBR than the comparators at approximately matched background CoV. Lesion responses are heterogeneous: lesions with clear anatomical correlates, such as calcification or liver boundaries, benefit most from synergy and $\mu$-map-informed edge alignment, whereas lesions without corresponding anatomical structure show more limited improvement. These findings support CTAC-guided synergistic variational coupling as a practical route towards more reliable post-SIRT $^{90}$Y activity imaging for personalised dosimetry, while highlighting the need for careful handling of CT artefacts and PET/SPECT/CT registration in clinical translation.
