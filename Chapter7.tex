@@ -373,7 +373,30 @@ For each sphere size, many-to-one contrasts compare each method to the reference
 
 Clinical data were acquired at Oxford University Hospitals from 10 patients undergoing $^{90}$Y \glsentryshort{sirt}: one patient was used for hyperparameter selection and nine for testing. \glsentryshort{pet} was acquired on a GE Discovery 710 PET/CT system and \glsentryshort{spect} on a GE Discovery NM/CT 670 system. Informed consent is not necessary for retrospective image reviews of this nature at Oxford University Hospitals. \glsentryshort{pet} was acquired with two bed positions (\SI{15}{\minute} each) and \glsentryshort{spect} with \SI{15}{\minute}. Energy windows were $50$--$150~\mathrm{keV}$.
 
-Tumour \glspl{voi} were delineated once per patient on the vendor Q.Clear $\beta$-4000 \glsentryshort{pet} reconstruction using an automatic gradient-based method \cite{mikellImpact90YPET2018} and propagated unchanged across reconstructions so that differences reflected reconstruction effects rather than VOI definition. A homogeneous liver background \glsentryshort{voi} was drawn manually, avoiding motion and visible artefacts. The training-patient lesion and background VOIs are shown in Figure~\ref{fig:90y_sirt3_rois}.
+Tumour \glspl{voi} were delineated once per patient on the vendor Q.Clear
+$\beta$-4000 \glsentryshort{pet} reconstruction using an adapted automatic
+radial-gradient method based on Mikell \textit{et al.}
+\cite{mikellImpact90YPET2018}. Candidate seed voxels were processed in
+descending order of intensity, with a minimum seed separation of
+\SI{30}{\milli\metre}. From each seed, the lesion boundary was estimated along
+radial rays after Gaussian smoothing ($\sigma=0.1$); each ray was limited to a
+maximum length of \SI{25}{\milli\metre} and a background-adjusted intensity
+floor $I_{\mathrm{bkg}}+0.42(I_{\mathrm{seed}}-I_{\mathrm{bkg}})$, where
+$I_{\mathrm{bkg}}$ is the mean intensity in the manually defined homogeneous
+liver background \glsentryshort{voi}. The 42\% fraction was motivated by the
+PET lesion-delineation thresholds reported by Erdi \textit{et al.}
+\cite{erdiSegmentationLungLesion1997}. Masks containing fewer than 10 voxels
+were discarded, and the five highest-ranked non-overlapping masks were
+retained; where candidate masks overlapped, the mask originating from the
+hotter seed took precedence. These \glspl{voi} were propagated unchanged
+across all reconstructions so that measured differences reflected
+reconstruction effects rather than \glsentryshort{voi} definition. Further
+implementation details are provided in
+Appendix~\ref{app:lesion_voi_delineation}.
+
+A homogeneous liver background \glsentryshort{voi} was drawn manually,
+avoiding motion and visible artefacts. The training-patient lesion and
+background \glspl{voi} are shown in Figure~\ref{fig:90y_sirt3_rois}.
 
 \begin{figure}[htbp]
     \centering
