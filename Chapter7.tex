@@ -17,7 +17,7 @@ Two $^{90}$Y modalities are clinically available:
 \end{itemize}
 Both modalities are typically acquired alongside CT for attenuation correction and anatomical localisation. Since PET and SPECT image the same underlying microsphere distribution while CTAC provides structural rather than activity information, independent reconstruction discards both a strong physical coupling and useful anatomical context.
 
-The sequential hybrid kernel expectation--maximisation (SHKEM) method of Deidda \textit{et al.} improves lesion contrast by reconstructing one modality to guide another \cite{deiddaTripleModalityImage2023, deiddaHybridKernelisedExpectation2022}. However, the sequential construction remains sensitive to iteration choice and noise amplification. This motivates a truly joint MAP formulation with a coupled regulariser that promotes shared geometry while allowing modality-specific contrast.
+The \gls{shkem} method of Deidda \textit{et al.} improves lesion contrast by reconstructing one modality to guide another \cite{deiddaTripleModalityImage2023, deiddaHybridKernelisedExpectation2022}. However, the sequential construction remains sensitive to iteration choice and noise amplification. This motivates a truly joint MAP formulation with a coupled regulariser that promotes shared geometry while allowing modality-specific contrast.
 
 \section{Joint MAP formulation for PET/SPECT}
 \label{sec:90y_joint_map}
@@ -58,7 +58,7 @@ As in Section~\ref{subsec:directional_from_guidance}, we use CT information dire
 \begin{equation}
 \xi_n
 =
-\frac{(D\mu)_n}{\|(D\mu)_n\|_2 + \eta},
+\frac{(D\mu)_n}{\sqrt{\|(D\mu)_n\|_2^2 + \eta^2}},
 \qquad
 \eta = 0.05\cdot \max_{n}\|(D\mu)_n\|_2,
 \label{eq:90y_xi_def}
@@ -69,7 +69,7 @@ We can then form the modality-wise directional operators $\Pi_{m,n}\in\mathbb{R}
 \begin{equation}
 \Pi_{m,n}
 =
-I_d - \gamma_m\,\xi_n\xi_n^\top,
+\mathbb{I}_d - \gamma_m\,\xi_n\xi_n^\top,
 \qquad
 \gamma_m\in[0,1].
 \label{eq:90y_Pi_def}
@@ -79,7 +79,7 @@ Unless stated otherwise, we set $\gamma_1=\gamma_2=1$. Since $\xi_n$ is stabilis
 \subsection{Global modality normalisation as a constant diagonal weighting}
 \label{subsec:90y_global_weights}
 
-Chapter~\ref{chapter:wdtnv} introduced a general voxel-wise diagonal modality weighting $B_n=\mathrm{diag}(\beta_{1,n},\ldots,\beta_{M,n})$. In the present study we use a spatially uniform normalisation to mitigate the dominant scale disparity between $^{90}$Y PET and bremsstrahlung SPECT:
+Chapter~\ref{chapter:wdtnv} introduced a general voxel-wise diagonal modality weighting $B_n=\mathrm{diag}(\rho_{1,n},\ldots,\rho_{M,n})$. In the present study we use a spatially uniform normalisation to mitigate the dominant scale disparity between $^{90}$Y PET and bremsstrahlung SPECT:
 \begin{equation}
 B_n \equiv B := \mathrm{diag}(\rho_1,\rho_2),
 \qquad \rho_1,\rho_2>0.
@@ -121,7 +121,7 @@ This follows the ``extended Jacobian'' motivation for TNV-type coupling \cite{ho
 
 Using the notation of Chapter~\ref{chapter:wdtnv}, we form the guided gradients $\Pi_{m,n}(D z_m)_n\in\mathbb{R}^d$ and define the weighted directional Jacobian
 \begin{equation}
-Y_n := Y^{\mathrm{w\text{-}dTNV}}_n(\bm{z})
+\tilde{\mathcal{G}}_n := \tilde{\mathcal{G}}^{\mathrm{w\text{-}dTNV}}_n(\bm{z})
 =
 \left[\Pi_{1,n}(D z_1)_n \;\Big|\; \Pi_{2,n}(D z_2)_n\right]\,B
 \in\mathbb{R}^{d\times 2}.
@@ -131,7 +131,7 @@ The regulariser is the smoothed spectral potential introduced in Chapter~\ref{ch
 \begin{equation}
 \tilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}(\bm{z})
 =
-V_{\mathrm{vox}}\sum_{n=1}^{N}\phi(Y_n),
+V_{\mathrm{vox}}\sum_{n=1}^{N}\phi(\tilde{\mathcal{G}}_n),
 \qquad
 \phi(Y)=\sum_{\ell=1}^{2} g(\sigma_\ell(Y)),
 \label{eq:90y_R_def}
@@ -140,21 +140,21 @@ where $g$ is the Charbonnier smoothing (Equation~\ref{eq:charbonnier_g}) and $\s
 \begin{equation}
 \epsilon
 =
-0.05\cdot \mathrm{median}_{n\in\Omega'}\,\sigma_1\!\left(Y_n^{\mathrm{init}}\right),
+0.05\cdot \mathrm{median}_{n\in\Omega'}\,\sigma_1\!\left(\tilde{\mathcal{G}}_n^{\mathrm{init}}\right),
 \qquad
-Y_n^{\mathrm{init}}:=Y^{\mathrm{w\text{-}dTNV}}_n(\bm{z}^{\mathrm{init}}),
+\tilde{\mathcal{G}}_n^{\mathrm{init}}:=\tilde{\mathcal{G}}^{\mathrm{w\text{-}dTNV}}_n(\bm{z}^{\mathrm{init}}),
 \label{eq:90y_epsilon_def}
 \end{equation}
 with $\bm{z}^{\mathrm{init}}=(W_1 x_1^{\mathrm{init}},W_2 x_2^{\mathrm{init}})$.
 
-If $\Pi_{2,n}(D z_2)_n\approx 0$ at some voxel (e.g.\ SPECT locally uniform after guidance), then $Y_n$ has an effectively single nonzero column and $\phi(Y_n)$ reduces to a TV-type penalty on the remaining modality column. This is the same ``no forced edges'' behaviour discussed in Chapter~\ref{chapter:wdtnv}.
+If $\Pi_{2,n}(D z_2)_n\approx 0$ at some voxel (e.g.\ SPECT locally uniform after guidance), then $\tilde{\mathcal{G}}_n$ has an effectively single nonzero column and $\phi(\tilde{\mathcal{G}}_n)$ reduces to a TV-type penalty on the remaining modality column. This is the same ``no forced edges'' behaviour discussed in Chapter~\ref{chapter:wdtnv}.
 
 \subsection{Ablation comparators}
 \label{subsec:90y_ablations}
 
-To separate the contributions of PET/SPECT coupling and CTAC-derived directional guidance, we compare \wdtnv with two variational ablations. The first is weighted TNV (\wtnv), which keeps the two-modality Jacobian and the same modality normalisation but removes directional CTAC guidance by setting $\Pi_{m,n}=I_d$ for both modalities:
+To separate the contributions of PET/SPECT coupling and CTAC-derived directional guidance, we compare \wdtnv with two variational ablations. The first is weighted TNV (\wtnv), which keeps the two-modality Jacobian and the same modality normalisation but removes directional CTAC guidance by setting $\Pi_{m,n}=\mathbb{I}_d$ for both modalities:
 \begin{equation}
-Y_n^{\mathrm{w\text{-}TNV}}(\bm{z})
+\tilde{\mathcal{G}}_n^{\mathrm{w\text{-}TNV}}(\bm{z})
 =
 \left[(D z_1)_n \;\Big|\; (D z_2)_n\right]B.
 \end{equation}
@@ -204,7 +204,7 @@ and apply a projected voxel-block-preconditioned update
 \bm{z}^{(k+1)}
 =
 \left\{
-\bm{z}^{(k)} - \varsigma^{(k)} P^{(k)} g^{(k)}
+\bm{z}^{(k)} - \varsigma^{(k)} \mathcal{P}^{(k)} g^{(k)}
 \right\}_{\ge 0},
 \label{eq:90y_update}
 \end{equation}
@@ -223,35 +223,35 @@ Reconstructions were run for 250 epochs, corresponding to approximately 500 full
 
 For modality $m$, the data component is the EM-type scaling \cite{depierroFastEMlikeMethods2001,ahnGloballyConvergentOrdered2002}
 \begin{equation}
-    P_{\mathrm{data},m}
+    \mathcal{P}_{\mathrm{data},m}
     =
     z_m \oslash \left(W_m A_m^\top \mathbf{1}\right),
     \label{eq:90y_Pdata}
 \end{equation}
 represented on the shared grid. At voxel $n$, these modality-specific values form the diagonal block
 \begin{equation}
-    P_{\mathrm D,n}
+    \mathcal{P}_{\mathrm D,n}
     =
     \begin{pmatrix}
-        P_{\mathrm{data},1,n} & 0\\
-        0 & P_{\mathrm{data},2,n}
+        \mathcal{P}_{\mathrm{data},1,n} & 0\\
+        0 & \mathcal{P}_{\mathrm{data},2,n}
     \end{pmatrix}.
     \label{eq:90y_PD_block}
 \end{equation}
-The prior component $P_{\mathcal R,n}$ is obtained by inverting the Lewis--Sendov voxel-block diagonal of the exact smoothed spectral Hessian described in Section~\ref{subsec:optimisation_prior_preconditioning}. It retains the PET/SPECT cross-curvature within each $2\times2$ voxel block while discarding spatial off-diagonal blocks. The prior blocks are recomputed once per epoch using the smoothed spectral Hessian and its voxel-wise singular-value decompositions, then held fixed within that epoch.
+The prior component $\mathcal{P}_{\mathcal R,n}$ is obtained by inverting the Lewis--Sendov voxel-block diagonal of the exact smoothed spectral Hessian described in Section~\ref{subsec:optimisation_prior_preconditioning}. It retains the PET/SPECT cross-curvature within each $2\times2$ voxel block while discarding spatial off-diagonal blocks. The prior blocks are recomputed once per epoch using the smoothed spectral Hessian and its voxel-wise singular-value decompositions, then held fixed within that epoch.
 
-After applying an eigenvalue floor $p_{\min}=10^{-6}$ to both operands, the application combines them using the scaled matrix Lehmer construction from Equation~\eqref{eq:matrix_lehmer_combination}. Specifically,
+After applying an eigenvalue floor $\lambda_{\min}=10^{-6}$ to both operands, the application combines them using the scaled matrix Lehmer construction from Equation~\eqref{eq:matrix_lehmer_combination}. Specifically,
 \begin{equation}
-    C_n=P_{\mathrm D,n}^{-1/2}P_{\mathcal R,n}P_{\mathrm D,n}^{-1/2},
+    C_n=\mathcal{P}_{\mathrm D,n}^{-1/2}\mathcal{P}_{\mathcal R,n}\mathcal{P}_{\mathrm D,n}^{-1/2},
     \qquad
-    P_n
+    \mathcal{P}_n
     =
-    \frac{1}{2}P_{\mathrm D,n}^{1/2}f_q(C_n)P_{\mathrm D,n}^{1/2},
+    \frac{1}{2}\mathcal{P}_{\mathrm D,n}^{1/2}f_p(C_n)\mathcal{P}_{\mathrm D,n}^{1/2},
     \qquad
-    f_q(t)=\frac{t^q+1}{t^{q-1}+1},
+    f_p(t)=\frac{t^p+1}{t^{p-1}+1},
     \label{eq:90y_lehmer_preconditioner}
 \end{equation}
-with $q=0.01$. At $q=0$ this expression is the parallel sum. The Lewis--Sendov/$q=0.01$ setting was frozen for this application before the broader optimisation benchmark in Chapter~\ref{chapter:optimisation}; its use here reflects protocol continuity rather than selection as the universally best preconditioner.
+with $p=0.01$. At $p=0$ this expression is the parallel sum. The Lewis--Sendov/$p=0.01$ setting was frozen for this application before the broader optimisation benchmark in Chapter~\ref{chapter:optimisation}; its use here reflects protocol continuity rather than selection as the universally best preconditioner.
 
 \subsection{Comparator: sequential hybrid kernel EM}
 \label{subsec:90y_shkem}
@@ -307,7 +307,7 @@ All quantitative image analysis is performed on PET reconstructions to preserve 
 \subsection{Phantom data}
 \label{subsec:90y_phantom}
 
-A \glsentryshort{nema} \glsentryshort{iec} Body Phantom with a sphere-to-background ratio of 8 was scanned at The Christie Hospital using a Siemens Biograph mCT PET/CT system and a GE Discovery 670 SPECT/CT system. \glsentryshort{pet} was acquired over \SI{15}{\hour} and \glsentryshort{spect} over \SI{15}{\minute}. From the \SI{15}{\hour} \glsentryshort{pet} acquisition, $B=20$ statistically independent \glsentryshort{pet} datasets equivalent to \SI{15}{\minute} were generated by sinogram bootstrapping \cite{markiewiczAssessmentBootstrapResampling2014}. The SPECT energy window was $39.84$--$128.16~\mathrm{keV}$.
+A \glsentryshort{nema} \glsentryshort{iec} Body Phantom with a sphere-to-background ratio of 8 was scanned at The Christie Hospital using a Siemens Biograph mCT PET/CT system and a GE Discovery 670 SPECT/CT system. \glsentryshort{pet} was acquired over \SI{15}{\hour} and \glsentryshort{spect} over \SI{15}{\minute}. From the \SI{15}{\hour} \glsentryshort{pet} acquisition, $N_{\mathrm{bs}}=20$ statistically independent \glsentryshort{pet} datasets equivalent to \SI{15}{\minute} were generated by sinogram bootstrapping \cite{markiewiczAssessmentBootstrapResampling2014}. The SPECT energy window was $39.84$--$128.16~\mathrm{keV}$.
 
 We quantify \glsentryshort{pet} reproducibility across bootstraps via voxel-wise \acrfull{cov}, and \glsentryshort{pet} quantification via \acrfullpl{rc} for spheres of diameters \SI{10}{mm}, \SI{13}{mm}, \SI{22}{mm}, \SI{28}{mm}, and \SI{37}{mm}. Three \glspl{voi} were defined (Figure~\ref{fig:90y_nema_bootstrap_overview}): a high-count (HC) VOI comprising five filled spheres (one sphere was excluded due to filling issues), a warm-background (BG) VOI comprising the phantom volume excluding the spheres plus a \SI{10}{mm} margin and excluding the lung insert plus a \SI{5}{mm} margin, and the cold lung insert (LI).
 
@@ -326,47 +326,47 @@ We quantify \glsentryshort{pet} reproducibility across bootstraps via voxel-wise
     \label{fig:90y_nema_bootstrap_overview}
 \end{figure}
 
-Let $x^{(r)}_{b,j}$ be the reconstructed PET intensity at voxel $j$ for method $r$ in bootstrap realisation $b\in\{1,\dots,B\}$. Define the inter-bootstrap mean and standard deviation
+Let $x^{(c)}_{\mathrm{bs},j}$ be the reconstructed PET intensity at voxel $j$ for method $c$ in bootstrap realisation $\mathrm{bs}\in\{1,\dots,N_{\mathrm{bs}}\}$. Define the inter-bootstrap mean and standard deviation
 \begin{equation}
-\mu^{(r)}_j := \frac{1}{B}\sum_{b=1}^{B} x^{(r)}_{b,j},
+\bar x^{(c)}_j := \frac{1}{N_{\mathrm{bs}}}\sum_{\mathrm{bs}=1}^{N_{\mathrm{bs}}} x^{(c)}_{\mathrm{bs},j},
 \qquad
-s^{(r)}_j := \sqrt{\frac{\sum_{b=1}^{B}\left(x^{(r)}_{b,j}-\mu^{(r)}_j\right)^2}{B-1}},
+\mathrm{SD}^{(c)}_j := \sqrt{\frac{\sum_{\mathrm{bs}=1}^{N_{\mathrm{bs}}}\left(x^{(c)}_{\mathrm{bs},j}-\bar x^{(c)}_j\right)^2}{N_{\mathrm{bs}}-1}},
 \end{equation}
 and voxel-wise
 \begin{equation}
-\mathrm{CoV}^{(r)}_j = \frac{s^{(r)}_j}{\mu^{(r)}_j}.
+\mathrm{CoV}^{(c)}_j = \frac{\mathrm{SD}^{(c)}_j}{\bar x^{(c)}_j}.
 \end{equation}
 For a \glsentryshort{voi} $\mathcal{V}$ we report the \glsentryshort{voi}-averaged statistic
 \begin{equation}
-T^{(r)}_{\mathcal{V}}=\frac{1}{|\mathcal{V}|}\sum_{j\in \mathcal{V}} \mathrm{CoV}^{(r)}_{j}.
+T^{(c)}_{\mathcal{V}}=\frac{1}{|\mathcal{V}|}\sum_{j\in \mathcal{V}} \mathrm{CoV}^{(c)}_{j}.
 \end{equation}
 
-For sphere $s$, let $\bar{C}^{(r)}_{b,s}$ denote the mean reconstructed intensity within the sphere and $\bar{C}^{(r)}_{b,\mathrm{bkg}}$ the mean within BG for the same $(r,b)$. With true ratio $R_{\mathrm{true}}=8$, define
+For sphere $v$, let $\bar{C}^{(c)}_{\mathrm{bs},v}$ denote the mean reconstructed intensity within the sphere and $\bar{C}^{(c)}_{\mathrm{bs},\mathrm{bkg}}$ the mean within BG for the same $(c,\mathrm{bs})$. With true ratio $R_{\mathrm{true}}=8$, define
 \begin{equation}
-\mathrm{RC}^{(r)}_{b,s} = \frac{\bar{C}^{(r)}_{b,s}}{\bar{C}^{(r)}_{b,\mathrm{bkg}}\,R_{\mathrm{true}}}.
+\mathrm{RC}^{(c)}_{\mathrm{bs},v} = \frac{\bar{C}^{(c)}_{\mathrm{bs},v}}{\bar{C}^{(c)}_{\mathrm{bs},\mathrm{bkg}}\,R_{\mathrm{true}}}.
 \end{equation}
 
-To assess statistical significance of inter-bootstrap CoV, we compare each method $r$ with the reference $r_0=\wdtnv$ using a paired row-swap permutation test on $\log(T^{(r)}_{\mathcal{V}})$. Let $X^{(r)}_{\mathcal{V}}\in\mathbb{R}^{B\times|\mathcal{V}|}$ be the bootstrap-by-voxel stack restricted to VOI $\mathcal{V}$, and define the observed difference $\Delta=\log(T^{(r_0)}_{\mathcal{V}})-\log(T^{(r)}_{\mathcal{V}})$. Under the null of exchangeability, each bootstrap index is independently swapped between the paired stacks with probability $1/2$ to form permuted differences $\Delta_{\mathrm{perm}}$. We use $N_{\mathrm{perm}}=5000$ permutations and compute the two-sided p-value
+To assess statistical significance of inter-bootstrap CoV, we compare each method $c$ with the reference $c_0=\wdtnv$ using a paired row-swap permutation test on $\log(T^{(c)}_{\mathcal{V}})$. Let $X^{(c)}_{\mathcal{V}}\in\mathbb{R}^{N_{\mathrm{bs}}\times|\mathcal{V}|}$ be the bootstrap-by-voxel stack restricted to VOI $\mathcal{V}$, and define the observed difference $d_{\mathrm{obs}}=\log(T^{(c_0)}_{\mathcal{V}})-\log(T^{(c)}_{\mathcal{V}})$. Under the null of exchangeability, each bootstrap index is independently swapped between the paired stacks with probability $1/2$ to form permuted differences $d_{\mathrm{perm}}$. We use $N_{\mathrm{perm}}=5000$ permutations and compute the two-sided p-value
 \begin{equation}
 p =
-\frac{1+\sum_{i=1}^{N_{\mathrm{perm}}}\mathbf{1}\!\left(|\Delta_{\mathrm{perm},i}|\ge |\Delta|\right)}
+\frac{1+\sum_{i=1}^{N_{\mathrm{perm}}}\mathbf{1}\!\left(|d_{\mathrm{perm},i}|\ge |d_{\mathrm{obs}}|\right)}
 {N_{\mathrm{perm}}+1},
 \end{equation}
 with \acrfull{bh} adjustment across methods within each VOI\@. No thresholding was applied to exclude near-zero voxels, so CoV estimates in the cold lung insert should be interpreted as a noise-realisation stability measure rather than a conventional percentage variability around a substantial mean signal.
 
 Inference for RC uses a linear mixed model on
 \begin{equation}
-y_{b,r,s} := \log\!\left(\mathrm{RC}^{(r)}_{b,s}\right),
-\qquad b=1,\ldots,B,
+y_{\mathrm{bs},c,v} := \log\!\left(\mathrm{RC}^{(c)}_{\mathrm{bs},v}\right),
+\qquad \mathrm{bs}=1,\ldots,N_{\mathrm{bs}},
 \end{equation}
 with a random intercept for bootstrap replicate and fixed effects for method, sphere, and their interaction:
 \begin{align}
-y_{b,r,s} &= \beta_0 + \alpha_r + \gamma_s + (\alpha\gamma)_{r,s} + u_b + \varepsilon_{b,r,s}, \nonumber \\
-u_b &\overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau_b^2),
+y_{\mathrm{bs},c,v} &= \beta_0 + \alpha_c + \gamma_v + (\alpha\gamma)_{c,v} + u_{\mathrm{bs}} + \varepsilon_{\mathrm{bs},c,v}, \nonumber \\
+u_{\mathrm{bs}} &\overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau_{\mathrm{bs}}^2),
 \qquad
-\varepsilon_{b,r,s} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2).
+\varepsilon_{\mathrm{bs},c,v} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2).
 \end{align}
-For each sphere size, many-to-one contrasts compare each method to the reference $r_0=\wdtnv$, with Benjamini--Hochberg adjustment across planned comparisons within that sphere. Since the model is fitted on the log scale, $\exp(\Delta_{r,s})<1$ indicates lower recovery than \wdtnv for sphere $s$.
+For each sphere size, many-to-one contrasts compare each method to the reference $c_0=\wdtnv$, with Benjamini--Hochberg adjustment across planned comparisons within that sphere. Since the model is fitted on the log scale, $\exp(\Delta_{c,v})<1$ indicates lower recovery than \wdtnv for sphere $v$.
 
 \subsection{Clinical data}
 \label{subsec:90y_clinical}
@@ -410,36 +410,36 @@ Tumour \glspl{voi} were delineated once per patient on the vendor Q.Clear $\beta
     \label{fig:90y_sirt3_rois}
 \end{figure}
 
-For patient $p$, lesion $l$, and method $r$, define \acrfull{tbr}
+For patient $p$, lesion $l$, and method $c$, define \acrfull{tbr}
 \begin{equation}
-\mathrm{TBR}_{p,l,r}=\frac{\bar{C}_{p,l,r}}{\bar{C}_{p,\mathrm{bkg},r}},
+\mathrm{TBR}_{p,l,c}=\frac{\bar{C}_{p,l,c}}{\bar{C}_{p,\mathrm{bkg},c}},
 \end{equation}
 and background noise (percentage CoV)
 \begin{equation}
-\mathrm{CoV}_{p,r}(\%) = 100\,\frac{s_{p,r}}{\bar{C}_{p,\mathrm{bkg},r}},
+\mathrm{CoV}_{p,c}(\%) = 100\,\frac{\mathrm{SD}_{p,c}}{\bar{C}_{p,\mathrm{bkg},c}},
 \end{equation}
-where $s_{p,r}$ is the within-background-VOI standard deviation.
+where $\mathrm{SD}_{p,c}$ is the within-background-VOI standard deviation.
 
 We analyse $\log(\mathrm{TBR})$ using a linear mixed-effects model with fixed method effects and random intercepts for patient and lesion-within-patient:
 \begin{equation}
 \begin{aligned}
-y_{p,l,r} &:= \log\!\left(\mathrm{TBR}_{p,l,r}\right)
-= \beta_0 + \alpha_r + u_p + v_{p,l} + \varepsilon_{p,l,r},\\
+y_{p,l,c} &:= \log\!\left(\mathrm{TBR}_{p,l,c}\right)
+= \beta_0 + \alpha_c + u_p + v_{p,l} + \varepsilon_{p,l,c},\\
 u_p &\overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2_{\mathrm{p}}),
 \qquad
 v_{p,l} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2_{\mathrm{l}}),
 \qquad
-\varepsilon_{p,l,r} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2).
+\varepsilon_{p,l,c} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2).
 \end{aligned}
 \end{equation}
 Background noise is analysed analogously at the patient level using
 \begin{equation}
 \begin{aligned}
-z_{p,r} &:= \log\!\left(\mathrm{CoV}_{p,r}(\%)\right)
-= \beta_0 + \alpha_r + u_p + \varepsilon_{p,r},\\
+y^{\mathrm{CoV}}_{p,c} &:= \log\!\left(\mathrm{CoV}_{p,c}(\%)\right)
+= \beta_0 + \alpha_c + u_p + \varepsilon_{p,c},\\
 u_p &\overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2_{\mathrm{p,CoV}}),
 \qquad
-\varepsilon_{p,r} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\psi^2).
+\varepsilon_{p,c} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\psi^2).
 \end{aligned}
 \end{equation}
 Planned many-to-one contrasts compare \dtv, \wtnv, and SHKEM to \wdtnv, with \glsentryshort{bh} adjustment across the three comparisons within each endpoint. Results are reported as ratios $\exp(\Delta)$ on the original scale, where values below one indicate lower TBR or lower background CoV than \wdtnv.
@@ -519,7 +519,7 @@ Figure~\ref{fig:90y_rc_spheres_comparison} and Table~\ref{tab:90y_effect_ratio_r
 \setlength{\tabcolsep}{5pt}
 \begin{tabular}{l l c l l}
 \toprule
-Method & $s$ & $\exp(\Delta_{r,s})$ & 95\% CI & $p_{\mathrm{BH}}$ \\
+Method & $v$ & $\exp(\Delta_{c,v})$ & 95\% CI & $p_{\mathrm{BH}}$ \\
 \midrule
 \dtv & 37\,mm & 0.9113 & [0.8001,\,1.0380] & 0.2472 \\
      & 28\,mm & 0.8543 & [0.7500,\,0.9730] & 0.0267 \\
@@ -540,7 +540,7 @@ SHKEM (27) & 37\,mm & 0.9931 & [0.8720,\,1.1312] & 0.9175 \\
            & 10\,mm & 0.7381 & [0.6480,\,0.8407] & $<10^{-4}$ \\
 \bottomrule
 \end{tabular}
-\caption{Effect ratios $\exp(\Delta_{r,s})$ (comparator vs.\ baseline \wdtnv) with 95\% confidence intervals and BH-adjusted $p$-values, reported by sphere diameter $s$. Values below one indicate lower recovery coefficient than \wdtnv.}
+\caption{Effect ratios $\exp(\Delta_{c,v})$ (comparator vs.\ baseline \wdtnv) with 95\% confidence intervals and BH-adjusted $p$-values, reported by sphere diameter $v$. Values below one indicate lower recovery coefficient than \wdtnv.}
 \label{tab:90y_effect_ratio_rc}
 \end{table}
 

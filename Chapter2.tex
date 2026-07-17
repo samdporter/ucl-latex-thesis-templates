@@ -45,7 +45,7 @@ Since the term $\sum_{i=1}^I \log(y_i!)$ does not depend on $x$, it can be dropp
 = \sum_{i=1}^I \left( \bar{y}_i(x) - y_i \log \bar{y}_i(x) \right).
  \end{equation}
 
-Unconstrained \gls{ml} solutions are dominated by noise due to the poor conditioning of $A$ and the Poisson noise inherent in $y$. While iterative \gls{em} methods such as MLEM and OSEM \cite{dempsterMaximumLikelihoodIncomplete1977, sheppMaximumLikelihoodReconstruction1982} are the clinical standard, they rely on early stopping to act as an implicit regulariser. This yields clinically acceptable images but introduces solution-dependent bias that may not give reliable quantitative metrics \cite{veklerovStoppingRuleMLE1987}. In addition, finding the \gls{ml} solution for quantification can be prohibitively slow \cite{wuConvergencePropertiesEM1983}.
+Unconstrained \gls{ml} solutions are dominated by noise due to the poor conditioning of $A$ and the Poisson noise inherent in $y$. While iterative \gls{em} methods such as \gls{mlem} and \gls{osem} \cite{dempsterMaximumLikelihoodIncomplete1977, sheppMaximumLikelihoodReconstruction1982} are the clinical standard, they rely on early stopping to act as an implicit regulariser. This yields clinically acceptable images but introduces solution-dependent bias that may not give reliable quantitative metrics \cite{veklerovStoppingRuleMLE1987}. In addition, finding the \gls{ml} solution for quantification can be prohibitively slow \cite{wuConvergencePropertiesEM1983}.
 
 A robust alternative to early stopping is the Bayesian formulation. By Bayes' rule, we have
 \begin{equation}
@@ -129,11 +129,11 @@ For optimisation, it is common to use a smooth approximation to avoid nondiffere
 In clinical practice, adaptable edge-preserving priors are often preferred. The \gls{rdp} \cite{nuytsConcavePriorPenalizing2002}, the core component of the GE ``Q.Clear'' algorithm, modifies the penalty to depend on the absolute intensity sums, penalising relative differences, as opposed to absolute ones.
 \begin{equation}
     \mathcal{R}_{\mathrm{RDP}}(x)
-    = \sum_{j=1}^J \sum_{k \in \mathcal{N}_j} w_{jk}
-    \frac{(x_j-x_k)^2}{(x_j+x_k) + \gamma|x_j-x_k|},
+    = \frac{1}{2}\sum_{j=1}^J \sum_{k \in \mathcal{N}_j} w_{jk}
+    \frac{(x_j-x_k)^2}{x_j+x_k + \gamma|x_j-x_k| + \epsilon},
 \end{equation}
-with $\gamma$ controlling the amount of edge preservation. Note that if $(x_j+x_k)\gg \gamma|x_j-x_k|$ then $\mathcal R_{\mathrm{RDP}}$ behaves like a relative quadratic prior,
-whereas if $\gamma|x_j-x_k|\gg (x_j+x_k)$ it behaves like an anisotropic \gls{tv} penalty (up to the factor $1/\gamma$).
+with $\gamma$ controlling the amount of edge preservation and $\epsilon\geq0$ the STIR RDP stabiliser. Positive $\epsilon$ regularises zero-valued voxel pairs; when $\epsilon=0$, STIR assigns the zero--zero contribution its limiting value of zero. Note that if $(x_j+x_k+\epsilon)\gg \gamma|x_j-x_k|$ then $\mathcal R_{\mathrm{RDP}}$ behaves like a relative quadratic prior,
+whereas if $\gamma|x_j-x_k|\gg (x_j+x_k+\epsilon)$ it behaves like an anisotropic \gls{tv} penalty (up to a constant factor).
 
 \subsection{Anatomically Guided Regularisation}
 In low-count regimes, single-modality priors struggle to distinguish between noise and legitimate small structures. Anatomically guided reconstruction uses a high-resolution structural image $u$ (e.g., \gls{ct}) to modulate the regularisation of the emission image $x$.
@@ -149,28 +149,28 @@ and sets $\mathcal{B}_j(u)$ to be the indices of the $B$ smallest values of $d_{
 \end{equation}
 (or an alternative edge-preserving potential). By restricting the penalty to neighbours that are locally homogeneous in $u$, the prior encourages smoothing within anatomical regions while reducing smoothing across anatomical edges, thereby allowing sharp boundaries to form in $x$ when they are supported by the guidance image.
 
-An even more geometric framework is \gls{pls} \cite{ehrhardtVectorValuedImageProcessing2014}. These methods encourage structural consistency by encouraging the gradient vectors of the emission image and the guidance image to be aligned, i.e.\ $D x_j \parallel D u_j$. A common formulation (often termed \gls{pls}1) penalises the magnitude of the component of $D x_j$ orthogonal to $D u_j$, which is proportional to the sine of the enclosed angle $\theta_j$:
+An even more geometric framework is \gls{pls} \cite{ehrhardtVectorValuedImageProcessing2014}. These methods encourage structural consistency by encouraging the gradient vectors of the emission image and the guidance image to be aligned, i.e.\ $(D x)_j \parallel (D u)_j$. A common formulation (often termed \gls{pls}1) penalises the magnitude of the component of $(D x)_j$ orthogonal to $(D u)_j$, which is proportional to the sine of the enclosed angle $\theta_j$:
 \begin{equation}
     R_{\mathrm{PLS1}}(x,u)
-    = \sum_{j=1}^J \|D x_j\|_2\,\|D u_j\|_2\,|\sin\theta_j|.
+    = \sum_{j=1}^J \|(D x)_j\|_2\,\|(D u)_j\|_2\,|\sin\theta_j|.
 \end{equation}
-This term vanishes when $D x_j$ and $D u_j$ are parallel (or when either gradient is zero), and increases with the component of $D x_j$ orthogonal to $D u_j$. While numerically stable, \gls{pls}1 scales with $\|D u_j\|_2$ and therefore inherits the spatially varying gradient magnitude of the anatomical image, which can lead to over-weighting at strong anatomical edges and under-weighting in low-contrast regions.
+This term vanishes when $(D x)_j$ and $(D u)_j$ are parallel (or when either gradient is zero), and increases with the component of $(D x)_j$ orthogonal to $(D u)_j$. While numerically stable, \gls{pls}1 scales with $\|(D u)_j\|_2$ and therefore inherits the spatially varying gradient magnitude of the anatomical image, which can lead to over-weighting at strong anatomical edges and under-weighting in low-contrast regions.
 
 To decouple the directional information from the anatomical gradient magnitude, \gls{dtv} \cite{ehrhardtPETReconstructionAnatomical2016} introduces a normalised direction field
 \begin{equation}\label{eq:xi}
     \xi_j
-    = \frac{D u_j}{\sqrt{\|D u_j\|_2^2 + \eta^2}},
+    = \frac{(D u)_j}{\sqrt{\|(D u)_j\|_2^2 + \eta^2}},
 \end{equation}
 where $\eta>0$ is a small stabilisation parameter that  suppresses unreliable directions induced by noise or very fine-scale anatomical texture. Using $\xi_j$, one defines a local anisotropic projection operator
 \begin{equation}\label{eq:directional_op}
-    \Pi_j \coloneqq I - \gamma_j\, \xi_j \xi_j^{\mathsf T},
+    \Pi_j \coloneqq \mathbb{I} - \gamma_j\, \xi_j \xi_j^{\mathsf T},
 \end{equation}
-where $I$ is the $d\times d$ (number of dimensions, $d$, squared) identity matrix and $\gamma_j\in[0,1]$ controls the strength of directional guidance. The resulting \gls{dtv} prior is
+where $\mathbb{I}$ is the $d\times d$ (number of dimensions, $d$, squared) identity matrix and $\gamma_j\in[0,1]$ controls the strength of directional guidance. The resulting \gls{dtv} prior is
 \begin{equation}\label{eq:dtv_defn}
     R_{\mathrm{dTV}}(x;u)
-    = \sum_{j=1}^J \| \Pi_j D x_j \|_2,
+    = \sum_{j=1}^J \| \Pi_j (D x)_j \|_2,
 \end{equation}
-which penalises predominantly the gradient component orthogonal to the anatomical level-set direction, thereby encouraging edges in $x$ to align with edges in $u$. In regions where $u$ is locally flat (so $\xi_j \approx 0$), $\Pi_j \approx I$ and \gls{dtv} reduces to standard isotropic \gls{tv}.
+which penalises predominantly the gradient component orthogonal to the anatomical level-set direction, thereby encouraging edges in $x$ to align with edges in $u$. In regions where $u$ is locally flat (so $\xi_j \approx 0$), $\Pi_j \approx \mathbb{I}$ and \gls{dtv} reduces to standard isotropic \gls{tv}.
 
 Regularisation strategies also exist outside the standard Bayesian (penalised-likelihood) framework. A prominent example is the \gls{kem}, in which prior information is encoded directly in the image representation rather than through an explicit penalty term. Following Wang and Qi \cite{wangPETImageReconstruction2015} and its anatomically-aided extension \cite{hutchcroftAnatomicallyaidedPETReconstruction2016}, the emission image is modelled as a linear combination of kernel-derived basis functions:
 \begin{equation}
@@ -334,11 +334,11 @@ This can be rearranged to form the additive update equation
         A^{\mathsf T}\!\left(\frac{y}{\bar{y}\!\left(x^{(k)}\right)} -\mathbf{1}_I \right) \nonumber \\
      & = x^{(k)} -
     \operatorname{diag}\!\left(\frac{x^{(k)}}{A^{\mathsf T}\mathbf{1}_I}\right)
-        D \mathcal{L}(x^{(k)}).
+        \nabla_x \mathcal{L}(x^{(k)}).
 \end{align}
-where $\mathbf{1}_J\in\mathbb{R}^{J}$ is an all-ones vector. This form highlights that the \glsentryshort{mlem} update can be interpreted as a preconditioned gradient descent algorithm with preconditioner $P_{EM}^{(k)}=\operatorname{diag}\!\left(\frac{x^{(k)}}{A^{\mathsf T}\mathbf{1}_I}\right)$, i.e.
+where $\mathbf{1}_J\in\mathbb{R}^{J}$ is an all-ones vector. This form highlights that the \glsentryshort{mlem} update can be interpreted as a preconditioned gradient descent algorithm with preconditioner $\mathcal{P}_{\mathrm{EM}}^{(k)}=\operatorname{diag}\!\left(\frac{x^{(k)}}{A^{\mathsf T}\mathbf{1}_I}\right)$, i.e.
 \begin{align}
-    x^{(k+1)} = x^{(k)} - \varsigma P_{EM}^{(k)} D_x \mathcal{L}(x^{(k)}),
+    x^{(k+1)} = x^{(k)} - \varsigma \mathcal{P}_{\mathrm{EM}}^{(k)} \nabla_x \mathcal{L}(x^{(k)}),
 \end{align}
 with a step size $\varsigma=1$.
 
@@ -366,7 +366,7 @@ where we used $\bar y_i(x)=\sum_{\ell}a_{i\ell}x_{\ell}+r_i\ge a_{ij}x_j$ and $r
 \end{equation}
 This motivates the diagonal scaling
 \begin{equation}\label{eq:precond_em}
-P_{\mathrm{EM}}^{(k)}
+\mathcal{P}_{\mathrm{EM}}^{(k)}
 \;\coloneqq\;
 \operatorname{diag}\!\left(\frac{x^{(k)}}{A^{\mathsf T}\mathbf 1}\right),
 \end{equation}
@@ -380,9 +380,9 @@ a generic subset (stochastic / incremental) scaled-gradient update takes the for
 \begin{equation}
     x^{(k+1)}
     =
-    x^{(k)} - \varsigma\,\mathbf{P}^{(k)}\,D_x \mathcal{L}_{s}\!\left(x^{(k)}\right).
+    x^{(k)} - \varsigma\,\mathcal{P}^{(k)}\,\nabla_x \mathcal{L}_{s}\!\left(x^{(k)}\right).
 \end{equation}
-If multiple subsets are used per iteration, $D_x \mathcal{L}_{s}$ is replaced by an average (or sum) over the chosen subset indices. The most common algorithm found in clinical systems is the \gls{osem} algorithm. For subset $s$ at iteration $k$, a standard \glsentryshort{osem} update can be written as
+If multiple subsets are used per iteration, $\nabla_x \mathcal{L}_{s}$ is replaced by an average (or sum) over the chosen subset indices. The most common algorithm found in clinical systems is the \gls{osem} algorithm. For subset $s$ at iteration $k$, a standard \glsentryshort{osem} update can be written as
 \begin{equation}
 x^{(k+1)}
 =
@@ -404,10 +404,10 @@ We seek a fast and convergent algorithm for \gls{map} reconstruction. A widely u
 \begin{equation}
     x^{(k+1)}
     =
-    x^{(k)} - \varsigma_k\,P_{EM}^{(k)}
+    x^{(k)} - \varsigma_k\,\mathcal{P}_{\mathrm{EM}}^{(k)}
     \left(
-        D_x \mathcal{L}_s(x^{(k)})
-        + \frac{\beta}{S}\,D_x \mathcal{R}(x^{(k)})
+        \nabla_x \mathcal{L}_s(x^{(k)})
+        + \frac{\beta}{S}\,\nabla_x \mathcal{R}(x^{(k)})
     \right),
 \end{equation}
 where $\varsigma_k>0$ is an iteration dependent step size. Convergence is promoted by choosing $\{\varsigma_k\}$ to diminish appropriately (e.g.\ $\varsigma_k\rightarrow 0$ with $\sum_k \varsigma_k=\infty$), which suppresses the subset-induced limit-cycle behaviour while retaining rapid early progress (see Figure~\ref{fig:relaxed_limit_cycle}).
@@ -424,8 +424,8 @@ However, we can do better. Variance-reduced subset methods have become increasin
 A generic subset (stochastic) scaled-gradient step uses $g_{s_k}(x^{(k)})$ in place of $\nabla \mathcal{L}(x^{(k)})=\sum_s g_s(x^{(k)})$, i.e.
 \begin{equation}
     x^{(k+1)}
-    = x^{(k)} - \varsigma_k\,\mathbf{P}^{(k)}
-    \Big(g_{s_k}(x^{(k)}) + \beta r(x^{(k)})\Big),
+    = x^{(k)} - \varsigma_k\,\mathcal{P}^{(k)}
+    \Big(g_{s_k}(x^{(k)}) + \beta \nabla_x\mathcal{R}(x^{(k)})\Big),
 \end{equation}
 which is cheap but noisy. Variance reduction augments this step by incorporating additional information (stored gradients or periodic full-gradient computations) to form a corrected estimator $\tilde g_k$ with reduced variance. Two widely used examples are \gls{saga} and \gls{svrg}:
 
@@ -433,9 +433,9 @@ which is cheap but noisy. Variance reduction augments this step by incorporating
 \begin{equation}
     \tilde g_k
     \;=\;
-    g_{s_k}(x^{(k)}) - g_{s_k}(\phi_{s_k}) + \frac{1}{S}\sum_{s=1}^{S} g_s(\phi_s),
+    g_{s_k}(x^{(k)}) - g_{s_k}(\tilde x_{s_k}) + \frac{1}{S}\sum_{s=1}^{S} g_s(\tilde x_s),
 \end{equation}
-where $\phi_s$ denotes the iterate at which the stored gradient for subset $s$ was last evaluated.  
+where $\tilde x_s$ denotes the iterate at which the stored gradient for subset $s$ was last evaluated.
 
 \emph{\gls{svrg}} periodically computes a reference full gradient at a snapshot $\tilde x$ and then performs inner iterations using
 \begin{equation}
@@ -455,16 +455,19 @@ In both cases, $\tilde g_k$ is designed so that $\mathbb{E}[\tilde g_k]\approx \
 A variance-reduced, prior-regularised update can then be written compactly as
 \begin{equation}
     x^{(k+1)}
-    = x^{(k)} - \varsigma\,P^{(k)}
-    \Big(\tilde g_k + \beta r(x^{(k)})\Big).
+    = x^{(k)} - \varsigma\,\mathcal{P}^{(k)}
+    \Big(\tilde g_k + \beta \nabla_x\mathcal{R}(x^{(k)})\Big).
 \end{equation}
-Recent work indicates that incorporating the effect of the prior into $P^{(k)}$ (``prior-aware preconditioning'') can be crucial for fast and robust convergence. Ehrhardt \textit{et al.} \cite{ehrhardtFastPETReconstruction2025} showed substantially improved convergence rates with \gls{rdp}-regularised \gls{pet} reconstruction when using harmonic averaging of the \gls{em}-type preconditioner and a scaled diagonal estimate of the inverse Hessian of the prior. Using only the diagonal elements of the \gls{rdp} Hessian
+Recent work indicates that incorporating the effect of the prior into $\mathcal{P}^{(k)}$ (``prior-aware preconditioning'') can be crucial for fast and robust convergence. Ehrhardt \textit{et al.} \cite{ehrhardtFastPETReconstruction2025} showed substantially improved convergence rates with \gls{rdp}-regularised \gls{pet} reconstruction when using harmonic averaging of the \gls{em}-type preconditioner and a scaled diagonal estimate of the inverse Hessian of the prior. Using only the diagonal elements of the \gls{rdp} Hessian
 \begin{equation}
-    \text{diag}\left(\mathcal{H}_{\mathrm{RDP}}(x_j)\right) = \sum_{k \in \mathcal{N}_j}\frac{x_k^2}{(x_j + x_k + \gamma |x_j - x_k|)^3},
+    [\mathcal{H}_{\mathrm{RDP}}(x)]_{jj}
+    = \sum_{k \in \mathcal{N}_j}
+    \frac{2w_{jk}(2x_k+\epsilon)^2}
+    {(x_j + x_k + \gamma |x_j - x_k|+\epsilon)^3},
 \end{equation}
 they constructed a preconditioner as
 \begin{equation}
-    P^{(k)} = \text{diag}\left( \frac{x^{(k)}+\delta}{A^T 1 + \alpha \;\text{diag}\!\left(\beta \mathcal{H}_{\mathrm{RDP}}\left(x^{(k)}\right)\right)\left(x^{(k)}+\delta\right)}\right)
+    \mathcal{P}^{(k)} = \operatorname{diag}\left( \frac{x^{(k)}+\delta}{A^\top \mathbf{1} + \alpha \;\operatorname{diag}\!\left(\beta \mathcal{H}_{\mathrm{RDP}}\left(x^{(k)}\right)\right)\left(x^{(k)}+\delta\right)}\right)
 \end{equation}
 with scalar $\alpha$ tuned to correct for the loss of off-diagonal information. Although this is not emphasised explicitly in \cite{ehrhardtFastPETReconstruction2025}, the harmonic averaging viewpoint can also be interpreted as a majorisation-preserving way to combine curvature information from the likelihood and the prior. In particular, the voxel-wise harmonic blend can be rearranged as
 \begin{equation}
@@ -480,7 +483,7 @@ A widely used alternative to \gls{em}-type and subset-gradient schemes is the li
 \)
 by iteratively building a low-rank approximation to the inverse Hessian from successive iterate and gradient differences. The “limited-memory” construction stores only a small number of correction pairs, making it viable for high-dimensional images, while the “B” variant enforces simple bounds (e.g.\ non-negativity) via an active-set strategy and projected search directions. In practice, L-BFGS-B can exhibit rapid local convergence on smooth penalised objectives, but each iteration requires one or more full objective and gradient evaluations (coupled with a line search), which is computationally burdensome in large-scale emission tomography when the likelihood is evaluated over all subsets. For this reason it is not used in the main reconstruction experiments in this thesis; nevertheless, it provides a useful reference optimiser and is employed later for a small demonstrative deconvolution problem in Chapter~\ref{chapter:deconvolution_pvc}.
 
-A practical limitation of vanilla L-BFGS-B in emission tomography is its sensitivity to poor variable scaling: the line search and the quasi-Newton curvature updates can be dominated by a small subset of high-sensitivity voxels, leading to slow progress. Tsai \textit{et al.}\ propose a diagonally preconditioned variant (L-BFGS-B-PC) that embeds analytic curvature information into the optimisation via a change of variables \cite{tsaiFastQuasiNewtonAlgorithms2018}. We can choose a diagonal preconditioner $D$ from a cheap curvature surrogate (e.g.\ an \gls{em}-type diagonal approximation of the Hessian), and run L-BFGS-B on the transformed problem $Dx$). This rescales the objective so that gradients are more isotropic in the transformed coordinates, while bound constraints are preserved by transforming the box constraints accordingly. The resulting method combines low-cost, problem-specific diagonal curvature (from $D$) with the low-rank curvature learned by L-BFGS-B, typically yielding substantially faster and more robust convergence than unpreconditioned L-BFGS-B in penalised reconstructions.
+A practical limitation of vanilla L-BFGS-B in emission tomography is its sensitivity to poor variable scaling: the line search and the quasi-Newton curvature updates can be dominated by a small subset of high-sensitivity voxels, leading to slow progress. Tsai \textit{et al.}\ propose a diagonally preconditioned variant (L-BFGS-B-PC) that embeds analytic curvature information into the optimisation via a change of variables \cite{tsaiFastQuasiNewtonAlgorithms2018}. We can choose a diagonal preconditioner $\mathcal{P}$ from a cheap curvature surrogate (e.g.\ an \gls{em}-type diagonal approximation of the Hessian), and run L-BFGS-B on the transformed problem $\mathcal{P}x$. This rescales the objective so that gradients are more isotropic in the transformed coordinates, while bound constraints are preserved by transforming the box constraints accordingly. The resulting method combines low-cost, problem-specific diagonal curvature (from $\mathcal{P}$) with the low-rank curvature learned by L-BFGS-B, typically yielding substantially faster and more robust convergence than unpreconditioned L-BFGS-B in penalised reconstructions.
 
 
 \section{Summary and Research Gap}

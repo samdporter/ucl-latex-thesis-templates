@@ -3,12 +3,12 @@
 
 The NRMSE comparisons in Chapter~\ref{chapter:optimisation} use the final iterate of one long-run reconstruction as their reference image. This one-bed phantom reconstruction used the same objective as the 20-pass comparisons, but was continued for 1000 epochs with 36 stochastic updates per epoch, a Gershgorin-diagonal MM preconditioner, and a more conservative relaxation rate of $\eta_{\mathrm{relax}}=10^{-4}$. Only one such reference run was performed.
 
-Let $J_k=\mathcal O(\bm z^{(k)})$ be the recorded objective after epoch $k$, and define
+Let $\mathcal O_k=\mathcal O(\bm z^{(k)})$ be the recorded objective after epoch $k$, and define
 \begin{equation}
-    J^\star=\min_{0\leq k\leq 1000}J_k.
+    \mathcal O^\star=\min_{0\leq k\leq 1000}\mathcal O_k.
     \label{eq:app_baseline_best_objective}
 \end{equation}
-Here $J^\star$ is the best objective observed during this run. It is not a proven global minimum, and the reference image should likewise be understood as a long-run numerical reference rather than ground truth.
+Here $\mathcal O^\star$ is the best objective observed during this run. It is not a proven global minimum, and the reference image should likewise be understood as a long-run numerical reference rather than ground truth.
 
 \begin{figure}[htbp]
     \centering
@@ -21,7 +21,7 @@ Here $J^\star$ is the best objective observed during this run. It is not a prove
         \includegraphics[width=\linewidth]{figures/preconditioning/baseline/baseline_convergence_final_objective_panel_linear.png}
         \caption{Objective gap on a linear scale.}
     \end{subfigure}
-    \caption{Long-run objective diagnostics. The solid curve is $J_k-J^\star$ and the dashed curve is the relaxed step size. The linear view shows that most of the observed objective decrease occurs early, while the logarithmic view resolves the residual decrease over the complete 1000-epoch run.}
+    \caption{Long-run objective diagnostics. The solid curve is $\mathcal O_k-\mathcal O^\star$ and the dashed curve is the relaxed step size. The linear view shows that most of the observed objective decrease occurs early, while the logarithmic view resolves the residual decrease over the complete 1000-epoch run.}
     \label{fig:app_baseline_objective}
 \end{figure}
 
@@ -49,7 +49,7 @@ The objective contains stochastic excursions early in the run, but its gap relat
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.82\linewidth]{figures/preconditioning/baseline/baseline_convergence_final_panel.png}
-    \caption{Relative PET iterate velocity, $\lVert x_k-x_{k-1}\rVert/\lVert x_k\rVert$, and relaxed step size during the long-run reference reconstruction. The final velocity is $7.285\times10^{-8}$ per epoch while the step size remains $0.2174$.}
+    \caption{Relative PET iterate velocity, $\lVert x^{(k)}-x^{(k-1)}\rVert/\lVert x^{(k)}\rVert$, and relaxed step size during the long-run reference reconstruction. The final velocity is $7.285\times10^{-8}$ per epoch while the step size remains $0.2174$.}
     \label{fig:app_baseline_velocity}
 \end{figure}
 

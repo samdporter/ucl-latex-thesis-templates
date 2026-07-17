@@ -76,7 +76,7 @@ As with \glsentryshort{mlem}/\glsentryshort{osem} under the full forward model, 
 
 To connect with Chapter~\ref{chapter:reconstruction}, we rewrite \eqref{eq:rl_update} as an additive scaled-gradient step. The gradient of the Poisson negative log-likelihood \eqref{eq:deconv_nll} (with $b=0$) is
 \begin{equation}
-    D_x \mathcal{L}(x)
+    \nabla_x \mathcal{L}(x)
     =
     C^{\mathsf T}\!\left(
         \mathbf{1} - y \oslash (Cx)
@@ -89,10 +89,10 @@ Using the same rearrangement as for \glsentryshort{mlem} in Chapter~\ref{chapter
     =
     x^{(k)}\odot\left(\mathbf{1}
     -
-    D_x\mathcal{L}(x^{(k)})\right).
+    \nabla_x\mathcal{L}(x^{(k)})\right).
     \label{eq:deconv_scaled_grad}
 \end{equation}
-This corresponds to an EM-type diagonal preconditioner analogous to $P_{EM}^{(k)}=\operatorname{diag}(x^{(k)}/(A^{\mathsf T}\mathbf{1}))$ in the full reconstruction problem.
+This corresponds to an EM-type diagonal preconditioner analogous to $\mathcal{P}_{\mathrm{EM}}^{(k)}=\operatorname{diag}(x^{(k)}/(A^{\mathsf T}\mathbf{1}))$ in the full reconstruction problem.
 
 \section{Kernelised Richardson--Lucy deconvolution}
 \label{sec:deconv_krl}
@@ -176,7 +176,7 @@ Here $R_{\mathrm{sDTV}}$ is a smoothed \gls{dtv} penalty. A natural baseline sol
         -
         \varsigma_k
         \left[
-            D_x\mathcal{L}(x^{(k)}) + \beta\,\nabla_x R_{\mathrm{sDTV}}(x^{(k)};u)
+            \nabla_x\mathcal{L}(x^{(k)}) + \beta\,\nabla_x R_{\mathrm{sDTV}}(x^{(k)};u)
         \right]\right)
     \right\}_{\geq 0},
     \label{eq:rldtv_update}
@@ -205,20 +205,20 @@ Two datasets are used to characterise behaviour under controlled and realistic c
 \begin{enumerate}
     \item \textbf{Spherical phantom:} a hot-sphere phantom enabling assessment of edge recovery and spill-over (see Figure~\ref{fig:spheres_overview}).
 
-    \item \textbf{$\tau$-\gls{pet} brain with MRI guidance:} a representative in vivo dataset (see Figure~\ref{fig:brain_overview}).
+    \item \textbf{$\tau$-\gls{pet} brain with \gls{mri} guidance:} a representative in vivo dataset (see Figure~\ref{fig:brain_overview}).
 \end{enumerate}
 
 \begin{figure}[hbtp]
     \centering
     \includegraphics[width=1\linewidth]{figures/Chapter3a/poster_figures_blur_init/fig1_spheres_overview.png}
-    \caption{Left, ground truth phantom, centre blurred and noisy reconstruction and right MRI guidance image for the simulated sphere phantom. Units are arbitrary.}
+    \caption{Left, ground truth phantom, centre blurred and noisy reconstruction and right \glsentryshort{mri} guidance image for the simulated sphere phantom. Units are arbitrary.}
     \label{fig:spheres_overview}
 \end{figure}
 
 \begin{figure}[hbtp]
     \centering
     \includegraphics[width=0.8\linewidth]{figures/Chapter3a/poster_figures_blur_init/fig2_brain_overview.png}
-    \caption{Left, reconstructed $\tau$-\gls{pet} brain, right registered MRI guidance image. Units are arbitrary.}
+    \caption{Left, reconstructed $\tau$-\gls{pet} brain, right registered \glsentryshort{mri} guidance image. Units are arbitrary.}
     \label{fig:brain_overview}
 \end{figure}
 
@@ -226,18 +226,18 @@ In both cases, the anatomical image $u$ is registered to the \gls{pet} grid and 
 
 To obtain a controlled test case with known truth while retaining a realistic resolution/noise regime, the sphere dataset is simulated from a digital activity distribution by forward projecting with an isotropic Gaussian resolution model of $\mathrm{FWHM}=\SI{6}{\milli\metre}$ embedded in the forward projector, adding Poisson noise to the resulting sinograms, and then reconstructing using an operator without additional blurring. This deliberately introduces a resolution-modelling mismatch between simulation and reconstruction. The deconvolution operator used in the subsequent image-domain correction was the same $\SI{6}{\milli\metre}$ Gaussian model, implemented with the same boundary handling as the simulation blur.
 
-Let $x^\star$ denote the digital ground-truth activity image and $\hat{x}$ the reconstructed image. For each sphere $s$, let $\mathcal{S}_s$ be the set of voxel indices belonging to that sphere, and let $\mathcal{S}=\bigcup_s \mathcal{S}_s$ denote the union over all spheres. We report an aggregate recovery coefficient computed by pooling all sphere voxels,
+Let $x^\star$ denote the digital ground-truth activity image and $\hat{x}$ the reconstructed image. For each sphere $v$, let $\mathcal{S}_v$ be the set of voxel indices belonging to that sphere, and let $\mathcal{S}=\bigcup_v \mathcal{S}_v$ denote the union over all spheres. We report an aggregate recovery coefficient computed by pooling all sphere voxels,
 \begin{equation}
 \mathrm{RC} \;=\; \frac{\frac{1}{|\mathcal{S}|}\sum_{i\in \mathcal{S}}\hat{x}_i}{\frac{1}{|\mathcal{S}|}\sum_{i\in \mathcal{S}}x^\star_i}.
 \end{equation}
 
 To quantify background noise, let $\mathcal{B}$ denote the set of voxel indices in a warm background region. We compute the coefficient of variation (CoV) within $\mathcal{B}$ as
 \begin{equation}
-\mathrm{CoV}_{\mathcal{B}} \;=\; \frac{\sigma_{\mathcal{B}}}{\mu_{\mathcal{B}}},
+\mathrm{CoV}_{\mathcal{B}} \;=\; \frac{\sigma_{\mathcal{B}}}{\bar x_{\mathcal{B}}},
 \qquad
-\mu_{\mathcal{B}} \;=\; \frac{1}{|\mathcal{B}|}\sum_{i\in \mathcal{B}}\hat{x}_i,
+\bar x_{\mathcal{B}} \;=\; \frac{1}{|\mathcal{B}|}\sum_{i\in \mathcal{B}}\hat{x}_i,
 \qquad
-\sigma_{\mathcal{B}} \;=\; \sqrt{\frac{1}{|\mathcal{B}|-1}\sum_{i\in \mathcal{B}}\left(\hat{x}_i-\mu_{\mathcal{B}}\right)^2}.
+\sigma_{\mathcal{B}} \;=\; \sqrt{\frac{1}{|\mathcal{B}|-1}\sum_{i\in \mathcal{B}}\left(\hat{x}_i-\bar x_{\mathcal{B}}\right)^2}.
 \end{equation}
 
 Finally, overall fidelity to the truth is summarised by the normalised root mean squared error (NRMSE) over the full image grid $\Omega$,
@@ -247,7 +247,7 @@ Finally, overall fidelity to the truth is summarised by the normalised root mean
 {\sqrt{\frac{1}{|\Omega|}\sum_{i\in \Omega}\left(x^\star_i\right)^2}}.
 \end{equation}
 
-The in vivo dataset is a $\tau$-\gls{pet} scan acquired on a healthy volunteer using the tracer \textsuperscript{18}F-MK-6240, with a co-registered anatomical MRI serving as guidance. This dataset is used to qualitatively illustrate how the different priors behave in the presence of heterogeneous uptake patterns and fine anatomical structure, where over-regularisation can lead to anatomical ``imprinting''. The FWHM of the deconvolution operator was estimated from a Hoffman brain phantom scan acquired on the same Siemens Vision scanner. The phantom reconstruction used PSF modelling; after removing extra-cerebral activity, the reconstructed image was co-registered to a Hoffman template, and the template was smoothed over a grid of Gaussian FWHM values, independently in the in-plane and axial directions. The smoothing that minimised the sum-of-squared differences to the reconstructed phantom image was selected, giving $\mathrm{FWHM}=(\SI{4.6}{\milli\metre},\SI{4.6}{\milli\metre},\SI{6.4}{\milli\metre})$.
+The in vivo dataset is a $\tau$-\gls{pet} scan acquired on a healthy volunteer using the tracer \textsuperscript{18}F-MK-6240, with a co-registered anatomical \glsentryshort{mri} serving as guidance. This dataset is used to qualitatively illustrate how the different priors behave in the presence of heterogeneous uptake patterns and fine anatomical structure, where over-regularisation can lead to anatomical ``imprinting''. The FWHM of the deconvolution operator was estimated from a Hoffman brain phantom scan acquired on the same Siemens Vision scanner. The phantom reconstruction used PSF modelling; after removing extra-cerebral activity, the reconstructed image was co-registered to a Hoffman template, and the template was smoothed over a grid of Gaussian FWHM values, independently in the in-plane and axial directions. The smoothing that minimised the sum-of-squared differences to the reconstructed phantom image was selected, giving $\mathrm{FWHM}=(\SI{4.6}{\milli\metre},\SI{4.6}{\milli\metre},\SI{6.4}{\milli\metre})$.
 
 \subsection{Hyperparameter tuning}
 \label{subsec:hyperparameter_tuning}
@@ -259,7 +259,7 @@ For DTV reconstructions, we swept the regularisation weight
 \beta\in\{0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0\}.
 \]
 
-Kernel methods used a fixed number of neighbours ($48$-NN) within a cubic $9\times9\times9$ neighbourhood \cite{hutchcroftAnatomicallyaidedPETReconstruction2016}. Feature channels were normalised before computing Gaussian similarities, as in the kernel construction described in Chapter~\ref{chapter:reconstruction}; the reported $\sigma_a$ and $\sigma_f$ values are therefore interpreted in these normalised feature units. For KRL we swept the anatomical weighting $\sigma_a$. For HKRL we additionally swept the functional weighting $\sigma_f$. Because we used a k-NN neighbourhood strategy, distance weights ($\sigma_{df}, \sigma_{da}$) were not used.
+Kernel methods used a fixed number of neighbours ($48$ nearest neighbours) within a cubic $9\times9\times9$ neighbourhood \cite{hutchcroftAnatomicallyaidedPETReconstruction2016}. Feature channels were normalised before computing Gaussian similarities, as in the kernel construction described in Chapter~\ref{chapter:reconstruction}; the reported $\sigma_a$ and $\sigma_f$ values are therefore interpreted in these normalised feature units. For KRL we swept the anatomical weighting $\sigma_a$. For HKRL we additionally swept the functional weighting $\sigma_f$. Because we used a $k$-nearest-neighbours strategy, distance weights ($\sigma_{df}, \sigma_{da}$) were not used.
 
 \begin{table}[hbtp]
 \centering

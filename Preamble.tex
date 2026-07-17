@@ -78,9 +78,8 @@ Most of all, I want to express my deep gratitude to my newly minted wife, Kate. 
 
 \cleardoublepage
 
-\glsadd{sym:x}
-\glsadd{sym:y}
-\printglossary[type=\acronymtype,title={List of Abbreviations}]
-\printglossary[type=symbols,title={Notation}]
+\glsaddall[types={symbols}] % force every notation entry into the printed list
+\printglossary[type=\acronymtype,title={List of Abbreviations},nonumberlist]
+\printglossary[type=symbols,title={Notation},nonumberlist]
 
 \cleardoublepage

@@ -67,18 +67,180 @@
 \newacronym{gate}{GATE}{Geant4 Application for Tomographic Emission}
 \newacronym{nai}{NaI(Tl)}{thallium-doped sodium iodide}
 \newacronym{megp}{MEGP}{medium-energy general-purpose}
+\newacronym{hegp}{HEGP}{high-energy general-purpose}
 \newacronym{mlegp}{MLEGP}{medium--low-energy general-purpose}
+\newacronym{cdr}{CDR}{collimator--detector response}
+\newacronym{svd}{SVD}{singular value decomposition}
+\newacronym{spd}{SPD}{symmetric positive-definite}
 
-% Symbols / notation (go in the symbols glossary)
-\newglossaryentry{sym:x}{
-  type=symbols,
-  name={$x$},
-  description={Reconstructed image (voxel intensities)},
-  sort=x
-}
-\newglossaryentry{sym:y}{
-  type=symbols,
-  name={$y$},
-  description={Measured projection data},
-  sort=y
-}
+% =====================================================================
+% Symbols / notation (printed in the "Notation" glossary).
+% All entries are forced into the list via \glsaddall in Preamble.tex, so
+% they appear whether or not they are \gls-referenced in the text.
+% The `sort' keys (a.., b.., ..) group the list logically rather than
+% alphabetically: a = imaging model, b = dimensions & indices,
+% c = operators, d = objective & priors, e = optimisation,
+% f = metrics & statistics.
+% =====================================================================
+
+% ---- (a) Imaging model and physics -------------------------------------
+\newglossaryentry{sym:x}{type=symbols, sort=a01, name={$x$},
+  description={Emission activity image (voxel intensities), $x\in\mathbb{R}_+^{J}$}}
+\newglossaryentry{sym:y}{type=symbols, sort=a02, name={$y$},
+  description={Measured projection data (counts), $y\in\mathbb{N}^{I}$}}
+\newglossaryentry{sym:ybar}{type=symbols, sort=a03, name={$\bar{y}(x)$},
+  description={Expected measured data under the forward model, $\bar{y}(x)=Ax+b$}}
+\newglossaryentry{sym:A}{type=symbols, sort=a04, name={$A$},
+  description={System (forward-projection) matrix, $A=[a_{ij}]\in\mathbb{R}_+^{I\times J}$}}
+\newglossaryentry{sym:b}{type=symbols, sort=a05, name={$b$},
+  description={Additive term (scatter, randoms, and other background contributions)}}
+\newglossaryentry{sym:C}{type=symbols, sort=a06, name={$C$},
+  description={Image-domain point-spread-function convolution (blurring) operator used in deconvolution}}
+\newglossaryentry{sym:mu}{type=symbols, sort=a07, name={$\mu$},
+  description={Linear attenuation coefficient / CTAC-derived attenuation ($\mu$-)map}}
+\newglossaryentry{sym:h}{type=symbols, sort=a08, name={$h$},
+  description={Source-to-collimator distance (SPECT depth-dependent resolution)}}
+
+% ---- (b) Dimensions and indices ----------------------------------------
+\newglossaryentry{sym:I}{type=symbols, sort=b01, name={$I$},
+  description={Number of measurement bins (lines of response / projection bins)}}
+\newglossaryentry{sym:J}{type=symbols, sort=b02, name={$J$ ($J_m$)},
+  description={Number of voxels in the native / modality-$m$ image space}}
+\newglossaryentry{sym:N}{type=symbols, sort=b03, name={$N$},
+  description={Number of voxels on the shared reconstruction grid}}
+\newglossaryentry{sym:M}{type=symbols, sort=b04, name={$M$},
+  description={Number of coupled modalities}}
+\newglossaryentry{sym:d}{type=symbols, sort=b05, name={$d$},
+  description={Number of directional finite-difference channels (gradient dimension)}}
+\newglossaryentry{sym:idx_i}{type=symbols, sort=b06, name={$i$},
+  description={Measurement-bin index}}
+\newglossaryentry{sym:idx_j}{type=symbols, sort=b07, name={$j$},
+  description={Voxel index (native grid)}}
+\newglossaryentry{sym:idx_k}{type=symbols, sort=b08, name={$k$},
+  description={Iteration / epoch index (written as a superscript, $x^{(k)}$)}}
+\newglossaryentry{sym:idx_m}{type=symbols, sort=b09, name={$m$},
+  description={Modality index}}
+\newglossaryentry{sym:idx_n}{type=symbols, sort=b10, name={$n$},
+  description={Voxel index (shared reconstruction grid)}}
+\newglossaryentry{sym:idx_s}{type=symbols, sort=b11, name={$s$},
+  description={Data-subset index}}
+\newglossaryentry{sym:idx_v}{type=symbols, sort=b12, name={$v$},
+  description={Sphere / volume-of-interest index}}
+\newglossaryentry{sym:idx_c}{type=symbols, sort=b13, name={$c$},
+  description={Reconstruction-method (comparison) index; $c_0$ denotes the reference method}}
+\newglossaryentry{sym:idx_bed}{type=symbols, sort=b14, name={$\mathrm{bed}$},
+  description={PET bed-position index, $\mathrm{bed}=1,\dots,N_{\mathrm{bed}}$}}
+\newglossaryentry{sym:idx_bs}{type=symbols, sort=b15, name={$\mathrm{bs}$},
+  description={Bootstrap-realisation index, $\mathrm{bs}=1,\dots,N_{\mathrm{bs}}$}}
+
+% ---- (c) Operators ------------------------------------------------------
+\newglossaryentry{sym:D}{type=symbols, sort=c01, name={$D$},
+  description={Discrete (directional) finite-difference operator, $(Dx)_n\in\mathbb{R}^{d}$}}
+\newglossaryentry{sym:div}{type=symbols, sort=c02, name={$\operatorname{div}$},
+  description={Discrete divergence, the negative adjoint of $D$}}
+\newglossaryentry{sym:grad}{type=symbols, sort=c03, name={$\nabla$},
+  description={Gradient of a functional (e.g.\ $\nabla_x\mathcal{L}$, $\nabla_{\mathcal G}\phi$)}}
+\newglossaryentry{sym:Pi}{type=symbols, sort=c04, name={$\Pi_{m,n}$},
+  description={Anisotropic directional projection operator built from the guidance field}}
+\newglossaryentry{sym:W}{type=symbols, sort=c05, name={$W_m$},
+  description={Registration / resampling operator from native grid to shared grid; $W_m^\ast$ its adjoint}}
+\newglossaryentry{sym:K}{type=symbols, sort=c06, name={$K$},
+  description={Kernel matrix (kernelised image model $x=K\alpha$)}}
+\newglossaryentry{sym:alpha}{type=symbols, sort=c07, name={$\alpha$},
+  description={Kernel coefficient image}}
+\newglossaryentry{sym:P}{type=symbols, sort=c08, name={$\mathcal{P}$},
+  description={Preconditioner (diagonal or voxel-wise block)}}
+\newglossaryentry{sym:Id}{type=symbols, sort=c09, name={$\mathbb{I}$},
+  description={Identity matrix ($\mathbb{I}_d$ when the dimension is made explicit)}}
+\newglossaryentry{sym:ones}{type=symbols, sort=c10, name={$\mathbf{1}$},
+  description={All-ones vector}}
+\newglossaryentry{sym:Rbed}{type=symbols, sort=c11, name={$R_{\mathrm{bed}}$},
+  description={Restriction from the combined PET image to a bed position's axial support}}
+
+% ---- (d) Objective, priors and the w-dTNV construction -----------------
+\newglossaryentry{sym:calD}{type=symbols, sort=d01, name={$\mathcal{D}$},
+  description={Data-fidelity term (Poisson negative log-likelihood)}}
+\newglossaryentry{sym:calL}{type=symbols, sort=d02, name={$\mathcal{L}$},
+  description={Negative Poisson log-likelihood (up to an additive constant)}}
+\newglossaryentry{sym:calR}{type=symbols, sort=d03, name={$\mathcal{R}$},
+  description={Regularisation functional (prior)}}
+\newglossaryentry{sym:calO}{type=symbols, sort=d04, name={$\mathcal{O}$},
+  description={Full optimisation objective, $\mathcal{O}=\mathcal{D}+\mathcal{R}+\iota_{\mathbb{R}_+}$}}
+\newglossaryentry{sym:calC}{type=symbols, sort=d05, name={$\mathcal{C}$},
+  description={Feasible set (typically the non-negative orthant)}}
+\newglossaryentry{sym:iota}{type=symbols, sort=d06, name={$\iota_{\mathbb{R}_+}$},
+  description={Indicator function of the non-negative orthant}}
+\newglossaryentry{sym:beta}{type=symbols, sort=d07, name={$\beta$},
+  description={Regularisation strength (prior weight)}}
+\newglossaryentry{sym:rho}{type=symbols, sort=d08, name={$\rho_{m,n}$},
+  description={Modality weight; collected in the diagonal matrix $B_n=\mathrm{diag}(\rho_{1,n},\rho_{2,n})$}}
+\newglossaryentry{sym:gamma}{type=symbols, sort=d09, name={$\gamma$, $\gamma_m$},
+  description={RDP edge-preservation parameter $\gamma$; modality-specific directional-guidance strength $\gamma_m\in[0,1]$}}
+\newglossaryentry{sym:eta}{type=symbols, sort=d10, name={$\eta$},
+  description={Direction-field stabilisation parameter (distinct from the relaxation parameter $\eta_{\mathrm{relax}}$)}}
+\newglossaryentry{sym:eps}{type=symbols, sort=d11, name={$\epsilon$},
+  description={Numerical stabiliser in the RDP and Charbonnier / smoothed-TV parameter (subscripted variants denote other local stabilisers)}}
+\newglossaryentry{sym:xi}{type=symbols, sort=d12, name={$\xi_n$},
+  description={Normalised guidance direction field}}
+\newglossaryentry{sym:u}{type=symbols, sort=d13, name={$u$},
+  description={Anatomical guidance image (for the $^{90}$Y study, $u=\mu$)}}
+\newglossaryentry{sym:z}{type=symbols, sort=d14, name={$z_m$, $\bm{z}$},
+  description={Modality-$m$ image on the shared grid; $\bm{z}=(z_1,\dots,z_M)$ the stacked images}}
+\newglossaryentry{sym:G}{type=symbols, sort=d15, name={$\mathcal{G}_n$},
+  description={Voxel-wise multi-modality Jacobian (columns are modality gradients)}}
+\newglossaryentry{sym:Gtilde}{type=symbols, sort=d16, name={$\tilde{\mathcal{G}}_n$},
+  description={Weighted directional Jacobian, $\tilde{\mathcal{G}}_n=\mathcal{G}_n^{\mathrm{dir}}B_n$}}
+\newglossaryentry{sym:phi}{type=symbols, sort=d17, name={$\phi$},
+  description={Smoothed spectral potential applied to the Jacobian, $\phi(Y)=\sum_\ell g(\sigma_\ell(Y))$}}
+\newglossaryentry{sym:g}{type=symbols, sort=d18, name={$g$},
+  description={Charbonnier smoothing function of a singular value}}
+\newglossaryentry{sym:sigma}{type=symbols, sort=d19, name={$\sigma_\ell$},
+  description={$\ell$-th singular value}}
+\newglossaryentry{sym:nucnorm}{type=symbols, sort=d20, name={$\|\cdot\|_*$},
+  description={Nuclear norm (sum of singular values)}}
+\newglossaryentry{sym:Vvox}{type=symbols, sort=d21, name={$V_{\mathrm{vox}}$},
+  description={Voxel volume}}
+
+% ---- (e) Optimisation ---------------------------------------------------
+\newglossaryentry{sym:step}{type=symbols, sort=e01, name={$\varsigma^{(k)}$ ($\varsigma_k$)},
+  description={Step size at iteration $k$ (relaxed / diminishing over iterations)}}
+\newglossaryentry{sym:xtilde}{type=symbols, sort=e02, name={$\tilde{x}$, $\tilde{\bm z}$},
+  description={Stored snapshot iterate used by the variance-reduced estimators (SVRG/SAGA)}}
+\newglossaryentry{sym:gest}{type=symbols, sort=e03, name={$g^{(k)}$},
+  description={(Variance-reduced) stochastic gradient estimator at iteration $k$}}
+\newglossaryentry{sym:HR}{type=symbols, sort=e04, name={$H_{\mathcal{R}}$},
+  description={Hessian of the prior (used for prior-aware preconditioning)}}
+\newglossaryentry{sym:p}{type=symbols, sort=e05, name={$p$},
+  description={Matrix-Lehmer combination order ($p=0$ gives the parallel sum)}}
+\newglossaryentry{sym:S}{type=symbols, sort=e06, name={$S$},
+  description={Number of data subsets}}
+\newglossaryentry{sym:Nd}{type=symbols, sort=e07, name={$N_{\mathrm{d}}$},
+  description={Number of stochastic data functions in a reconstruction}}
+\newglossaryentry{sym:sens}{type=symbols, sort=e08, name={$s_m$},
+  description={Modality-$m$ sensitivity image on the shared reconstruction grid}}
+\newglossaryentry{sym:etarelax}{type=symbols, sort=e09, name={$\eta_{\mathrm{relax}}$},
+  description={Step-size relaxation / decay parameter}}
+\newglossaryentry{sym:epsx}{type=symbols, sort=e10, name={$\epsilon_x$},
+  description={Small positive image-domain stabiliser used in data preconditioning}}
+\newglossaryentry{sym:taupart}{type=symbols, sort=e11, name={$\tau_{m,n}$},
+  description={Finite-difference participation factor in the diagonal prior-curvature approximation}}
+\newglossaryentry{sym:lambda-min}{type=symbols, sort=e12, name={$\lambda_{\min}$},
+  description={Eigenvalue floor applied to preconditioner operands before matrix inversion}}
+
+% ---- (f) Metrics and statistics ----------------------------------------
+\newglossaryentry{sym:xhat}{type=symbols, sort=f01, name={$\hat{x}$},
+  description={Reconstruction estimate}}
+\newglossaryentry{sym:xstar}{type=symbols, sort=f02, name={$x^\star$},
+  description={Digital ground truth or long-run reference image}}
+\newglossaryentry{sym:setS}{type=symbols, sort=f03, name={$\mathcal{S}_v$},
+  description={Set of voxel indices belonging to sphere $v$}}
+\newglossaryentry{sym:setB}{type=symbols, sort=f04, name={$\mathcal{B}$},
+  description={Background region of interest}}
+\newglossaryentry{sym:setV}{type=symbols, sort=f05, name={$\mathcal{V}$},
+  description={Volume of interest (VOI)}}
+\newglossaryentry{sym:mean}{type=symbols, sort=f06, name={$\bar{x}$},
+  description={Regional / inter-bootstrap sample mean}}
+\newglossaryentry{sym:sd}{type=symbols, sort=f07, name={$\mathrm{SD}$},
+  description={Sample standard deviation}}
+\newglossaryentry{sym:vox}{type=symbols, sort=f08, name={$\Delta_x,\Delta_y,\Delta_z$},
+  description={Voxel dimensions; $\Delta_\ell$ is the length of finite-difference offset $\ell$}}

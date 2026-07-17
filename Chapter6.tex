@@ -11,21 +11,21 @@ Whole-liver PET commonly requires multiple partially overlapping bed positions. 
 \subsection{Notation}
 \label{subsec:multibed_notation}
 
-Let $x$ be the PET activity image on the combined reconstruction grid. For bed position $b=1,\ldots,B$, let $R_b$ restrict the combined image to the axial support reconstructed by bed $b$. The expected PET data for bed $b$ are
+Let $x$ be the PET activity image on the combined reconstruction grid. For bed position $\mathrm{bed}=1,\ldots,N_{\mathrm{bed}}$, let $R_{\mathrm{bed}}$ restrict the combined image to the axial support reconstructed by that bed. The expected PET data for bed position $\mathrm{bed}$ are
 \begin{equation}
-    \bar y_b(x)
+    \bar y_{\mathrm{bed}}(x)
     =
-    A_b R_b x + r_b,
+    A_{\mathrm{bed}} R_{\mathrm{bed}} x + r_{\mathrm{bed}},
     \label{eq:multibed_forward_model}
 \end{equation}
-where $A_b$ is the bed-specific PET system matrix and $r_b$ collects additive corrections. The joint PET data term is
+where $A_{\mathrm{bed}}$ is the bed-specific PET system matrix and $r_{\mathrm{bed}}$ collects additive corrections. The joint PET data term is
 \begin{equation}
     \mathcal{D}_{\mathrm{PET}}^{\mathrm{multi}}(x)
     =
-    \sum_{b=1}^{B}
-    \mathcal{D}_b
+    \sum_{\mathrm{bed}=1}^{N_{\mathrm{bed}}}
+    \mathcal{D}_{\mathrm{bed}}
     \left(
-        y_b \mid A_b R_b x + r_b
+        y_{\mathrm{bed}} \mid A_{\mathrm{bed}} R_{\mathrm{bed}} x + r_{\mathrm{bed}}
     \right),
     \label{eq:multibed_data_term}
 \end{equation}
@@ -33,13 +33,13 @@ with gradient
 \begin{equation}
     \nabla \mathcal{D}_{\mathrm{PET}}^{\mathrm{multi}}(x)
     =
-    \sum_{b=1}^{B}
-    R_b^\top
-    A_b^\top
-    \nabla_{\bar y_b}
-    \mathcal{D}_b
+    \sum_{\mathrm{bed}=1}^{N_{\mathrm{bed}}}
+    R_{\mathrm{bed}}^\top
+    A_{\mathrm{bed}}^\top
+    \nabla_{\bar y_{\mathrm{bed}}}
+    \mathcal{D}_{\mathrm{bed}}
     \left(
-        y_b \mid A_b R_b x + r_b
+        y_{\mathrm{bed}} \mid A_{\mathrm{bed}} R_{\mathrm{bed}} x + r_{\mathrm{bed}}
     \right).
     \label{eq:multibed_gradient}
 \end{equation}
@@ -47,8 +47,8 @@ The corresponding PET sensitivity image on the combined grid is
 \begin{equation}
     s_{\mathrm{PET}}^{\mathrm{multi}}
     =
-    \sum_{b=1}^{B}
-    R_b^\top A_b^\top \bm 1.
+    \sum_{\mathrm{bed}=1}^{N_{\mathrm{bed}}}
+    R_{\mathrm{bed}}^\top A_{\mathrm{bed}}^\top \bm 1.
     \label{eq:multibed_sensitivity}
 \end{equation}
 This sensitivity is used in the EM/BSREM data-curvature term in exactly the same way as the single-bed sensitivity in Equation~\eqref{eq:data_hessian_surrogate}.
@@ -73,7 +73,7 @@ The joint formulation in Equation~\eqref{eq:multibed_data_term} estimates a sing
 \section{Stochastic MAP Optimisation}
 \label{sec:optimisation_svrg}
 
-Let $\bm z=(z_1,z_2)$ denote the PET and SPECT images represented on a common reconstruction grid. For $N_s$ sampled data functions, define $\mathcal D(\bm z)=\sum_{i=1}^{N_s}\mathcal D_i(\bm z)$. The objective is
+Let $\bm z=(z_1,z_2)$ denote the PET and SPECT images represented on a common reconstruction grid. For $N_{\mathrm d}$ sampled data functions, define $\mathcal D(\bm z)=\sum_{i=1}^{N_{\mathrm d}}\mathcal D_i(\bm z)$. The objective is
 \begin{equation}
     \mathcal{O}(\bm z)
     =
@@ -84,18 +84,27 @@ Let $\bm z=(z_1,z_2)$ denote the PET and SPECT images represented on a common re
     \iota_{\mathbb{R}_+}(\bm z),
     \label{eq:optimisation_objective}
 \end{equation}
-where $\mathcal{D}_i$ is a Poisson negative log-likelihood term composed with the relevant projector, image-space registration operator, and optional resolution model; $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ is the prior from Chapter~\ref{chapter:wdtnv}; and $\iota_{\mathbb{R}_+}$ enforces non-negativity.
-\SA{Just checking : have you defined how the non-negativity prior works ? As an additive prior it should be some kind of barrier function e.g. $\iota_z = \infty ~\textnormal{if}~ z < o, ~\textnormal{else}~ z $}
+where $\mathcal{D}_i$ is a Poisson negative log-likelihood term composed with the relevant projector, image-space registration operator, and optional resolution model; $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ is the prior from Chapter~\ref{chapter:wdtnv}; and $\iota_{\mathbb{R}_+}$ is the indicator function of the non-negative orthant,
+\begin{equation}
+    \iota_{\mathbb{R}_+}(\bm z)
+    =
+    \begin{cases}
+        0, & \bm z \geq 0,\\
+        +\infty, & \text{otherwise},
+    \end{cases}
+    \label{eq:nonneg_indicator}
+\end{equation}
+with the inequality understood componentwise. As $\iota_{\mathbb{R}_+}$ is non-smooth, it is kept out of the gradient estimator $g^{(k)}$ below and instead handled by proximal (projected) gradient splitting: the smooth terms $\mathcal D+\mathcal R$ are advanced by a stochastic gradient step, and the result is passed through $\operatorname{prox}_{\varsigma^{(k)}\iota_{\mathbb{R}_+}}$, which for an indicator function reduces to Euclidean projection onto $\mathbb{R}_+$, i.e.\ clipping negative voxels to zero. This is exactly the $\{\cdot\}_{\geq 0}$ operation in the update Equation~\eqref{eq:optimisation_projected_update}.
 
 The stochastic experiments use SVRG \cite{johnsonAcceleratingStochasticGradient2013,twymanInvestigationStochasticVariance2022,ehrhardtFastPETReconstruction2025}. Writing $\mathcal R=\mathcal{R}_{\mathrm{w\text{-}dTNV}}$, the implemented estimator keeps the complete prior outside the sampler. At anchor point $\widetilde{\bm z}$ it is
 \begin{equation}
     g^{(k)} = \nabla\mathcal R(\bm z^{(k)})
     + \nabla\mathcal D(\widetilde{\bm z})
-    + N_s\!\left[
+    + N_{\mathrm d}\!\left[
         \nabla\mathcal D_{i_k}(\bm z^{(k)})
         -\nabla\mathcal D_{i_k}(\widetilde{\bm z})
     \right],
-    \qquad i_k\sim\operatorname{Unif}\{1,\ldots,N_s\}.
+    \qquad i_k\sim\operatorname{Unif}\{1,\ldots,N_{\mathrm d}\}.
     \label{eq:svrg_estimator_general}
 \end{equation}
 The data functions are sampled uniformly with replacement. The complete prior gradient is evaluated at every stochastic update, and the full data-gradient snapshot is refreshed once per epoch.
@@ -107,11 +116,11 @@ The image update is a projected, preconditioned gradient step,
     \left\{
     \bm z^{(k)}
     -
-    \varsigma^{(k)} P^{(k)} g^{(k)}
+    \varsigma^{(k)} \mathcal{P}^{(k)} g^{(k)}
     \right\}_{\geq 0},
     \label{eq:optimisation_projected_update}
 \end{equation}
-where $P^{(k)}$ is either a diagonal preconditioner or a voxel-wise $2\times2$ block preconditioner coupling the PET and SPECT update components. The step size follows the linear decay rule
+where $\mathcal{P}^{(k)}$ is either a diagonal preconditioner or a voxel-wise $2\times2$ block preconditioner coupling the PET and SPECT update components. The step size follows the linear decay rule
 \begin{equation}
     \varsigma^{(k)}
     =
@@ -216,7 +225,7 @@ For modality $m$, let $s_m$ denote the sensitivity image on the shared grid,
 \end{equation}
 where $A_m$ is the native-grid system matrix and $W_m$ maps native images to the shared prior grid. The data-only EM/BSREM preconditioner is
 \begin{equation}
-    P_{\mathrm{BSREM},m}
+    \mathcal{P}_{\mathrm{BSREM},m}
     =
     (z_m+\epsilon_x)\oslash s_m,
     \label{eq:bsrem_preconditioner}
@@ -237,20 +246,20 @@ Four prior-curvature constructions were considered: three based on a local \acrf
 
 For the MM family, at voxel $n$ let
 \begin{equation}
-    Y_n
+    \tilde{\mathcal{G}}_n
     =
     \left[
-        \beta_{1,n}\Pi_{1,n}(Dz_1)_n
+        \rho_{1,n}\Pi_{1,n}(Dz_1)_n
         \;\middle|\;
-        \beta_{2,n}\Pi_{2,n}(Dz_2)_n
+        \rho_{2,n}\Pi_{2,n}(Dz_2)_n
     \right]\in\mathbb{R}^{d\times2}
     \label{eq:optimisation_weighted_jacobian}
 \end{equation}
-be the weighted directional Jacobian from Chapter~\ref{chapter:wdtnv} \SA{Give an equation referenc and/or page reference}. The active code forms the modality-space \glsentryshort{mm} weight
+be the weighted directional Jacobian from Chapter~\ref{chapter:wdtnv} (Equation~\eqref{eq:Yn_weighted}). The active code forms the modality-space \glsentryshort{mm} weight
 \begin{equation}
     C_n
     =
-    \left(Y_n^\top Y_n + \epsilon^2 I_2\right)^{-1/2}
+    \left(\tilde{\mathcal{G}}_n^\top \tilde{\mathcal{G}}_n + \epsilon^2 \mathbb{I}_2\right)^{-1/2}
     =
     \begin{pmatrix}
         c_{11,n} & c_{12,n}\\
@@ -258,14 +267,14 @@ be the weighted directional Jacobian from Chapter~\ref{chapter:wdtnv} \SA{Give a
     \end{pmatrix}.
     \label{eq:mm_weight_current_code}
 \end{equation}
-This matrix is the same $2\times2$ inverse square-root used in the gradient calculation\SA{Refer to where that was done}, now interpreted as the local quadratic-surrogate weight.
+This matrix is the same $2\times2$ inverse square-root used in the gradient calculation in Chapter~\ref{chapter:wdtnv} (Equation~\eqref{eq:2x2_gram}), now interpreted as the local quadratic-surrogate weight.
 
 For diagonal preconditioning, the finite-difference stencil and directional projectors are collapsed to a per-voxel participation factor $\tau_{m,n}$. This factor includes the number of valid forward/backward stencil incidences at voxel $n$, the squared finite-difference scale factors, and the diagonal entries of $\Pi_{m,n}^\top\Pi_{m,n}$. The local diagonal \wdtnv{} curvature approximation is
 \begin{equation}
     \widehat H_{\mathcal R,m,n}^{\mathrm{loc\text{-}diag}}
     =
     V_{\mathrm{vox}}\,
-    \beta_{m,n}^2\,c_{mm,n}\,\tau_{m,n}.
+    \rho_{m,n}^2\,c_{mm,n}\,\tau_{m,n}.
     \label{eq:diag_tight_preconditioner}
 \end{equation}
 This is the diagonal extraction of the local \glsentryshort{mm} curvature surrogate. A more conservative Gershgorin-inflated diagonal surrogate adds the magnitude of the cross-modal term,
@@ -273,12 +282,12 @@ This is the diagonal extraction of the local \glsentryshort{mm} curvature surrog
     \widehat H_{\mathcal R,1,n}^{\mathrm{diag\text{-}G}}
     =
     V_{\mathrm{vox}}\,
-    \beta_{1,n}^2\,(c_{11,n}+|c_{12,n}|)\,\tau_{1,n},
+    \rho_{1,n}^2\,(c_{11,n}+|c_{12,n}|)\,\tau_{1,n},
     \qquad
     \widehat H_{\mathcal R,2,n}^{\mathrm{diag\text{-}G}}
     =
     V_{\mathrm{vox}}\,
-    \beta_{2,n}^2\,(c_{22,n}+|c_{12,n}|)\,\tau_{2,n}.
+    \rho_{2,n}^2\,(c_{22,n}+|c_{12,n}|)\,\tau_{2,n}.
     \label{eq:diag_gersh_preconditioner}
 \end{equation}
 
@@ -312,7 +321,7 @@ and
     \end{pmatrix},
     \label{eq:block_tight_preconditioner}
 \end{equation}
-where $B_r=\mathrm{diag}(\beta_{1,r},\beta_{2,r})$ and $\circ$ denotes the Hadamard product.
+where $B_r=\mathrm{diag}(\rho_{1,r},\rho_{2,r})$ and $\circ$ denotes the Hadamard product.
 
 The fourth construction uses the exact Lewis--Sendov Hessian of the smoothed spectral penalty \cite{lewisDerivativesSpectralFunctions1996}. If $H_{\mathcal R}=\nabla^2\mathcal R$ denotes the resulting image-space Hessian, the implemented approximation retains only its voxel-wise diagonal blocks,
 \begin{equation}
@@ -331,11 +340,11 @@ It therefore retains PET/SPECT cross-curvature within each voxel but discards sp
 \subsection{Combining Data and Prior Curvature}
 \label{subsec:optimisation_preconditioner_combination}
 
-Let $P_{\mathrm D}=\widehat H_{\mathrm D}^{-1}$ denote the data preconditioner and $P_{\mathcal R}=\widehat H_{\mathcal R}^{-1}$ the preconditioner obtained from one of the prior-curvature models above. For block methods, $\widehat H_{\mathrm D}$ is the $2\times2$ diagonal matrix containing the modality-specific data curvatures at each voxel. The principal comparison combines the operands through the inverse-sum, or parallel-sum, rule
+Let $\mathcal{P}_{\mathrm D}=\widehat H_{\mathrm D}^{-1}$ denote the data preconditioner and $\mathcal{P}_{\mathcal R}=\widehat H_{\mathcal R}^{-1}$ the preconditioner obtained from one of the prior-curvature models above. For block methods, $\widehat H_{\mathrm D}$ is the $2\times2$ diagonal matrix containing the modality-specific data curvatures at each voxel. The principal comparison combines the operands through the inverse-sum, or parallel-sum, rule
 \begin{equation}
-    P_{\parallel}
+    \mathcal{P}_{\parallel}
     =
-    \left(P_{\mathrm D}^{-1}+P_{\mathcal R}^{-1}\right)^{-1}
+    \left(\mathcal{P}_{\mathrm D}^{-1}+\mathcal{P}_{\mathcal R}^{-1}\right)^{-1}
     =
     \left(\widehat H_{\mathrm D}+\widehat H_{\mathcal R}\right)^{-1}.
     \label{eq:parallel_sum_combination}
@@ -411,23 +420,23 @@ Doubling the common initial step improves SPECT convergence across the three reg
 
 \subsection{Lehmer Combination}
 
-The inverse sum is one member of a broader matrix Lehmer family. For voxel-wise symmetric positive-definite preconditioners $B=P_{\mathcal R}$ and $D=P_{\mathrm D}$, define
+The inverse sum is one member of a broader matrix Lehmer family. For the voxel-wise symmetric positive-definite preconditioners $\mathcal{P}_{\mathcal R}$ and $\mathcal{P}_{\mathrm D}$, define
 \begin{equation}
-    C=D^{-1/2}BD^{-1/2},
+    C=\mathcal{P}_{\mathrm D}^{-1/2}\mathcal{P}_{\mathcal R}\mathcal{P}_{\mathrm D}^{-1/2},
     \qquad
-    L_q(B,D)=D^{1/2}f_q(C)D^{1/2},
+    L_p(\mathcal{P}_{\mathcal R},\mathcal{P}_{\mathrm D})
+    =\mathcal{P}_{\mathrm D}^{1/2}f_p(C)\mathcal{P}_{\mathrm D}^{1/2},
     \qquad
-    f_q(t)=\frac{t^q+1}{t^{q-1}+1},
+    f_p(t)=\frac{t^p+1}{t^{p-1}+1},
     \label{eq:matrix_lehmer_combination}
 \end{equation}
-where $f_q(C)$ is evaluated spectrally. The implemented preconditioner is $\tfrac12L_q(B,D)$. At $q=0$ this reduces exactly to the parallel sum,
+where $f_p(C)$ is evaluated spectrally. The implemented preconditioner is $\tfrac12L_p(\mathcal{P}_{\mathcal R},\mathcal{P}_{\mathrm D})$. At $p=0$ this reduces exactly to the parallel sum,
 \begin{equation}
-    \tfrac12L_0(P_{\mathcal R},P_{\mathrm D})
+    \tfrac12L_0(\mathcal{P}_{\mathcal R},\mathcal{P}_{\mathrm D})
     =
-    \left(P_{\mathrm D}^{-1}+P_{\mathcal R}^{-1}\right)^{-1}.
+    \left(\mathcal{P}_{\mathrm D}^{-1}+\mathcal{P}_{\mathcal R}^{-1}\right)^{-1}.
     \label{eq:lehmer_parallel_equivalence}
 \end{equation}
-The legends in Figure~\ref{fig:optim_lehmer_parallel} use $p$ for the same order denoted by $q$ in the text.
 
 \begin{figure}[htbp]
     \centering
@@ -439,11 +448,11 @@ The legends in Figure~\ref{fig:optim_lehmer_parallel} use $p$ for the same order
         \includegraphics[width=\linewidth]{figures/preconditioning/lehmer_vs_parallel_1bpos_ls_block_diag_SPECT.png}
         \caption{SPECT represented on the PET grid.}
     \end{subfigure}
-    \caption{Parallel-sum and Lehmer combinations for the Lewis--Sendov block-diagonal prior model. This experiment changes only the combination rule; lines and shading show the five-run mean and pointwise minimum--maximum over 20 matched data passes. The plot legend denotes the Lehmer order by $p$, whereas the text uses $q$.}
+    \caption{Parallel-sum and Lehmer combinations for the Lewis--Sendov block-diagonal prior model. This experiment changes only the combination rule; lines and shading show the five-run mean and pointwise minimum--maximum over 20 matched data passes.}
     \label{fig:optim_lehmer_parallel}
 \end{figure}
 
-For the Lewis--Sendov block model, $q=0.01$ is marginally better than the inverse-sum result in these curves, but the difference is small. This comparison does not establish that the same order is preferable for the MM-derived preconditioners. Chapter~\ref{chapter:paper} had already frozen the Lewis--Sendov block-diagonal model with $q=0.01$ before the broader benchmark in this chapter. Retaining it therefore provides protocol continuity, not a post-hoc claim that Lewis--Sendov or $q=0.01$ is universally optimal.
+For the Lewis--Sendov block model, $p=0.01$ is marginally better than the inverse-sum result in these curves, but the difference is small. This comparison does not establish that the same order is preferable for the MM-derived preconditioners. Chapter~\ref{chapter:paper} had already frozen the Lewis--Sendov block-diagonal model with $p=0.01$ before the broader benchmark in this chapter. Retaining it therefore provides protocol continuity, not a post-hoc claim that Lewis--Sendov or $p=0.01$ is universally optimal.
 
 \section{Conclusion}
 \label{sec:optimisation_conclusion}
@@ -452,4 +461,4 @@ Joint reconstruction of the PET bed positions is required for the edge-preservin
 
 Prior-aware preconditioning was required for stable convergence of the count-limited PET reconstruction under the tested shared step schedule. SPECT was more robust, and data-only BSREM was sometimes competitive, suggesting that the prior-aware methods can be conservative for that modality. The four prior-curvature models behaved similarly overall, with no universal winner. Increasing the common initial step improved SPECT but destabilised PET, motivating modality-dependent relaxation as future work.
 
-The Lewis--Sendov Lehmer experiment found only a small advantage for $q=0.01$ over the parallel sum. Chapter~\ref{chapter:paper} retains the previously frozen Lewis--Sendov block-diagonal/$q=0.01$ configuration for protocol continuity. Its use in that chapter should not be interpreted as selection of the best method after the wider comparison reported here.
+The Lewis--Sendov Lehmer experiment found only a small advantage for $p=0.01$ over the parallel sum. Chapter~\ref{chapter:paper} retains the previously frozen Lewis--Sendov block-diagonal/$p=0.01$ configuration for protocol continuity. Its use in that chapter should not be interpreted as selection of the best method after the wider comparison reported here.

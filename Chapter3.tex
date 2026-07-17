@@ -28,11 +28,11 @@ As introduced in Section~\ref{sec:y90}, unlike diagnostic radionuclides such as 
 
 \section{Optimisation Strategies and Monte Carlo Modeling}
 
-To overcome these limitations, optimisation must occur at both the acquisition and reconstruction stages. While hardware choices, such as the preference for Medium Energy General Purpose (MEGP) or High Energy General Purpose (HEGP) collimators, can mitigate septal penetration \cite{taherparvarEvaluationEffectDifferent2019, kimEffectsCollimatorImaging2019, inceCollimatorEnergyWindow2021}, substantial gains in quantitative accuracy are achieved through advanced computational modeling \cite{dewarajaImprovedQuantitative90Y2017}.
+To overcome these limitations, optimisation must occur at both the acquisition and reconstruction stages. While hardware choices, such as the preference for \gls{megp} or \gls{hegp} collimators, can mitigate septal penetration \cite{taherparvarEvaluationEffectDifferent2019, kimEffectsCollimatorImaging2019, inceCollimatorEnergyWindow2021}, substantial gains in quantitative accuracy are achieved through advanced computational modeling \cite{dewarajaImprovedQuantitative90Y2017}.
 
-\gls{mc} simulation codes, such as SIMIND \cite{ljungbergSIMINDMonteCarlo2012} and \gls{gate} \cite{janGATESimulationToolkit2004, raultFastSimulationYttrium902010}, play a pivotal role in this optimisation. These tools allow for the generation of accurate scatter kernels, as well as other effects that are specific to the continuous \isotope[90]{Y} spectrum. Some methods have integrated modelling of the spatial offset between the $\beta$-decay location and the point of Bremsstrahlung emission into \glsentryshort{mc} forward projectors to refine the system matrix \cite{rongDevelopmentEvaluationImproved2012}.
+\gls{mc} simulation codes, such as \gls{simind} \cite{ljungbergSIMINDMonteCarlo2012} and \gls{gate} \cite{janGATESimulationToolkit2004, raultFastSimulationYttrium902010}, play a pivotal role in this optimisation. These tools allow for the generation of accurate scatter kernels, as well as other effects that are specific to the continuous \isotope[90]{Y} spectrum. Some methods have integrated modelling of the spatial offset between the $\beta$-decay location and the point of Bremsstrahlung emission into \glsentryshort{mc} forward projectors to refine the system matrix \cite{rongDevelopmentEvaluationImproved2012}.
 
-Furthermore, novel reconstruction techniques such as Joint Spectral Reconstruction (JSR) have been proposed to exploit the information contained across multiple energy windows, rather than relying on a single wide integration window \cite{chunAlgorithmsAnalysesJoint2020}. By combining multi-band acquisition with accurate Monte Carlo-based forward modeling, it is possible to improve the precision of activity estimation and contrast recovery in post-SIRT dosimetry \textcolor{red}{Can I fit this in somehow? Probably not... No time}.
+Furthermore, novel reconstruction techniques such as joint spectral reconstruction have been proposed to exploit the information contained across multiple energy windows, rather than relying on a single wide integration window \cite{chunAlgorithmsAnalysesJoint2020}. By combining multi-band acquisition with accurate Monte Carlo-based forward modeling, it is possible to improve the precision of activity estimation and contrast recovery in post-SIRT dosimetry \textcolor{red}{Can I fit this in somehow? Probably not... No time}.
 
 This chapter explores these advanced reconstruction methodologies. We also introduce a simple Gaussian image-based blurring operation, in order to account for bremsstrahlung range blur. In addition, we investigate the suitability of Fu \& Qi's residual correction method \cite{fuResidualCorrectionMethod2010}, originally designed for correcting for positron range blur, on bremsstrahlung reconstruction.
 
@@ -134,7 +134,7 @@ Here we adopt a pragmatic approximation: for clinically relevant energy windows 
 \subsection{Projector point-spread function}
 \label{subsec:projector_psf}
 
-We model the collimator--detector response (CDR) by a  Gaussian \gls{psf} whose width increases with the source--collimator distance $h$ and depends on energy $E$. In the projector we represent the depth-dependent blur by a spatially variant isotropic Gaussian with standard deviation
+We model the \gls{cdr} by a Gaussian \gls{psf} whose width increases with the source--collimator distance $h$ and depends on energy $E$. In the projector we represent the depth-dependent blur by a spatially variant isotropic Gaussian with standard deviation
 \begin{equation}
 \sigma_{\mathrm{lin}}(h;E) = c_0(E) + c_1(E)\, h.
 \label{eq:sigma_lin_def}
@@ -167,7 +167,7 @@ c_0(E)
 Intrinsic resolution is measured using a standard source \cite{pellsQuantitativeValidationMonte2023} and modelled as an isotropic Gaussian,
 \begin{equation}
 \mathrm{PSF}_{\mathrm{intr}}(\mathbf r;E)=
-\mathcal N\!\left(\mathbf r;\ \mathbf 0,\ \sigma_{\mathrm{intr}}^2(E)\,\mathbf I\right).
+\mathcal N\!\left(\mathbf r;\ \mathbf 0,\ \sigma_{\mathrm{intr}}^2(E)\,\mathbb I\right).
 \label{eq:intrinsic}
 \end{equation}
 When intrinsic resolution is reported as $\mathrm{FWHM}_{\mathrm{intr}}(E)$, we convert using
@@ -203,16 +203,16 @@ where $l$ is the physical hole length and $\mu_{\mathrm{Pb}}(E)$ is the linear a
 Let $\Delta$ denote the displacement between the \isotope[90]{Y} decay location and the Bremsstrahlung photon emission location. Rather than using a detailed displacement PDF inside the projector, we approximate the induced range blur by an isotropic Gaussian kernel
 \begin{equation}
 \mathrm{PSF}_{\mathrm{brem}}(\mathbf r;E)
-=\mathcal N\!\left(\mathbf r;\ \mathbf 0,\ \sigma_{\mathrm{brem}}^2(E)\,\mathbf I\right).
+=\mathcal N\!\left(\mathbf r;\ \mathbf 0,\ \sigma_{\mathrm{brem}}^2(E)\,\mathbb I\right).
 \label{eq:brem}
 \end{equation}
 For each clinical energy window, $\sigma_{\mathrm{brem}}(E)$ is obtained from a coarse \gls{lut} by fitting a zero-mean Gaussian proxy to \glsentryshort{mc} displacement curves for \isotope[90]{Y} Bremsstrahlung in water from \glsentryshort{gate} fast-simulation studies \cite{raultFastSimulationYttrium902010} (Figure~\ref{fig:gaussian_bremss_range}).
 
 \paragraph{Composite energy windows.}
-For a set of energy windows $\mathcal S$ combined into a single projection dataset, we collapse the corresponding Gaussian mixture by second-moment matching:
+For a set of energy windows $\mathcal W$ combined into a single projection dataset, we collapse the corresponding Gaussian mixture by second-moment matching:
 \begin{equation}
 \sigma_{\mathrm{clin}}^2
-=\frac{\sum_{i\in\mathcal S} w_i\,\sigma_i^2}{\sum_{i\in\mathcal S} w_i},
+=\frac{\sum_{i\in\mathcal W} w_i\,\sigma_i^2}{\sum_{i\in\mathcal W} w_i},
 \qquad
 w_i \propto \text{per-window counts}.
 \label{eq:moment_match}
@@ -226,8 +226,8 @@ Because the convolution of isotropic Gaussians is Gaussian, incorporating Bremss
 
 We assessed how well the isotropic Gaussian proxy reproduces the broader displacement PDFs (including angular effects in GATE) by comparing projected point-source responses produced by:
 \begin{enumerate}
-    \item STIR forward projections with geometric CDR modelling only;
-    \item STIR forward projections with geometric CDR plus the proposed isotropic Bremsstrahlung range blur;
+    \item \gls{stir} forward projections with geometric \glsentryshort{cdr} modelling only;
+    \item \glsentryshort{stir} forward projections with geometric \glsentryshort{cdr} plus the proposed isotropic Bremsstrahlung range blur;
     \item SIMIND simulations (which use an approximate isotropic Bremsstrahlung emission model); and
     \item GATE simulations (used here as a higher-fidelity reference that includes angular dependence of Bremsstrahlung emission).
 \end{enumerate}
@@ -331,12 +331,12 @@ and the Relative Difference prior is defined over a neighbourhood system $\mathc
 \begin{equation}
 R_{\mathrm{RDP}}(x)
 =
-\sum_{(j,k)\in \mathcal{N}}
+\frac{1}{2}\sum_{(j,k)\in \mathcal{N}}
 w_{jk}\;
-\frac{(x_j-x_k)^2}{(x_j+x_k)^2+\eta^2}.
+\frac{(x_j-x_k)^2}{x_j+x_k+\gamma|x_j-x_k|+\epsilon}.
 \label{eq:rdp_prior}
 \end{equation}
-Here, $x_j$ and $x_k$ denote neighbouring voxels, $w_{jk}\ge 0$ are neighbourhood weights, and $\eta>0$ is a small smoothing constant that prevents numerical instability when $x_j+x_k$ is small. The hyperparameter $\beta>0$ controls the overall strength of regularisation.
+Here, $x_j$ and $x_k$ denote neighbouring voxels, $w_{jk}\ge 0$ are neighbourhood weights, $\gamma$ controls edge preservation, and $\epsilon\geq0$ is the STIR RDP stabiliser; STIR assigns a zero contribution to a zero--zero voxel pair when $\epsilon=0$. The hyperparameter $\beta>0$ controls the overall strength of regularisation.
 
 \subsection{Interpretation via matched versus unmatched projectors}
 \label{subsec:rc_unmatched}
@@ -355,19 +355,19 @@ with $r$ an additive background term and Poisson data $y\sim\mathrm{Poisson}(\ba
 \paragraph{Maximum likelihood (no regularisation).}
 The negative log-likelihood for forward model $P$ has gradient
 \begin{equation}
-\nabla \Phi_{P}(x) = P^T\!\left(1-\frac{y}{Px+r}\right).
+\nabla \Phi_{P}(x) = P^\top\!\left(1-\frac{y}{Px+r}\right).
 \end{equation}
 For $P=A_{\mathrm{fast}}K$, the \emph{matched} stationarity condition is
 \begin{equation}
-K^T A_{\mathrm{fast}}^T\!\left(1-\frac{y}{A_{\mathrm{fast}}Kx+r}\right)=0.
+K^\top A_{\mathrm{fast}}^\top\!\left(1-\frac{y}{A_{\mathrm{fast}}Kx+r}\right)=0.
 \label{eq:matched_ml}
 \end{equation}
-If instead one uses the fast backprojector $A_{\mathrm{fast}}^T$ with the same forward model (an \emph{unmatched} pair), the stationarity condition would be
+If instead one uses the fast backprojector $A_{\mathrm{fast}}^\top$ with the same forward model (an \emph{unmatched} pair), the stationarity condition would be
 \begin{equation}
-A_{\mathrm{fast}}^T\!\left(1-\frac{y}{A_{\mathrm{fast}}Kx+r}\right)=0.
+A_{\mathrm{fast}}^\top\!\left(1-\frac{y}{A_{\mathrm{fast}}Kx+r}\right)=0.
 \label{eq:unmatched_ml}
 \end{equation}
-In the special case where $K^T$ is injective (and numerically well-conditioned on the relevant subspace), \eqref{eq:matched_ml} and \eqref{eq:unmatched_ml} share the same stationary points, since $K^T z=0 \Rightarrow z=0$. This explains why unmatched backprojection can appear benign in some unregularised, high-count regimes.
+In the special case where $K^\top$ is injective (and numerically well-conditioned on the relevant subspace), \eqref{eq:matched_ml} and \eqref{eq:unmatched_ml} share the same stationary points, since $K^\top z=0 \Rightarrow z=0$. This explains why unmatched backprojection can appear benign in some unregularised, high-count regimes.
 
 \paragraph{How RC fits.}
 Residual correction aims to make the \emph{forward prediction} behave like the accurate model without applying $K$ at every iteration, i.e.
@@ -375,25 +375,25 @@ Residual correction aims to make the \emph{forward prediction} behave like the a
 A_{\mathrm{fast}}Kx \;\approx\; A_{\mathrm{fast}}x + \mathrm{RC}(x),
 \end{equation}
 where $\mathrm{RC}(x)$ approximates $(A_{\mathrm{fast}}K-A_{\mathrm{fast}})x$ (often using lagged/intermittent updates). If the correction is consistent at a limit point $x^\star$, then the ratio term $y/(A_{\mathrm{fast}}Kx+r)$ is effectively ``accurate-forward''.
-However, the backprojection used by the iterative update remains $A_{\mathrm{fast}}^T$, not $(A_{\mathrm{fast}}K)^T = K^T A_{\mathrm{fast}}^T$. In this sense, RC can be interpreted as correcting the forward model while still behaving like an \emph{unmatched} method on the adjoint side.
+However, the backprojection used by the iterative update remains $A_{\mathrm{fast}}^\top$, not $(A_{\mathrm{fast}}K)^\top = K^\top A_{\mathrm{fast}}^\top$. In this sense, RC can be interpreted as correcting the forward model while still behaving like an \emph{unmatched} method on the adjoint side.
 
 \paragraph{Why low-count + RDP regularisation is high-risk.}
 With an RDP prior, the MAP stationarity condition (ignoring the non-negativity constraint) is
 \begin{equation}
-P^T\!\left(1-\frac{y}{Px+r}\right) + \beta \nabla R_{\mathrm{RDP}}(x)=0.
+P^\top\!\left(1-\frac{y}{Px+r}\right) + \beta \nabla R_{\mathrm{RDP}}(x)=0.
 \label{eq:map_stationary_general}
 \end{equation}
 For $P=A_{\mathrm{fast}}K$, the matched condition becomes
 \begin{equation}
-K^T A_{\mathrm{fast}}^T\!\left(1-\frac{y}{A_{\mathrm{fast}}Kx+r}\right) + \beta \nabla R_{\mathrm{RDP}}(x)=0,
+K^\top A_{\mathrm{fast}}^\top\!\left(1-\frac{y}{A_{\mathrm{fast}}Kx+r}\right) + \beta \nabla R_{\mathrm{RDP}}(x)=0,
 \label{eq:matched_map}
 \end{equation}
 whereas an unmatched analogue would be
 \begin{equation}
-A_{\mathrm{fast}}^T\!\left(1-\frac{y}{A_{\mathrm{fast}}Kx+r}\right) + \beta \nabla R_{\mathrm{RDP}}(x)=0.
+A_{\mathrm{fast}}^\top\!\left(1-\frac{y}{A_{\mathrm{fast}}Kx+r}\right) + \beta \nabla R_{\mathrm{RDP}}(x)=0.
 \label{eq:unmatched_map}
 \end{equation}
-As total counts decrease, the likelihood term becomes flatter and noisier, so the relative influence of $\beta \nabla R_{\mathrm{RDP}}(x)$ increases even when $\beta$ is held fixed. Unlike the ML case, the factor $K^T$ multiplies only the data-term gradient in \eqref{eq:matched_map} and does not act on $\nabla R_{\mathrm{RDP}}(x)$. Therefore, for $\beta>0$, matched and unmatched fixed points generally differ. In this prior-dominated regime, using an unmatched backprojector while correcting only the forward prediction can substantially alter the balance between data fidelity and regularisation, leading to marked divergence from the solution associated with the fully matched accurate model.
+As total counts decrease, the likelihood term becomes flatter and noisier, so the relative influence of $\beta \nabla R_{\mathrm{RDP}}(x)$ increases even when $\beta$ is held fixed. Unlike the ML case, the factor $K^\top$ multiplies only the data-term gradient in \eqref{eq:matched_map} and does not act on $\nabla R_{\mathrm{RDP}}(x)$. Therefore, for $\beta>0$, matched and unmatched fixed points generally differ. In this prior-dominated regime, using an unmatched backprojector while correcting only the forward prediction can substantially alter the balance between data fidelity and regularisation, leading to marked divergence from the solution associated with the fully matched accurate model.
 
 \subsection{Empirical observations}
 \label{subsec:rc_empirical}

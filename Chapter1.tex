@@ -79,7 +79,7 @@ where $t_{ij}$ represents true coincidences (Figure~\ref{subfig:pet_true_scatter
         \caption{}
         \label{subfig:pet_randoms}
     \end{subfigure}
-    \caption{Possible coincidences under \gls{pet} electronic collimation. From left to right: (a) scatter (green dashed line shows effective \gls{lor}), true; (b) random (green dashed line shows effective \gls{lor}).}
+    \caption{Possible coincidences under \gls{pet} electronic collimation. Panel (a) shows a scattered coincidence (the green dashed line is the effective \gls{lor}) and a true coincidence; panel (b) shows a random coincidence (green dashed lines are the effective \glspl{lor}).}
 \label{fig:pet}
 \end{figure*}
 
@@ -91,7 +91,7 @@ Random coincidences occur when two unrelated annihilation events are detected wi
 \subsection{The \gls{pet} model}\label{subsec:pet:model}
 \label{sec:pet_model}
 
-In \gls{pet}, the  matrix may be factorised as
+In \gls{pet}, the system matrix may be factorised as
 \begin{equation}
     A = A_{\mathrm{det,sens}}\,A_{\mathrm{det,blur}}\,A_{\mathrm{att}}\,A_{\mathrm{geom}}\,A_{\mathrm{ToF}}\,A_{\mathrm{positron}}.
 \end{equation}
@@ -127,7 +127,7 @@ For a parallel-hole collimator, septal penetration can be incorporated via an en
 \begin{equation}
     L_e(E) \;=\; l \;-\; \frac{2}{\mu_{\mathrm{}}(E)},
 \end{equation}
-where $l$ is the physical hole length and $\mu\mathrm(E)$ is the linear attenuation coefficient of the collimator material at photon energy $E$ \cite{cherryPhysicsNuclearMedicine2003}. The combined intrinsic detector blur and collimator blur is commonly approximated by a depth-dependent Gaussian point-spread function embedded within $A_{\mathrm{geom,att}}$, with standard deviation $\sigma(z,E)$ increasing with source-to-collimator distance $z$ (and depending on $E$ through penetration).
+where $l$ is the physical hole length and $\mu\mathrm(E)$ is the linear attenuation coefficient of the collimator material at photon energy $E$ \cite{cherryPhysicsNuclearMedicine2003}. The combined intrinsic detector blur and collimator blur is commonly approximated by a depth-dependent Gaussian point-spread function embedded within $A_{\mathrm{geom,att}}$, with standard deviation $\sigma(h,E)$ increasing with source-to-collimator distance $h$ (and depending on $E$ through penetration).
 
 \section{Yttrium-90 Radioembolisation (\gls{sirt})}
 \label{sec:y90}
@@ -139,11 +139,11 @@ where $l$ is the physical hole length and $\mu\mathrm(E)$ is the linear attenuat
 \begin{equation}
     ^{90}\text{Y} \rightarrow ^{90}\text{Zr} + e^- + \bar{\nu}_e
 \end{equation}
-The electrons have a high endpoint energy of \SI{2.28}{\mega\electronvolt}. The primary challenge for quantitative imaging n is the absence of primary gamma photons. Imaging must therefore exploit two secondary, low-probability physical interactions.
+The electrons have a high endpoint energy of \SI{2.28}{\mega\electronvolt}. The primary challenge for quantitative imaging is the absence of primary gamma photons. Imaging must therefore exploit two secondary, low-probability physical interactions.
 
 \subsection{Bremsstrahlung \gls{spect}}
 \label{subsec:bremss}
-As high-energy $\beta^-$ particles decelerate in tissue through Coulomb interactions with charged particles, they emit Bremsstrahlung photons. These photons can be imaged with \gls{spect} systems. However, the continuous spectrum of bremsstrahlung photons (Figure~\ref{fig:brems_emission}) hugely reduces the suitability of traditional energy window scatter correction methods and bremsstrahlung range blurring (Figure~\ref{fig:bremsstrahlung} reduces resolution. Consequently, Bremsstrahlung \gls{spect} is often characterised by poor spatial resolution and limited quantitative accuracy \cite{simpkinSpatialEnergyDependence1992}.
+As high-energy $\beta^-$ particles decelerate in tissue through Coulomb interactions with charged particles, they emit Bremsstrahlung photons. These photons can be imaged with \gls{spect} systems. However, the continuous spectrum of bremsstrahlung photons (Figure~\ref{fig:brems_emission}) hugely reduces the suitability of traditional energy-window scatter-correction methods, while bremsstrahlung range blurring (Figure~\ref{fig:bremsstrahlung}) reduces resolution. Consequently, bremsstrahlung \gls{spect} is often characterised by poor spatial resolution and limited quantitative accuracy \cite{simpkinSpatialEnergyDependence1992}.
 
 \begin{figure}
     \centering

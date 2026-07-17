@@ -56,7 +56,7 @@ then the image-space gradient is
 \end{equation}
 where the division is understood pointwise over voxels.
 
-For nuclear-norm VTV, the unsmoothed singular-value map is not differentiable at zero singular values, and hence the corresponding nuclear norm is not $C^1$ at rank-deficient points. We therefore apply the Charbonnier function to the singular values:
+For nuclear-norm vectorial total variation, the unsmoothed singular-value map is not differentiable at zero singular values, and hence the corresponding nuclear norm is not $C^1$ at rank-deficient points. We therefore apply the Charbonnier function to the singular values:
 \begin{equation}\label{eq:charbonnier_g}
 g(s)=\sqrt{s^2+\epsilon^2}-\epsilon,
 \qquad
@@ -82,7 +82,7 @@ is orthogonally invariant and depends on $Y$ only through its singular values $\
 Since $g\in C^\infty([0,\infty))$ for $\epsilon>0$, the symmetric function $f$ is smooth and hence $\phi$ is differentiable, with gradient given by the standard formula for orthogonally invariant matrix functions \cite{lewisConvexAnalysisUnitarily1995,lewisDerivativesSpectralFunctions1996}.
 
 \paragraph{Jacobian-space gradient.}
-Let $\phi(\mathcal{G})=\sum_{\ell=1}^{\min(d,M)} g(\sigma_\ell(\mathcal{G}))$, where $\sigma_\ell(\mathcal{G})$ are the singular values of the voxel-wise Jacobian matrix $\mathcal{G}\in\mathbb{R}^{d\times M}$. A thin SVD
+Let $\phi(\mathcal{G})=\sum_{\ell=1}^{\min(d,M)} g(\sigma_\ell(\mathcal{G}))$, where $\sigma_\ell(\mathcal{G})$ are the singular values of the voxel-wise Jacobian matrix $\mathcal{G}\in\mathbb{R}^{d\times M}$. A thin \gls{svd}
 \begin{equation}
 \mathcal{G} \;=\; U\,\Sigma\,V^\top,
 \qquad
@@ -122,9 +122,9 @@ hence
 \;=\;
 \mathcal{G}\,V\,\mathrm{diag}\!\left(\frac{1}{\sqrt{\lambda_\ell+\epsilon^2}}\right)\,V^\top
 \;=\;
-\mathcal{G}\,(G+\epsilon^2 I)^{-1/2}.
+\mathcal{G}\,(G+\epsilon^2 \mathbb{I})^{-1/2}.
 \end{equation}
-Equation~\eqref{eq:phi_grad_inv_sqrt} shows that the Jacobian-space gradient is obtained by applying the inverse square-root of the $M\times M$ SPD matrix $G+\epsilon^2 I$ to the columns of $\mathcal{G}$.
+Equation~\eqref{eq:phi_grad_inv_sqrt} shows that the Jacobian-space gradient is obtained by applying the inverse square-root of the $M\times M$ \gls{spd} matrix $G+\epsilon^2 \mathbb{I}$ to the columns of $\mathcal{G}$.
 
 For $M=2$ modalities, even an eigendecomposition of $G$ can be avoided. Writing
 \begin{equation}
@@ -136,17 +136,17 @@ c & b
 \qquad
 a=\|\mathcal{G}_{:,1}\|_2^2,\ \ b=\|\mathcal{G}_{:,2}\|_2^2,\ \ c=\langle \mathcal{G}_{:,1},\mathcal{G}_{:,2}\rangle,
 \end{equation}
-define $S:=G+\epsilon^2 I=\begin{psmallmatrix}s_{11} & s_{12}\\ s_{12} & s_{22}\end{psmallmatrix}$ with $s_{11}=a+\epsilon^2$, $s_{22}=b+\epsilon^2$, $s_{12}=c$, and the invariants
+define $S:=G+\epsilon^2 \mathbb{I}=\begin{psmallmatrix}s_{11} & s_{12}\\ s_{12} & s_{22}\end{psmallmatrix}$ with $s_{11}=a+\epsilon^2$, $s_{22}=b+\epsilon^2$, $s_{12}=c$, and the invariants
 \begin{equation}
 t:=\mathrm{tr}(S)=s_{11}+s_{22},
 \qquad
 s:=\sqrt{\det(S)}=\sqrt{s_{11}s_{22}-s_{12}^2}.
 \end{equation}
-Since $\epsilon>0$ implies $S\succ 0$, the following identity holds for $2\times2$ SPD matrices:
+Since $\epsilon>0$ implies $S\succ 0$, the following identity holds for $2\times2$ \glsentryshort{spd} matrices:
 \begin{equation}\label{eq:inv_sqrt_2x2}
 S^{-1/2}
 =
-\sqrt{t+2s}\,(S+sI)^{-1}
+\sqrt{t+2s}\,(S+s\mathbb{I})^{-1}
 =
 \frac{\sqrt{t+2s}}{2\det(S)+s\,t}
 \begin{pmatrix}
@@ -159,7 +159,7 @@ Therefore, for two modalities the Jacobian-space gradient can be evaluated via
 \nabla_{\mathcal{G}} \phi(\mathcal{G})
 =
 \mathcal{G}\,S^{-1/2},
-\qquad S=G+\epsilon^2 I,
+\qquad S=G+\epsilon^2 \mathbb{I},
 \end{equation}
 using only dot products and scalar square-roots per voxel.
 
@@ -213,17 +213,17 @@ Applying $\Pi_{m,n}$ to each modality gradient defines the directional multi-mod
 \begin{equation}
 \mathcal{G}^{\mathrm{dir}}_n(\bm{z})= \bigl[\Pi_{1,n}(D z_1)_n \;|\; \cdots \;|\; \Pi_{M,n}(D z_M)_n\bigr]\in\mathbb{R}^{d\times M}.
 \end{equation}
-Here $D$ denotes the chosen discrete directional-difference operator and each $\Pi_{m,n}\in\mathbb{R}^{d\times d}$ is constructed from the guidance field at voxel $n$. In the implementation used in this work, a guidance image $a$ defines
+Here $D$ denotes the chosen discrete directional-difference operator and each $\Pi_{m,n}\in\mathbb{R}^{d\times d}$ is constructed from the guidance field at voxel $n$. In the implementation used in this work, a guidance image $u$ defines
 \begin{equation}
 \xi_n
 =
-\frac{(D a)_n}{\sqrt{\|(D a)_n\|_2^2+\eta^2}},
+\frac{(D u)_n}{\sqrt{\|(D u)_n\|_2^2+\eta^2}},
 \qquad
-\Pi_{m,n}=I_d-\gamma_m\,\xi_n\xi_n^\top,
+\Pi_{m,n}=\mathbb{I}_d-\gamma_m\,\xi_n\xi_n^\top,
 \qquad \gamma_m\in[0,1].
 \label{eq:wdtnv_directional_operator}
 \end{equation}
-When $\eta$ is not specified explicitly it is set from a robust scale estimate of $\|(Da)_n\|_2$, namely $0.01$ times the difference between its $99$th and $1$st percentiles. In homogeneous regions of the guidance image, $\xi_n$ is small and $\Pi_{m,n}$ is close to the identity, so the regulariser reduces to an approximately isotropic TNV-type coupling.
+When $\eta$ is not specified explicitly it is set from a robust scale estimate of $\|(Du)_n\|_2$, namely $0.01$ times the difference between its $99$th and $1$st percentiles. In homogeneous regions of the guidance image, $\xi_n$ is small and $\Pi_{m,n}$ is close to the identity, so the regulariser reduces to an approximately isotropic TNV-type coupling.
 
 Using CT only to construct the directional operators decouples anatomical steering from emission-to-emission weighting. Modality weights determine how strongly emission gradients are coupled to one another through the nuclear norm, while $\Pi_{m,n}$ determines how strongly the penalty prefers guidance-consistent edge directions. Retaining a two-modality Jacobian also preserves the efficient $2\times2$ Gram-matrix structure derived in Section~\ref{sec:tv_to_tnv}.
 
@@ -235,36 +235,36 @@ PET and SPECT images of the same administered Y-90 activity differ substantially
 
 To compensate, we introduce a voxel-wise, modality-wise diagonal weight matrix
 \begin{equation}
-    B_n := \mathrm{diag}(\beta_{1,n},\,\beta_{2,n}) \in \mathbb{R}^{2\times 2},
-    \qquad \beta_{m,n} > 0.
+    B_n := \mathrm{diag}(\rho_{1,n},\,\rho_{2,n}) \in \mathbb{R}^{2\times 2},
+    \qquad \rho_{m,n} > 0.
     \label{eq:Bn_def}
 \end{equation}
 The weighted directional Jacobian is
 \begin{equation}
-    Y_n(\bm{z}) := \mathcal{G}_n^{\mathrm{dir}}(\bm{z})\,B_n
+    \tilde{\mathcal{G}}_n(\bm{z}) := \mathcal{G}_n^{\mathrm{dir}}(\bm{z})\,B_n
     = \bigl[\Pi_{1,n}(D z_1)_n \;\big|\; \Pi_{2,n}(D z_2)_n\bigr]\,
-    \mathrm{diag}(\beta_{1,n},\beta_{2,n})
+    \mathrm{diag}(\rho_{1,n},\rho_{2,n})
     \in \mathbb{R}^{d\times 2}.
     \label{eq:Yn_weighted}
 \end{equation}
-The columns of $Y_n$ are $y_{m,n} := \beta_{m,n}\,\Pi_{m,n}(D z_m)_n \in \mathbb{R}^d$.
+The columns of $\tilde{\mathcal{G}}_n$ are $\tilde{g}_{m,n} := \rho_{m,n}\,\Pi_{m,n}(D z_m)_n \in \mathbb{R}^d$.
 
 The \emph{weighted directional Total Nuclear Variation} ($\wdtnv$) prior is then
 \begin{equation}
     \mathcal{R}_{\mathrm{w\text{-}dTNV}}(\bm{z})
     :=
-    V_{\mathrm{vox}}\sum_{n=1}^{N} \phi\!\left(Y_n(\bm{z})\right),
+    V_{\mathrm{vox}}\sum_{n=1}^{N} \phi\!\left(\tilde{\mathcal{G}}_n(\bm{z})\right),
     \qquad
     \phi(Y) := \sum_{\ell=1}^{\min(d,M)} g(\sigma_\ell(Y)),
     \label{eq:wdtnv_prior}
 \end{equation}
-where $V_{\mathrm{vox}}$ is the voxel volume and $g$ is the Charbonnier smoothing from~\eqref{eq:charbonnier_g}. Choosing equal weights $\beta_{m,n}\equiv 1$ recovers unweighted $d$TNV. Choosing $\beta_{m,n}$ proportional to the inverse of a characteristic modality scale brings both channels to a comparable range before the nuclear-norm coupling is evaluated. The PET/SPECT normalisation used in the application study is specified in Chapter~\ref{chapter:paper}.
+where $V_{\mathrm{vox}}$ is the voxel volume and $g$ is the Charbonnier smoothing from~\eqref{eq:charbonnier_g}. Choosing equal weights $\rho_{m,n}\equiv 1$ recovers unweighted $d$TNV. Choosing $\rho_{m,n}$ proportional to the inverse of a characteristic modality scale brings both channels to a comparable range before the nuclear-norm coupling is evaluated. The PET/SPECT normalisation used in the application study is specified in Chapter~\ref{chapter:paper}.
 
 \paragraph{Effect on the singular spectrum.}
-Right-multiplying by $B_n$ scales the $m$-th column of $Y_n$ by $\beta_{m,n}$. This scales the singular values of $Y_n$ in a non-trivial way, since the singular values of $YB$ are not simply $\sigma_\ell(Y)\beta_m$. The intended effect is instead on the Gram matrix: $Y_n^\top Y_n$ contains modality self-terms and cross-terms after scaling, so suitable $\beta_{m,n}$ values allow both modalities to contribute comparably to the coupled singular spectrum. The $2\times2$ Gram-matrix algebra in Section~\ref{sec:tv_to_tnv} applies directly to this weighted case.
+Right-multiplying by $B_n$ scales the $m$-th column of $\tilde{\mathcal{G}}_n$ by $\rho_{m,n}$. This scales the singular values of $\tilde{\mathcal{G}}_n$ in a non-trivial way, since the singular values of $YB$ are not simply $\sigma_\ell(Y)\rho_m$. The intended effect is instead on the Gram matrix: $\tilde{\mathcal{G}}_n^\top \tilde{\mathcal{G}}_n$ contains modality self-terms and cross-terms after scaling, so suitable $\rho_{m,n}$ values allow both modalities to contribute comparably to the coupled singular spectrum. The $2\times2$ Gram-matrix algebra in Section~\ref{sec:tv_to_tnv} applies directly to this weighted case.
 
 \section{Conclusion}
 
-This chapter introduced a smoothed, weighted, and directional Total Nuclear Variation ($\wdtnv$) prior for synergistic reconstruction. Charbonnier smoothing of the singular values yields a differentiable spectral functional whose Jacobian-space gradient can be written in Gram-matrix form. For two coupled emission modalities this reduces the key spectral operation to a $2\times2$ inverse square-root, allowing the prior and its gradient to be evaluated robustly without a general per-voxel SVD.
+This chapter introduced a smoothed, weighted, and directional Total Nuclear Variation ($\wdtnv$) prior for synergistic reconstruction. Charbonnier smoothing of the singular values yields a differentiable spectral functional whose Jacobian-space gradient can be written in Gram-matrix form. For two coupled emission modalities this reduces the key spectral operation to a $2\times2$ inverse square-root, allowing the prior and its gradient to be evaluated robustly without a general per-voxel \glsentryshort{svd}.
 
 The chapter also separated two roles that are easily confounded in multimodality reconstruction. Anatomical information is used directionally through $\Pi_{m,n}$, steering the penalty without adding CT as another coupled intensity channel. Modality scaling is handled separately through the diagonal weight matrix $B_n$, allowing PET and SPECT gradients to enter the nuclear-norm coupling on comparable scales. Chapter~\ref{chapter:optimisation} uses these definitions to construct practical preconditioners and subset-selection strategies for large-scale $\wdtnv$ optimisation.
