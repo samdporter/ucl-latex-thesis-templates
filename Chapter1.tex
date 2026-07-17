@@ -121,7 +121,7 @@ For \gls{spect}, a convenient factorisation is
 \begin{equation}
     A \;=\; A_{\mathrm{det,sens}}\,A_{\mathrm{det,blur}}\,A_{\mathrm{geom,att}}\,A_{\mathrm{bremss}},
 \end{equation}
-where $A_{\mathrm{det,sens}}$ collects multiplicative sensitivity factors (e.g.\ detector efficiency and calibration/normalisation terms), $A_{\mathrm{det,blur}}$ represents intrinsic resolution effects within the gamma camera, and $A_{\mathrm{geom,att}}$ is the geometric projection operator that encapsulates collimator effects (including depth-dependent resolution) together with depth- and view-dependent attenuation. The operator $A_{\mathrm{bremss}}$ is specific to bremsstrahlung \gls{spect} and models the additional blurring associated with bremsstrahlung range (discussed in Section~\ref{subsec:bremss}).
+where $A_{\mathrm{det,sens}}$ collects multiplicative sensitivity factors, $A_{\mathrm{det,blur}}$ represents intrinsic resolution effects within the gamma camera, and $A_{\mathrm{geom,att}}$ is the geometric projection operator that encapsulates collimator effects (including depth-dependent resolution) together with depth- and view-dependent attenuation. The operator $A_{\mathrm{bremss}}$ is specific to bremsstrahlung \gls{spect} and models the additional blurring associated with bremsstrahlung range (discussed in Section~\ref{subsec:bremss}).
 
 For a parallel-hole collimator, septal penetration can be incorporated via an energy-dependent effective hole length,
 \begin{equation}
@@ -132,7 +132,7 @@ where $l$ is the physical hole length and $\mu\mathrm(E)$ is the linear attenuat
 \section{Yttrium-90 Radioembolisation (\gls{sirt})}
 \label{sec:y90}
 
-\Gls{sirt} uses \gls{y90} microspheres for the locoregional treatment of hepatic malignancies. It is an established treatment for unresectable \gls{hcc} and liver metastases \cite{sundramSelectiveInternalRadiation2017}, recommended by NICE for unresectable \glsentryshort{hcc} and used for neuroendocrine and colorectal liver metastases in the UK \cite{nationalinstituteforhealthandcareexcellenceniceSelectiveInternalRadiation2021,nationalinstituteforhealthandcareexcellenceniceSelectiveInternalRadiation2024}. The reconstruction of post-\gls{sirt} microsphere distribution presents a severe ill-posed inverse problem, as \gls{y90} is designed for therapy, not imaging.
+\Gls{sirt} uses \gls{y90} microspheres for the locoregional treatment of hepatic malignancies. It is an established treatment for unresectable \gls{hcc} and liver metastases \cite{sundramSelectiveInternalRadiation2017}, recommended by NICE for unresectable \glsentryshort{hcc} and used for neuroendocrine and colorectal liver metastases in the UK \cite{nationalinstituteforhealthandcareexcellenceniceSelectiveInternalRadiation2021, nationalinstituteforhealthandcareexcellenceniceSelectiveInternalRadiation2024}. The reconstruction of post-\gls{sirt} microsphere distribution presents a severe ill-posed inverse problem, as \gls{y90} is designed for therapy, not imaging.
 
 \subsection{Decay Characteristics}
 \gls{y90} is an almost pure $\beta^-$ emitter decaying to the stable ground state of \gls{zr90} with a half-life of 64.1 hours:
