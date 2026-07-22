@@ -1,0 +1,6 @@
+\section[Kernelised Richardson--Lucy deconvolution]{\texttt{Kernel\_RL}: Kernelised Richardson--Lucy Deconvolution with the Core Imaging Library}
+\label{app:kernel_rl}
+
+The anatomy-guided deconvolution experiments of Chapter~\ref{chapter:deconvolution_pvc} were performed with \texttt{Kernel\_RL}, a Python package implementing \gls{rl} deconvolution and its anatomy-aware variants --- \gls{krl}, \gls{hkrl}, and \gls{rldtv} --- within the optimisation framework of the Core Imaging Library (CIL) \cite{jorgensenCoreImagingLibrary2021}. The kernel operator realising the image model $x = K\alpha$ is provided with interchangeable backends --- PyTorch/CUDA on GPU and Numba on CPU --- selected automatically at runtime; sparse neighbour masking and an optional single-precision mode together allow $256^3$ volumes to be processed on consumer GPUs.
+
+The package is released under the MIT licence and is available at \href{https://github.com/samdporter/Kernel_RL}{GitHub}. Installation is supported via conda (with CIL from the \texttt{conda-forge} and \texttt{ccpi} channels) or via the provided Docker environment, which reproduces the software configuration used for the experiments of Chapter~\ref{chapter:deconvolution_pvc}. \TODO{Archive a tagged release of \texttt{Kernel\_RL} on Zenodo and replace this GitHub link with the DOI-backed citation.}
