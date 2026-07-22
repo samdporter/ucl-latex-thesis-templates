@@ -259,7 +259,7 @@ For DTV reconstructions, we swept the regularisation weight
 \beta\in\{0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0\}.
 \]
 
-Kernel methods used a fixed number of neighbours ($48$ nearest neighbours) within a cubic $9\times9\times9$ neighbourhood \cite{hutchcroftAnatomicallyaidedPETReconstruction2016}. Feature channels were normalised before computing Gaussian similarities, as in the kernel construction described in Chapter~\ref{chapter:reconstruction}; the reported $\sigma_a$ and $\sigma_f$ values are therefore interpreted in these normalised feature units. For KRL we swept the anatomical weighting $\sigma_a$. For HKRL we additionally swept the functional weighting $\sigma_f$. Because we used a $k$-nearest-neighbours strategy, distance weights ($\sigma_{df}, \sigma_{da}$) were not used.
+Kernel methods used a fixed number of neighbours ($48$ nearest neighbours) within a cubic $9\times9\times9$ neighbourhood \cite{hutchcroftAnatomicallyaidedPETReconstruction2016}. Feature channels were normalised before computing Gaussian similarities, as in the kernel construction described in Chapter~\ref{chapter:reconstruction}; the reported $\sigma_a$ and $\sigma_f$ values are therefore interpreted in these normalised feature units. For KRL we swept the anatomical weighting $\sigma_a$. For HKRL we additionally swept the functional weighting $\sigma_f$. Because we used a $k$-nearest-neighbours strategy, distance weights ($\sigma_{df}, \sigma_{da}$) were not used. The implementation of the deconvolution methods used in these experiments is described in Appendix~\ref{app:kernel_rl}.
 
 \begin{table}[hbtp]
 \centering
