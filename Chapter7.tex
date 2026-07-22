@@ -187,7 +187,7 @@ We minimise the joint objective \eqref{eq:90y_joint_obj} using a subset stochast
 \frac{1}{N_{\mathrm d}}
 \tilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}(\bm{z}),
 \end{equation}
-so that summing all stochastic functions recovers one complete prior term. This differs organisationally from the Chapter~\ref{chapter:optimisation} experiments, in which the complete prior was held outside the data-function sampler. Here every stochastic function includes the scaled prior contribution; the prior is not sampled as a separate subset. Data functions are formed using staggered, view-interleaved partitioning and are split by modality, so each $\mathcal D_i$ contains either PET or SPECT data.
+so that summing all stochastic functions recovers one complete prior term. This folded organisation is mathematically identical to holding the complete prior outside the data-function sampler and evaluating it at every update, as in the Chapter~\ref{chapter:optimisation} estimator, and it matched the only prior-application schedule that converged reliably in the subset-selection comparison there (Section~\ref{sec:optimisation_subset_selection}). Every stochastic function includes the scaled prior contribution; the prior is not sampled as a separate subset. Data functions are formed using staggered, view-interleaved partitioning and are split by modality, so each $\mathcal D_i$ contains either PET or SPECT data.
 
 At iteration $k$, with anchor point $\tilde{\bm{z}}$ refreshed once per epoch, we use the SVRG estimator
 \begin{equation}

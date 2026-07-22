@@ -1,7 +1,7 @@
 \chapter{Preconditioning and Subset Selection for Synergistic Reconstruction}
 \label{chapter:optimisation}
 
-Chapter~\ref{chapter:wdtnv} defined the smoothed weighted directional total nuclear variation prior. Applying this coupled, edge-preserving prior at scale raises three linked optimisation questions. First, overlapping PET bed positions must be reconstructed into a common image if the prior is to act consistently across their overlap. Second, PET and SPECT subsets can be paired or treated as separate stochastic functions. Third, the very different data and prior curvature scales require an effective preconditioner. This chapter addresses these questions in turn and uses the resulting evidence to motivate the optimisation protocol carried forward into Chapter~\ref{chapter:paper}. That application protocol had already been frozen before the wider preconditioner comparison reported here.
+Chapter~\ref{chapter:wdtnv} defined the smoothed weighted directional total nuclear variation prior. Applying this coupled, edge-preserving prior at scale raises three linked optimisation questions. First, overlapping PET bed positions must be reconstructed into a common image if the prior is to act consistently across their overlap. Second, PET and SPECT subsets can be paired or treated as separate stochastic functions, and the prior can be folded into every sampled function, sampled alongside the data, or applied once per data pass. Third, the very different data and prior curvature scales require an effective preconditioner. This chapter addresses these questions in turn and uses the resulting evidence to motivate the optimisation protocol carried forward into Chapter~\ref{chapter:paper}. That application protocol had already been frozen before the wider preconditioner comparison reported here.
 
 \section{Multi-Bed PET Acquisition}
 \label{sec:multibed}
@@ -107,7 +107,7 @@ The stochastic experiments use SVRG \cite{johnsonAcceleratingStochasticGradient2
     \qquad i_k\sim\operatorname{Unif}\{1,\ldots,N_{\mathrm d}\}.
     \label{eq:svrg_estimator_general}
 \end{equation}
-The data functions are sampled uniformly with replacement. The complete prior gradient is evaluated at every stochastic update, and the full data-gradient snapshot is refreshed once per epoch.
+The data functions are sampled uniformly with replacement. The complete prior gradient is evaluated at every stochastic update, and the full data-gradient snapshot is refreshed once per epoch. The subset-selection experiment in Section~\ref{sec:optimisation_subset_selection} also evaluates coarser prior schedules that keep the same average prior weight per data pass.
 
 The image update is a projected, preconditioned gradient step,
 \begin{equation}
@@ -152,7 +152,7 @@ The regions are evaluated separately over the whole image, the hot-sphere mask, 
 \section{Subset Selection}
 \label{sec:optimisation_subset_selection}
 
-Subset methods accelerate early iterations in emission tomography by replacing full data passes with stochastic or ordered blocks of projection data \cite{hudsonAcceleratedImageReconstruction1994}. Joint PET/SPECT reconstruction introduces a further choice: corresponding modality subsets can be added to form paired stochastic functions, or each modality subset can remain a separate function. The experiment below compares only these two organisations. In both cases the complete prior remains outside the sampler and is evaluated at every update, as in Equation~\eqref{eq:svrg_estimator_general}. \TODO{Add the Zenodo-managed citation for IEEE Xplore document 10654962.}
+Subset methods accelerate early iterations in emission tomography by replacing full data passes with stochastic or ordered blocks of projection data \cite{hudsonAcceleratedImageReconstruction1994}. Joint PET/SPECT reconstruction introduces two further choices. Corresponding modality subsets can be added to form paired stochastic functions, or each modality subset can remain a separate function; and the prior can be applied on different schedules relative to the sampled data functions. The experiment below crosses these two subset organisations with three prior-application schedules. All three schedules deliver the same average prior weight, one complete prior contribution per data pass, and differ only in how finely that contribution is distributed across updates. \TODO{Add the Zenodo-managed citation for IEEE Xplore document 10654962.}
 
 \subsection{Data-Subset Organisation}
 \label{subsec:subset_data_organisation}
@@ -182,30 +182,47 @@ PET and SPECT subsets with matching indices are summed into one stochastic funct
     \qquad j=1,\ldots,18.
     \label{eq:paired_subset_functions}
 \end{equation}
+
+\subsection{Prior-Application Schedules}
+\label{subsec:subset_prior_schedules}
+
+Writing $N_{\mathrm d}$ for the number of data functions in the chosen organisation ($N_{\mathrm d}=36$ separate, $N_{\mathrm d}=18$ paired), three schedules for applying the prior $\mathcal R$ were compared. All runs use the SVRG estimator.
+
+\paragraph{Folded.}
+The scaled prior $\mathcal R/N_{\mathrm d}$ is added to every data function, so each sampled function is $\mathcal D_i + \mathcal R/N_{\mathrm d}$ and every update evaluates the complete prior gradient. Because the prior enters every sampled function with the same weight, the estimator reduces algebraically to Equation~\eqref{eq:svrg_estimator_general}: folding is mathematically identical to holding the complete prior outside the sampler and evaluating it at every update. This is the schedule used by the preconditioner experiments later in this chapter and by the application protocol of Chapter~\ref{chapter:paper}.
+
+\paragraph{Sampled.}
+The prior, scaled by $1/N_{\mathrm d}$, is kept outside the data functions and instead enters the sampler as additional stochastic functions on the same footing as the data. Prior-only updates therefore occur on half of the draws in expectation, roughly every other update, and accumulate one complete prior contribution per data pass on average. This schedule is labelled prior/half in the figure legend.
+
+\paragraph{Once per epoch.}
+The sampled data updates exclude the prior entirely; the complete prior gradient is instead applied in a single dedicated update once per data pass.
+
 \subsection{Experiment Design and Work Accounting}
 \label{subsec:subset_selection_experiment_methods}
 
-All data functions were sampled uniformly with replacement. To compare the organisations on a common horizontal axis, one matched data pass is defined by 36 modality-specific data-subset evaluations. Paired organisation reaches this count after 18 joint PET+SPECT updates: each update evaluates one PET and one SPECT subset, and therefore the 18 updates comprise 36 data-subset evaluations and 18 complete prior-gradient evaluations. Separate organisation reaches the same data-projection count after 36 modality-specific updates, comprising the same 36 data-subset evaluations but 36 complete prior-gradient evaluations.
+All stochastic functions were sampled uniformly with replacement. To compare the configurations on a common horizontal axis, one matched data pass is defined by 36 modality-specific data-subset evaluations. Paired organisation reaches this count after 18 joint PET+SPECT data updates, each evaluating one PET and one SPECT subset; separate organisation reaches it after 36 modality-specific data updates. Prior work per matched pass then depends on the schedule. The folded schedule evaluates the complete prior gradient at every data update (36 evaluations per pass separate, 18 paired). The sampled schedule interleaves on average as many prior-only updates as data updates, roughly doubling the parameter-update count per pass for a comparable number of prior-gradient evaluations. The once-per-epoch schedule adds a single prior-gradient evaluation and update per pass.
 
-This accounting matches data-projection work, but it does not match parameter-update count, prior-gradient work, or elapsed computation. Both organisations used the same objective and the MM local-diagonal curvature preconditioner, and were assessed with the common 20-pass protocol in Section~\ref{subsec:optimisation_evaluation_protocol}.
+This accounting matches data-projection work and average prior weight, but it does not match parameter-update count, prior-gradient work, or elapsed computation. Prior-only updates do not advance the horizontal axis, and a prior-gradient evaluation is much cheaper than a data-subset evaluation, so the additional prior work of the folded and sampled schedules, up to $N_{\mathrm d}$ evaluations per pass, is not reflected in the plotted axis. All configurations used the same objective and the MM local-diagonal curvature preconditioner, and were assessed with the common 20-pass protocol in Section~\ref{subsec:optimisation_evaluation_protocol}.
 
 \begin{figure}[htbp]
     \centering
     \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/subsets/subsets_only/exp_subset_selection_1bpos_mm_diag_tight_alpha_1_prior_always.png}
+        \includegraphics[width=\linewidth]{figures/preconditioning/subsets/full/exp_subset_selection_1bpos_mm_diag_tight_combine_majoriser_alpha_1.png}
         \caption{PET.}
     \end{subfigure}
     \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/subsets/subsets_only/exp_subset_selection_1bpos_mm_diag_tight_alpha_1_SPECT_prior_always.png}
+        \includegraphics[width=\linewidth]{figures/preconditioning/subsets/full/exp_subset_selection_1bpos_mm_diag_tight_combine_majoriser_alpha_1_SPECT.png}
         \caption{SPECT represented on the PET grid.}
     \end{subfigure}
-    \caption{Convergence for paired and modality-separated subsets using the MM local-diagonal curvature preconditioner. Lines show the mean per-run NRMSE over five stochastic realisations and shading shows the pointwise minimum--maximum over the first 20 matched data passes. The complete prior gradient was evaluated at every update.}
+    \caption{Convergence for the six combinations of subset organisation (paired, separate) and prior-application schedule (folded, sampled, once per epoch) using the MM local-diagonal curvature preconditioner. Lines show the mean per-run NRMSE over five stochastic realisations and shading shows the pointwise minimum--maximum over the first 20 matched data passes. In the legend, prior folded, prior/half, and prior once/epoch denote the folded, sampled, and once-per-epoch schedules; every schedule applies on average one complete prior contribution per matched data pass.}
     \label{fig:optim_subset_organisation}
 \end{figure}
 
 \subsection{Results}
 
-Figure~\ref{fig:optim_subset_organisation} shows faster convergence with modality-separated subsets for both PET and SPECT, with the clearest differences in the hot- and cold-sphere regions. A plausible explanation is that the separate organisation performs 36 parameter updates per matched data pass, compared with 18 paired updates, and therefore makes more frequent progress for the same number of data-subset projections. The experiment does not isolate modality grouping from update frequency: the separate configuration also evaluates the complete prior twice as often. It should therefore be interpreted as a data-projection-matched comparison of the two implemented organisations, not as a compute-matched speed benchmark or a causal test of modality splitting alone.
+Figure~\ref{fig:optim_subset_organisation} separates the six configurations by prior schedule far more than by subset organisation. Only the folded schedule converged. Separate folded subsets reached the lowest NRMSE in every region for both modalities, with paired folded subsets close behind and the clearest gaps in the hot- and cold-sphere regions; the separate folded PET whole-image mean shows one large transient excursion near pass six before recovering. Under the sampled and once-per-epoch schedules, neither organisation made net progress within the 20 passes: the curves stagnate near their starting values, with the once-per-epoch runs additionally showing large excursions and, for SPECT, early transient progress that subsequently regressed. Because all six configurations deliver the same average prior weight per matched data pass, the failures are attributable to the granularity of prior application rather than to its total contribution. A plausible explanation is that stable progress at these step sizes requires the data and prior gradients to be combined within each preconditioned update: the sampled and once-per-epoch schedules concentrate the prior into intermittent prior-only corrections, which repeatedly disturb iterates that the intervening data-only updates have advanced without regularisation.
+
+Within the folded schedule, the organisation effect is plausibly an update-frequency effect: the separate organisation performs 36 parameter updates per matched data pass, compared with 18 paired updates, and therefore makes more frequent progress for the same number of data-subset projections. The experiment does not isolate modality grouping from update frequency, and should be interpreted as a data-projection-matched comparison of the implemented configurations, not as a compute-matched speed benchmark or a causal test of modality splitting alone. All runs used the MM local-diagonal curvature preconditioner with the common step-size schedule, so the schedule sensitivity reported here is an observation under that protocol rather than an established general property.
 
 \section{Prior-Aware Preconditioning}
 \label{sec:optimisation_preconditioners}
@@ -376,7 +393,7 @@ Lewis--Sendov block-diagonal & Voxel-block diagonal of the exact smoothed spectr
 
 Five settings are compared: data-only BSREM, MM local diagonal, MM Gershgorin-inflated diagonal, MM local voxel-block, and Lewis--Sendov block-diagonal preconditioning. These settings are summarised in Table~\ref{tab:preconditioner_settings}. The four prior-aware settings use the inverse-sum combination.
 
-The comparison uses the one-bed anthropomorphic phantom, modality-separated subsets, and the complete prior gradient at every update. All methods use the same objective, initialisation, long-run reference, initial step $\varsigma^{(0)}=1$, and relaxation parameter $\eta_{\mathrm{relax}}=0.002$. Five stochastic realisations are evaluated for the first 20 matched data passes. Sensitivity-derived support masks are enabled with relative threshold $10^{-3}$, and the data component is smoothed with a $5\,\mathrm{mm}$ Gaussian FWHM.
+The comparison uses the one-bed anthropomorphic phantom, modality-separated subsets, and the folded prior schedule, i.e.\ the complete prior gradient at every update. All methods use the same objective, initialisation, long-run reference, initial step $\varsigma^{(0)}=1$, and relaxation parameter $\eta_{\mathrm{relax}}=0.002$. Five stochastic realisations are evaluated for the first 20 matched data passes. Sensitivity-derived support masks are enabled with relative threshold $10^{-3}$, and the data component is smoothed with a $5\,\mathrm{mm}$ Gaussian FWHM.
 
 The reference is separate from this five-method comparison: it is a single 1000-epoch run with the same objective, a Gershgorin-diagonal MM preconditioner, and more conservative optimisation settings, including $\eta_{\mathrm{relax}}=10^{-4}$. It provides $x^\star$ for the NRMSE calculation rather than an additional candidate method.
 
@@ -457,7 +474,7 @@ For the Lewis--Sendov block model, $p=0.01$ is marginally better than the invers
 \section{Conclusion}
 \label{sec:optimisation_conclusion}
 
-Joint reconstruction of the PET bed positions is required for the edge-preserving prior to act consistently across their overlap; the qualitative example showed the noise and discontinuities that can remain after separate reconstruction and fusion. For the one-bed convergence study, modality-separated subsets converged faster than paired subsets under matched data-projection work, although they also performed twice as many parameter updates and prior-gradient evaluations per pass.
+Joint reconstruction of the PET bed positions is required for the edge-preserving prior to act consistently across their overlap; the qualitative example showed the noise and discontinuities that can remain after separate reconstruction and fusion. For the one-bed convergence study, the prior-application schedule mattered more than the subset organisation: with the average prior weight per data pass matched, only the folded schedule, mathematically identical to evaluating the complete prior at every update, converged, while the sampled and once-per-epoch schedules stagnated under the common preconditioner and step-size protocol. Within the folded schedule, modality-separated subsets converged faster than paired subsets under matched data-projection work, although they also performed twice as many parameter updates and prior-gradient evaluations per pass.
 
 Prior-aware preconditioning was required for stable convergence of the count-limited PET reconstruction under the tested shared step schedule. SPECT was more robust, and data-only BSREM was sometimes competitive, suggesting that the prior-aware methods can be conservative for that modality. The four prior-curvature models behaved similarly overall, with no universal winner. Increasing the common initial step improved SPECT but destabilised PET, motivating modality-dependent relaxation as future work.
 
