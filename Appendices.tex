@@ -58,6 +58,8 @@ A central difficulty in connecting simulation and reconstruction software is tha
 
 Validation separates lightweight pure-Python unit tests (configuration handling, connector behaviour, Interfile parsing, density conversion, and optional-backend guards) from backend-dependent tests, which are marked per framework and skipped automatically when the corresponding dependency is unavailable --- important for continuous integration, since public CI runners cannot include a licensed \glsentryshort{simind} executable. Dedicated Docker environments are supplied for \glsentryshort{stir}, \glsentryshort{sirf}, and PyTomography, and the included examples cover basic NumPy simulations, runtime-switch comparisons, multi-window simulations, SCATTWIN/PENETRATE scoring comparisons, Schneider-style density conversion, adaptor-based OSEM reconstructions, and DICOM-driven setup paths. Together these define the intended reproducibility contract: \glsentryshort{simind} runs that are scriptable, recordable, and portable across reconstruction frameworks.
 
+\input{AppendixScatterDL}
+
 \input{AppendixBaselineConvergence}
 
 \input{AppendixLesionDelineation}
