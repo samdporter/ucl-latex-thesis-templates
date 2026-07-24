@@ -10,7 +10,7 @@ The resulting mean projection model is
     y_i\sim\operatorname{Poisson}\!\left(\bar y_i(x)\right),
     \label{eq:brems_forward_model}
 \end{equation}
-where $A_{\mathrm{prim}}$ contains attenuation, geometric projection, the intrinsic detector response and the geometric collimator response; $K_{\mathrm{brem}}$ is the image-space range-blur operator; and $b_{\mathrm{MC}}$ represents detected counts not described by this primary-event model. The latter includes patient scatter, collimator scatter and septal penetration, so these effects are not also included in $A_{\mathrm{prim}}$. It is therefore referred to throughout as a \emph{non-primary additive term}, rather than as patient scatter alone.
+where $A_{\mathrm{prim}}$ contains attenuation, geometric projection, the intrinsic detector response and the geometric collimator response; $K_{\mathrm{brem}}$ is the image-space range-blur operator and $b_{\mathrm{MC}}$ represents detected counts not described by this primary-event model. The latter includes patient scatter, collimator scatter and septal penetration, so these effects are not also included in $A_{\mathrm{prim}}$. It is therefore referred to throughout as a \emph{non-primary additive term}, rather than as patient scatter alone.
 
 The two components in Equation~\ref{eq:brems_forward_model} are estimated in a preparatory stage. Once estimated, both the acquisition model and $b_{\mathrm{MC}}$ are fixed during the target reconstruction. This separation is important: the purpose of the reconstruct--simulate loop below is to prepare an object- and acquisition-specific additive estimate, not to alter the likelihood model while the subsequent penalised reconstruction is running.
 
