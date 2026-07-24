@@ -54,11 +54,11 @@ This chapter is important because it shows the thesis is not just proposing a ne
 
 Key points:
 
-- Scatter/additive terms are handled through a practical deep-network initialization followed by a SIMIND-based refinement loop.
-- A simple Gaussian image-space model is proposed for bremsstrahlung range blur.
-- Residual correction is tested as a cheap proxy for a more accurate Monte Carlo model.
+- A domain-shifted learned estimate provides a warm start for a preparatory SIMIND reconstruct--simulate refinement of non-primary additive counts.
+- Under-relaxation with `alpha = 0.2` suppresses the severe finite-iteration oscillation seen with full replacement; the resulting additive estimate is frozen before the target reconstruction.
+- A fixed 6.9 mm FWHM Gaussian image-space model provides a tractable effective approximation to net bremsstrahlung response broadening; it is calibrated against GATE and cross-checked against SIMIND projection responses.
 
-The most useful conceptual result in this chapter is the residual-correction warning: in low-count, strongly regularized settings, correcting only the forward prediction does not restore a matched forward/adjoint pair. In other words, if the likelihood and prior are strong and the projector pair is mismatched, residual correction can change the effective balance of the optimization problem in an uncontrolled way. That is a strong, practically relevant insight.
+The chapter is intentionally an enabling, component-level study rather than a new scatter-reconstruction algorithm. Its role is to define and test the fixed bremsstrahlung SPECT model subsequently used in the joint PET/SPECT reconstruction chapter.
 
 ### 4. Deconvolution chapter as a pilot study
 
@@ -241,7 +241,7 @@ My interpretation:
 ## What this thesis does especially well
 
 - It treats the problem as a full pipeline problem, not just a prior-design problem.
-- It identifies a real failure mode for residual correction in regularized low-count reconstruction.
+- It treats unstable Monte Carlo additive-term refinement as an explicit numerical problem and adopts a bounded, frozen deployment protocol.
 - It uses CT in a restrained way: directional guidance instead of forcing intensity agreement.
 - It makes the optimizer part of the contribution, which is exactly what strong coupled priors usually need.
 

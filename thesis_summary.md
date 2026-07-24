@@ -154,39 +154,23 @@ Two specific gaps motivate the thesis:
 
 ---
 
-## 3. Improving the Y-90 Bremsstrahlung System Model (Chapter 3)
+## 3. Monte Carlo-Informed Modelling for Y-90 Bremsstrahlung SPECT (Chapter 3)
 
-### 3.1 Challenges in Bremsstrahlung Imaging
+The chapter is a compact enabling study with two retained components.
 
-Three fundamental problems:
-1. **Continuous energy spectrum:** No photopeak for scatter windowing
-2. **Septal penetration:** High-energy tail degrades spatial resolution
-3. **Bremsstrahlung range blur:** Photons produced along the electron track, not at the decay site
+### 3.1 Preparatory Non-Primary Additive-Term Estimation
 
-### 3.2 Additive Corrections (Scatter Estimation)
+1. **Learned initialisation:** A pre-trained CNN predicts scatter projections from emission projections and CT-derived attenuation information (Xiang et al. 2020). Because it was trained on a different scanner and protocol, its output is used only as a warm start.
 
-The thesis develops a practical scatter correction pipeline:
+2. **OSEM--SIMIND refinement:** The pipeline alternates an intermediate OSEM reconstruction (12 subsets, 10 epochs), 5 mm Gaussian smoothing and SIMIND simulation for a fixed budget of 10 outer iterations. SIMIND total-minus-geometric-primary counts are calibrated to the analytic projector to estimate non-primary contamination, including patient scatter, collimator scatter and septal penetration.
 
-1. **Deep learning initialisation:** A pre-trained CNN predicts scatter projections from emission projections and CT-derived attenuation information (Xiang et al. 2020). Despite being trained on a different scanner/protocol (domain shift), it provides a sensible starting point.
+3. **Damping and freezing:** Full replacement produces severe finite-iteration oscillation in the NEMA projection profiles. The under-relaxed update with `alpha = 0.2` remains bounded over the prescribed budget. The final additive estimate is then frozen; it is not updated during the target reconstruction.
 
-2. **Iterative OSEM-SIMIND refinement loop:** Alternates between OSEM reconstruction (12 subsets, 5 epochs) and SIMIND Monte Carlo scatter simulation for 10 outer iterations, with 5 mm Gaussian smoothing of intermediate images to suppress noise amplification.
+### 3.2 Bremsstrahlung Range-Blur Model
 
-3. **Update strategies:**
-   - Offline (fixed): Compute scatter once, fix for remainder of reconstruction
-   - Online (intermittent updates): Re-simulate scatter during reconstruction
-   - Full replacement vs. damped updates: Damped (relaxed) updates with alpha=0.2 provide better stability
+Bremsstrahlung response broadening is represented by a fixed 6.9 mm FWHM isotropic image-space Gaussian. This is an empirical effective surrogate for the combined internal/external response, rather than a microscopic displacement PDF. The same symmetric convolution is included in the forward and adjoint operations.
 
-### 3.3 Bremsstrahlung Range Blur Model
-
-A pragmatic approximation: model the bremsstrahlung range blur as an isotropic image-space Gaussian whose variance is matched to Monte Carlo-derived displacement statistics (from GATE fast-simulation studies, Rault et al. 2010). For composite energy windows, Gaussian variances are collapsed by second-moment matching weighted by per-window counts.
-
-Validated against SIMIND and GATE forward projections for clinical energy windows [38-126 keV], [50-150 keV], [75-225 keV] using a point-source-in-sphere configuration.
-
-### 3.4 Residual Correction
-
-Investigates Fu & Qi's residual correction (RC) strategy for bremsstrahlung SPECT. RC intermittently estimates the modelling discrepancy between accurate (expensive) and fast forward models and folds it into an additive term.
-
-**Key finding:** RC works well for high-count, low-background phantom data but becomes unreliable in low-count clinical regimes with strong regularisation. The thesis provides a theoretical analysis: RC corrects the forward prediction but does not restore a matched forward/adjoint pair. In the MAP setting, mismatched adjoints change the effective balance between data fidelity and regularisation, leading to divergence from the solution associated with the fully matched model.
+Projection-response widths are compared with SIMIND and GATE for the response-study windows [39.8--126.6 keV], [50--150 keV] and [75--225 keV]. The effective kernel consistently moves the geometric-only STIR response towards both Monte Carlo predictions across the evaluated source--collimator distances. GATE supplies the calibration response and SIMIND the cross-code check; the comparison does not isolate individual Monte Carlo event classes.
 
 ---
 
@@ -368,7 +352,7 @@ Chapter 7 is incomplete in the current draft (contains only placeholder text). B
 
 3. **Hierarchy of synergy-aware preconditioners:** Six practical preconditioners spanning a cost-accuracy trade-off, from cheap diagonal approximations to tight block-diagonal curvature models.
 
-4. **Bremsstrahlung system model improvements:** Gaussian proxy for range blur validated against Monte Carlo, practical scatter correction pipeline, and analysis of residual correction fragility in low-count/regularised settings.
+4. **Bremsstrahlung system model improvements:** A Gaussian range-blur proxy checked against GATE and cross-checked against SIMIND, plus a damped, preparatory SIMIND refinement of non-primary additive counts that is frozen before reconstruction.
 
 5. **Comprehensive evaluation:** w-dTNV improves small-object recovery and clinical lesion TBR relative to dTV, w-TNV, and the state-of-the-art SHKEM method.
 
@@ -376,7 +360,6 @@ Chapter 7 is incomplete in the current draft (contains only placeholder text). B
 
 - Robust direction-field estimation and artefact-aware guidance strategies
 - Extension to voxel-level dosimetry (absorbed dose estimation from improved activity maps)
-- Online/adaptive scatter correction during synergistic reconstruction
 - Deep learning-based direction field estimation or learned priors
 - Extension to other challenging radionuclides (Lu-177, etc.)
 - Clinical validation with larger patient cohorts and dose-outcome correlation
@@ -434,7 +417,6 @@ Chapter 7 is incomplete in the current draft (contains only placeholder text). B
 | Ehrhardt et al. (Frontiers 2025) | Variance reduction + prior-aware preconditioning for PET |
 | Ahn et al. (IEEE TMI 2002) | BSREM framework |
 | Lewis & Sendov (SIAM 2001) | Twice differentiable spectral functions |
-| Fu & Qi (2010) | Residual correction for positron range blur |
 | Levillain et al. (EJNMMI 2021) | International recommendations for personalised SIRT |
 | Kappadath et al. (Med Phys 2024) | Y-90 PET/CT vs SPECT/CT dosimetry comparison |
 
@@ -447,7 +429,7 @@ Chapter 7 is incomplete in the current draft (contains only placeholder text). B
 | Intro | Introduction | Clinical motivation, thesis overview |
 | 1 | Physics and Measurement Models | PET/SPECT/CT physics, Y-90 imaging challenges |
 | 2 | Penalised-Likelihood Reconstruction | MAP framework, regularisation review, optimisation algorithms, research gap |
-| 3 | Improvements to Y-90 Bremsstrahlung System Model | Scatter correction, bremsstrahlung range blur, residual correction |
+| 3 | Monte Carlo-Informed Y-90 Bremsstrahlung SPECT Modelling | Damped preparatory additive-term estimation and image-space range blur |
 | 4 | Anatomy-Informed Deconvolution for PET PVC | Sandbox: RL, KRL, HKRL, RL-dTV deconvolution |
 | 5 | w-dTNV: Theory and Optimisation | Novel prior formulation, differentiability, 6 preconditioner variants |
 | 6 | w-dTNV for Joint Y-90 PET/SPECT Reconstruction | Phantom and clinical evaluation vs SHKEM |

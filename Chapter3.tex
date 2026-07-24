@@ -1,814 +1,355 @@
-% Unfortunately, this chapter is far from ready, I've realised. 
-% The next chapter is closer to completion
-% 14/06/26
-
-\chapter{Improvements to the \isotope[90]{Y} Bremsstrahlung System Model}
+\chapter{Monte Carlo-Informed Modelling for \isotope[90]{Y} Bremsstrahlung SPECT}
 \label{chapterlabel3}
 
-Before tackling the problem of synergistic reconstruction with \isotope[90]{Y}, we need to properly model the physics of out 
+Chapter~\ref{chap:intro_material} described the principal limitations of
+\isotope[90]{Y} Bremsstrahlung \gls{spect}: the continuous photon spectrum makes
+conventional energy-window scatter correction unsuitable, high-energy photons
+undergo septal penetration and collimator scatter, and external Bremsstrahlung
+photons may be emitted away from the original decay site as the $\beta^-$ particle
+traverses tissue. This
+chapter develops the practical \glsentryshort{spect} model used later for joint
+\glsentryshort{pet}/\glsentryshort{spect} reconstruction. It addresses two
+specific components: a \glsentryshort{simind}-derived estimate of non-primary
+counts and an image-space approximation to Bremsstrahlung range blur.
 
-\section{Challenges in Bremsstrahlung Imaging}
+The resulting mean projection model is
+\begin{equation}
+    \bar y(x) = A_{\mathrm{prim}}K_{\mathrm{brem}}x+b_{\mathrm{MC}},
+    \qquad
+    y_i\sim\operatorname{Poisson}\!\left(\bar y_i(x)\right),
+    \label{eq:brems_forward_model}
+\end{equation}
+where $A_{\mathrm{prim}}$ contains attenuation, geometric projection, the
+intrinsic detector response and the geometric collimator response;
+$K_{\mathrm{brem}}$ is the image-space range-blur operator; and
+$b_{\mathrm{MC}}$ represents detected counts not described by this primary-event
+model. The latter includes patient scatter, collimator scatter and septal
+penetration, so these effects are not also included in $A_{\mathrm{prim}}$. It is
+therefore referred to throughout as a \emph{non-primary additive term}, rather
+than as patient scatter alone.
 
-As introduced in Section~\ref{sec:y90}, unlike diagnostic radionuclides such as \isotope[99m]{Tc} that emit gamma photons at discrete photopeaks, \isotope[90]{Y} has no practically useful prompt gamma emission for SPECT. Imaging therefore relies on detecting the continuous spectrum of Bremsstrahlung photons generated as emitted $\beta$-particles decelerate in tissue \cite{woernerAdvancesY90Radioembolization2022}. This emission physics gives rise to several fundamental challenges for quantitative reconstruction:
-
-\begin{itemize}
-    \item \textbf{Continuous energy spectrum:} The emitted photon energies span a continuum from (near) zero up to the maximum $\beta$-energy of 2.28~MeV \cite{beTableRadionuclides2004} (see Figure~\ref{fig:brems_spectra}). In conventional SPECT, scatter may be estimated using energy windows adjacent to a photopeak; for \isotope[90]{Y}, the absence of a photopeak makes it difficult to separate primary photons from those that have undergone Compton scatter within the patient. As a result, more sophisticated scatter-modelling and correction strategies are typically required \cite{rongDevelopmentEvaluationImproved2012}.
-    
-    \item \textbf{Septal penetration and collimator design:} The high-energy tail of the Bremsstrahlung spectrum increases the probability of septal penetration, which degrades spatial resolution and contrast. Collimator choice and optimisation are therefore critical to limit penetration while maintaining adequate sensitivity \cite{rongCollimatorOptimizationMethod2013}.
-    
-    \item \textbf{Bremsstrahlung-induced blur:} Bremsstrahlung photons are produced along the electron track rather than at a single point, so the effective photon emission location is distributed relative to the \isotope[90]{Y} decay site. This introduces an additional range-dependent blurring component that is not present in photopeak imaging and can further degrade reconstructed resolution \cite{rongDevelopmentEvaluationImproved2012} (see Figure.
-\end{itemize}
-
-\begin{figure}[hbtp]
-    \centering
-    \includegraphics[width=0.7\linewidth]{figures/Chapter3/source_to_emission.png}
-    \caption{Plots showing probability of bremsstrahlung gamma emission versus the distance from \isotope[90]{Y} decay site. Data from Rault \textit{et al.}\cite{raultFastSimulationYttrium902010}}
-    \label{fig:source_to_emission}
-\end{figure}
-
-\section{Optimisation Strategies and Monte Carlo Modeling}
-
-To overcome these limitations, optimisation must occur at both the acquisition and reconstruction stages. While hardware choices, such as the preference for \gls{megp} or \gls{hegp} collimators, can mitigate septal penetration \cite{taherparvarEvaluationEffectDifferent2019, kimEffectsCollimatorImaging2019, inceCollimatorEnergyWindow2021}, substantial gains in quantitative accuracy are achieved through advanced computational modeling \cite{dewarajaImprovedQuantitative90Y2017}.
-
-\gls{mc} simulation codes, such as \gls{simind} \cite{ljungbergSIMINDMonteCarlo2012} and \gls{gate} \cite{janGATESimulationToolkit2004, raultFastSimulationYttrium902010}, play a pivotal role in this optimisation. These tools allow for the generation of accurate scatter kernels, as well as other effects that are specific to the continuous \isotope[90]{Y} spectrum. Some methods have integrated modelling of the spatial offset between the $\beta$-decay location and the point of Bremsstrahlung emission into \glsentryshort{mc} forward projectors to refine the system matrix \cite{rongDevelopmentEvaluationImproved2012}.
-
-Furthermore, novel reconstruction techniques such as joint spectral reconstruction have been proposed to exploit the information contained across multiple energy windows, rather than relying on a single wide integration window \cite{chunAlgorithmsAnalysesJoint2020}. By combining multi-band acquisition with accurate Monte Carlo-based forward modeling, it is possible to improve the precision of activity estimation and contrast recovery in post-SIRT dosimetry \textcolor{red}{Can I fit this in somehow? Probably not... No time}.
-
-This chapter explores these advanced reconstruction methodologies. We also introduce a simple Gaussian image-based blurring operation, in order to account for bremsstrahlung range blur. In addition, we investigate the suitability of Fu \& Qi's residual correction method \cite{fuResidualCorrectionMethod2010}, originally designed for correcting for positron range blur, on bremsstrahlung reconstruction.
+The two components in Equation~\ref{eq:brems_forward_model} are estimated in a
+preparatory stage. Once estimated, both the acquisition model and
+$b_{\mathrm{MC}}$ are fixed during the target reconstruction. This separation is
+important: the purpose of the reconstruct--simulate loop below is to prepare an
+object- and acquisition-specific additive estimate, not to alter the likelihood
+model while the subsequent penalised reconstruction is running.
 
 
-\section{Additive Corrections}
+\section{Pre-Reconstruction Estimation of Non-Primary Counts}
 \label{sec:additive_corrections}
 
-A key difficulty in quantitative \isotope[90]{Y} Bremsstrahlung SPECT is that a substantial fraction of the measured counts arise from photons that are not well modelled by a purely ``primary-only'' forward projector. In this work we treat these contributions as \emph{additive terms} in the Poisson measurement model, with a particular focus on (patient) scatter.
+Monte Carlo estimates of scatter and penetration can be combined with a faster
+analytic projector by alternating reconstruction and simulation
+\cite{dewarajaImprovedQuantitative90Y2017}. The approach used here follows that
+established principle. The practical questions addressed in this chapter are how
+to initialise the simulation for a different acquisition protocol and how to
+prevent an alternating update from becoming unstable before the final additive
+term is frozen.
 
-\subsection{Statistical model with an additive background term}
+\subsection{Learned initialisation}
 
-Let $y \in \mathbb{N}^{I}$ denote the measured projection data (all bins across all views) and let $x \in \mathbb{R}_{+}^{J}$ denote the unknown activity image. We use the standard Poisson model
-\begin{equation}
-y_i \sim \mathrm{Poisson}\!\left( (A x)_i + b_i \right), \qquad i = 1,\dots,I,
-\end{equation}
-where $A$ is the system matrix modelling the (primary) detection process (including attenuation and detector response as implemented in our reconstruction pipeline), and $b \in \mathbb{R}_{+}^{I}$ is an \emph{additive} component. In Bremsstrahlung SPECT, $b$ is typically dominated by Compton-scattered photons, with additional contributions possible from other backgrounds (e.g.\ stray radiation or modelling mismatch). The role of additive correction is therefore to provide an estimate of $b$ that is consistent with the acquisition protocol and reconstruction model.
+The scatter-derived initial estimate $b^{(0)}$ is produced by the convolutional
+neural network of Xiang \emph{et al.}, which predicts scatter projections from
+measured emission data and \glsentryshort{ct}-derived attenuation information
+\cite{xiangDeepNeuralNetwork2020}. The available network was trained for a
+different scanner, collimator and energy-window configuration from the
+acquisitions used in this thesis. Its output is consequently treated only as a
+computationally inexpensive warm start for the broader non-primary term, not as a
+final quantitative correction or as an independently validated contribution. The adapted
+\glsentryshort{sirf} inference workflow is documented in
+Appendix~\ref{app:scatter_dl}.
 
-Given a \emph{fixed} $b$, \glsentryshort{osem} yields an approximate maximum-likelihood estimate of $x$ under this Poisson model. However, in \isotope[90]{Y} Bremsstrahlung imaging, $b$ is large and impossible to estimate from neighbouring energy-window , motivating model-based strategies.
+\subsection{Reconstruct--simulate refinement}
+\label{subsec:additive_refinement}
 
-\subsection{Initial scatter estimate via a pre-trained deep network}
-
-To initialise $b$ we use a deep-learning scatter estimator that predicts scatter projections directly from the measured emission projections (and \glsentryshort{ct}-derived attenuation information), following the  approach by Xiang \emph{et al.}~ who trained a convolutional neural network to regress \glsentryshort{mc}-derived ``true'' scatter \cite{xiangDeepNeuralNetwork2020}.
-
-In our case this initialisation is explicitly heuristic: the available pre-trained network was developed and trained under a different hardware/protocol configuration (scanner, collimation, energy windowing, and number of views) than the Siemens and Mediso datasets used in this thesis \cite{xiangDeepNeuralNetwork2020}. In particular, the network was trained on data acquired on a Symbia Intevo SPECT/CT system with high-energy collimation and a 105--195~keV window with 80 projections, whereas our reconstructions were performed on Siemens or Mediso systems with different energy windows and either MEGP (Siemens) or MLEGP (Mediso) collimation. Despite this domain shift, we found that the predicted scatter term fits the measured data sufficiently well to provide a sensible starting point for subsequent model-based refinement (Figure \ref{fig:nema_scatter_est}). The adapted implementation, including the \glsentryshort{sirf} inference workflow used here, is described in Appendix~\ref{app:scatter_dl}.
-
-\subsection{Iterative OSEM--SIMIND refinement loop}
-
-Starting from the deep-learning initialisation $b^{(0)}$, we then refine the additive term using an alternating procedure:
+Starting from $b^{(0)}$, an outer iteration consists of the following operations:
 \begin{enumerate}
-    \item \textbf{Reconstruction step:} update $x$ using OSEM and the current additive estimate $b^{(k)}$. We used 12 subsets and 10 epochs (total 120 subiterations), warm-started from the previous outer iterate.
-    \item \textbf{Regularisation of the intermediate image:} apply an isotropic Gaussian post-smoothing of 5~mm \gls{fwhm} to the intermediate reconstruction (used only for the subsequent scatter simulation step).
-    \item \textbf{Scatter simulation step:} run a SIMIND-based Monte Carlo scatter simulation using the (smoothed) current activity estimate to produce a new scatter estimate $\widehat{b}^{(k+1)}$.
+    \item reconstruct an activity estimate $x^{(k)}$ using the current additive
+    term $b^{(k)}$;
+    \item smooth the intermediate image with an isotropic
+    $5\,\mathrm{mm}$-\gls{fwhm} Gaussian and restrict it to the body mask, giving
+    $\widetilde x^{(k)}$;
+    \item use the smoothed image as the source distribution for a
+    \glsentryshort{simind} simulation; and
+    \item extract a newly simulated non-primary estimate
+    $\widehat b^{(k+1)}$ and update the running estimate.
 \end{enumerate}
-We repeat this OSEM $\rightarrow$ SIMIND $\rightarrow$ OSEM$+$5~mm smoothing $\rightarrow \dots$ loop for 10 outer iterations. The 5~mm smoothing is used to suppress high-frequency noise that would otherwise be amplified by repeatedly re-simulating scatter from noisy intermediate reconstructions. The \glsentryshort{simind} simulations in this loop were driven by the \texttt{simind-python-connector} package described in Appendix~\ref{app:simind_python_connector}.
+Each intermediate reconstruction used 12 staggered subsets and 10 epochs
+(120 subset updates), warm-started from the preceding outer iterate. Ten outer
+iterations were used as a pre-specified computational budget. This endpoint is
+not presented as evidence of asymptotic convergence. The simulations were driven
+from Python using the interface described in
+Appendix~\ref{app:simind_python_connector}.
 
-\subsection{Offline versus online additive correction strategies}
-
-We consider two practical strategies for how the scatter term is used throughout the full reconstruction:
-
-\paragraph{Offline (fixed) additive correction.}
-In the \emph{offline} strategy, we compute a scatter estimate once (after the initialisation/refinement loop) and then keep it fixed for the remainder of the reconstruction. Concretely, we set $b \leftarrow b^{(\star)}$ and run OSEM to convergence (or for a fixed number of iterations) with a constant additive term. This approach is typically stable, but may be biased if the fixed scatter estimate is inconsistent with the final activity estimate.
-
-\paragraph{Online (intermittently updated) additive correction.}
-In the \emph{online} strategy, we update the scatter estimate during reconstruction. That is, after some number of OSEM iterations, we re-run the SIMIND scatter simulation using the current image estimate and update $b$. This is conceptually aligned with hybrid Monte-Carlo/analytical reconstruction approaches in which the scatter estimate is updated a small number of times until it stabilises \cite{dewarajaImprovedQuantitative90Y2017,elschotQuantitativeComparisonPET2013}. In practice, the update cadence is a tunable choice: too frequent updates increase computational cost and can introduce instability; too infrequent updates reduce the benefit relative to the offline approach.
-
-\subsection{Full replacement versus damped scatter updates}
-
-For the online strategy, we investigate two update rules.
-
-\paragraph{(1) Full replacement.}
-We set
+At outer iteration $k$, one SIMIND PENETRATE simulation produces the total
+simulated detected projection counts $p_{\mathrm{tot}}^{(k)}$ and the attenuated,
+geometrically collimated primary component $p_{\mathrm{geo}}^{(k)}$. The Monte
+Carlo projections are first placed on the scale of the analytic acquisition model
+$A_{\star}=A_{\mathrm{prim}}K_{\mathrm{brem}}$. Let $\mathcal I_k$ contain bins
+with non-zero $p_{\mathrm{geo},i}^{(k)}$ after the lowest and highest 5\% of the
+per-bin ratios $(A_{\star}\widetilde x^{(k)})_i/
+p_{\mathrm{geo},i}^{(k)}$ have been excluded. The scalar calibration is
 \begin{equation}
-b^{(k+1)} \leftarrow \widehat{b}^{(k+1)}.
+    s^{(k)} =
+    \frac{\sum_{i\in\mathcal I_k}(A_{\star}\widetilde x^{(k)})_i}
+         {\sum_{i\in\mathcal I_k}p_{\mathrm{geo},i}^{(k)}},
+    \label{eq:simind_scale}
 \end{equation}
-Although appealingly direct, we observed that full replacement can be unstable in some cases, with the behaviour varying across phantoms. A practical interpretation is that once $b$ is changed, the likelihood model being optimised by OSEM is also changed; therefore the overall alternating procedure is not guaranteed to behave monotonically. An 
-
-\paragraph{(2) Damped (relaxed) updates.}
-To improve stability, we use a convex combination of the old and new scatter estimates:
+and the newly simulated additive term is
 \begin{equation}
-b^{(k+1)} \leftarrow (1-\alpha)\, b^{(k)} + \alpha\, \widehat{b}^{(k+1)},
-\qquad \alpha \in (0,1].
+    \widehat b^{(k+1)} =
+    s^{(k)}\!\left(p_{\mathrm{tot}}^{(k)}-p_{\mathrm{geo}}^{(k)}\right).
+    \label{eq:simind_additive}
 \end{equation}
-This can be viewed as a relaxation of the fixed-point iteration $b = \widehat{b}(x)$, reducing sensitivity to noise and modelling mismatch at the cost of slower adaptation. In all experiments here we set $\alpha = 0.2$. This value was chosen heuristically; we did not perform a dedicated study to optimise $\alpha$, but empirically it provided a good stability--convergence trade-off across datasets.
+Thus, Equation~\ref{eq:simind_additive} includes all simulated counts outside the
+geometrically collimated primary component; it is not an estimate of patient
+Compton scatter alone. Before simulation, the body mask was formed by thresholding
+the attenuation map at $0.05\,\mathrm{cm}^{-1}$, applying a morphological opening
+of radius two voxels and retaining the largest connected component.
 
-\medskip
-Overall, these offline/online and replacement/damping variants provide a practical framework for controlling the bias--variance and stability properties of Bremsstrahlung additive correction, while keeping the reconstruction pipeline compatible with Monte Carlo scatter modelling.
+\subsection{Under-relaxed updates}
+\label{subsec:additive_damping}
 
-\begin{figure}[hbpt]
+The most direct update replaces the running estimate with the new simulation,
+\begin{equation}
+    b^{(k+1)}=\widehat b^{(k+1)}.
+    \label{eq:additive_full_update}
+\end{equation}
+This coupled iteration need not be monotone: changing $b$ changes the likelihood
+used to obtain the next activity estimate, which in turn changes the source used
+by SIMIND. To reduce the resulting iteration-to-iteration variation, an
+under-relaxed update was used,
+\begin{equation}
+    b^{(k+1)}=(1-\alpha)b^{(k)}+\alpha\widehat b^{(k+1)},
+    \qquad \alpha=0.2.
+    \label{eq:additive_damped_update}
+\end{equation}
+The value $\alpha=0.2$ was selected heuristically rather than through an
+optimisation study. It should therefore be understood as the fixed engineering
+choice evaluated for these data, not as a generally optimal relaxation factor.
+
+Figure~\ref{fig:nema_scatter_est} shows the diagnostic that motivated this choice.
+With full replacement, the scale of successive projection profiles oscillates and
+grows rapidly; by the fourth outer iteration, the estimated additive profile
+exceeds the measured total-emission profile. Under-relaxation keeps the profiles
+bounded over the ten-step refinement budget and suppresses the large
+iteration-to-iteration swings. The figure supports a finite-iteration stability
+claim; it does not establish convergence or absolute accuracy of the additive
+estimate.
+
+\begin{figure}[H]
     \centering
-    \begin{subfigure}[b]{0.9\textwidth}
+    \begin{subfigure}[b]{0.92\textwidth}
         \centering
-        \includegraphics[height=1.2in]{figures/Chapter3/offline_scatter_replace.png}
-        %\caption{Lorem ipsum}
-    \end{subfigure}%
-    ~ \\
-    \begin{subfigure}[b]{0.9\textwidth}
-        \centering
-        \includegraphics[height=1.2in]{figures/Chapter3/offline_scatter_damped.png}
-        %\caption{}
+        \includegraphics[width=\linewidth]{figures/Chapter3/offline_scatter_replace.png}
+        \caption{Full replacement, $\alpha=1$.}
     \end{subfigure}
-    \caption{Figures showing profile through projections for NEMA phantom. Summed over projections, axial slice is through NEMA spheres. Horizontal axis show tangential coordinate on gamma camera, Vertical axis shows counts. Top, replacing additive data; bottom, damped addition of additive data ($\alpha=0.2$).}
+
+    \begin{subfigure}[b]{0.92\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/Chapter3/offline_scatter_damped.png}
+        \caption{Under-relaxed update, $\alpha=0.2$.}
+    \end{subfigure}
+    \caption{Projection-domain behaviour of the preparatory additive-term
+    refinement for a measured NEMA phantom. Coloured curves are profiles of the
+    estimated non-primary term $b^{(k)}$; every displayed iteration belongs to
+    the preparatory reconstruct--simulate loop. Profiles are summed over views at an
+    axial position through the spheres; the horizontal coordinate is the
+    tangential detector bin and the vertical coordinate is counts. The measured
+    total-emission profile and learned scatter initialisation are scale and shape
+    references, not ground truth for $b^{(k)}$. Full replacement
+    produces large alternating changes within four outer iterations, whereas the
+    under-relaxed profiles remain bounded through the tenth outer iteration.}
     \label{fig:nema_scatter_est}
 \end{figure}
 
-\section{Bremsstrahlung Range Blur}
+After the tenth outer iteration, the final estimate is denoted
+$b_{\mathrm{MC}}=b^{(10)}$ and is frozen. No additional SIMIND simulation or
+additive-term update is performed during the target reconstruction. This makes
+$b_{\mathrm{MC}}$ a data- and activity-dependent plug-in estimate: the target
+reconstruction has a fixed conditional objective, but uncertainty in the additive
+estimate is not propagated.
+
+
+\section{Image-Space Bremsstrahlung Range Blur}
 \label{sec:brem_range_blur}
 
-\begin{figure}[hbtp]
+External Bremsstrahlung photons may be emitted after the $\beta^-$ particle has
+travelled away from the \isotope[90]{Y} decay site, whereas internal
+Bremsstrahlung is emitted at the decay site. The displacement distribution of the
+external component is energy dependent, as illustrated in
+Figure~\ref{fig:source_to_emission}, and its net contribution adds a resolution
+loss distinct from the collimator--detector response
+\cite{raultFastSimulationYttrium902010,rongDevelopmentEvaluationImproved2012,
+dewarajaImpactInternalBremsstrahlung2018}.
+Detailed Monte Carlo projectors can model this transport directly, but repeatedly
+evaluating such a model is impractical for the iterative and joint reconstructions
+developed later in this thesis.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.68\linewidth]{figures/Chapter3/source_to_emission.png}
+    \caption{Probability of external Bremsstrahlung photon emission as a function
+    of displacement from the \isotope[90]{Y} decay site for four photon-energy
+    intervals. Curves were derived from the fast-simulation data reported by
+    Rault \emph{et al.}\ \cite{raultFastSimulationYttrium902010}.}
+    \label{fig:source_to_emission}
+\end{figure}
+
+\subsection{Primary collimator--detector response}
+
+The analytic primary projector models the intrinsic and geometric components of
+the \gls{cdr} as a depth-dependent Gaussian; scatter and penetration remain in
+$b_{\mathrm{MC}}$. For
+photon energy $E$ and source--collimator distance $h$, its standard deviation is
+represented by
+\begin{equation}
+    \sigma_{\mathrm{cdr}}(h;E)=c_0(E)+c_1(E)h.
+    \label{eq:cdr_linear}
+\end{equation}
+The coefficients are obtained by least-squares fitting over
+$h\in[2,20]\,\mathrm{cm}$ to the quadrature sum of the measured intrinsic width
+and the analytic parallel-hole geometric width. This retains the conventional
+distance dependence of the collimator response while remaining inexpensive to
+evaluate inside the projector \cite{angerSensitivityResolutionLinearity1966}.
+
+\subsection{Effective Gaussian range-kernel approximation}
+\label{subsec:brem_specific_blur}
+
+An exact reduced transport model would distinguish internal Bremsstrahlung,
+represented by an identity component at the decay site, from the displaced
+external component. The reconstruction implementation instead uses one zero-mean
+isotropic Gaussian as an empirical surrogate for their net central-response
+broadening,
+\begin{equation}
+    G_{\mathrm{brem}}(\mathbf r)=
+    \mathcal N\!\left(\mathbf r;\mathbf 0,
+    \sigma_{\mathrm{eff}}^2\mathbb I\right).
+    \label{eq:brem}
+\end{equation}
+The Gaussian form is motivated by the external-photon displacement distributions
+of Rault \emph{et al.}, while its effective width was estimated from the
+water-equivalent Monte Carlo response study described below
+\cite{raultFastSimulationYttrium902010}. A single
+$6.9\,\mathrm{mm}$-\gls{fwhm} kernel
+($\sigma_{\mathrm{eff}}\approx2.93\,\mathrm{mm}$) was then used throughout the
+reconstructions. This is not a microscopic displacement \glsentryshort{pdf}: by
+applying one Gaussian to all source activity, it approximates the combined
+internal/external response with one fitted width.
+
+The resulting operator $K_{\mathrm{brem}}$ is a three-dimensional Gaussian
+convolution applied in image space. It is composed with the analytic projector in
+the forward operation and with the analytic backprojector in reverse order in the
+adjoint,
+\begin{equation}
+    A_{\star}=A_{\mathrm{prim}}K_{\mathrm{brem}},
+    \qquad
+    A_{\star}^{\mathsf T}=K_{\mathrm{brem}}^{\mathsf T}
+    A_{\mathrm{prim}}^{\mathsf T}.
+    \label{eq:brem_matched_operator}
+\end{equation}
+For the symmetric Gaussian kernel,
+$K_{\mathrm{brem}}^{\mathsf T}=K_{\mathrm{brem}}$. This construction therefore
+preserves a matched forward--adjoint pair while adding only an image-space
+convolution to each operation.
+
+\subsection{Projection-response calibration and cross-code comparison}
+\label{subsec:brem_blur_validation}
+
+The approximation was assessed using compact \isotope[90]{Y} source distributions
+in water and four source--collimator distances ($2$, $5$, $10$ and
+$20\,\mathrm{cm}$). Detector-plane response widths were compared for three
+representative energy windows: $[39.8,126.6]$, $[50,150]$ and
+$[75,225]\,\mathrm{keV}$. The four models were GATE Monte Carlo, SIMIND Monte
+Carlo, \glsentryshort{stir} with the geometric \glsentryshort{cdr} alone, and
+\glsentryshort{stir} with the geometric response composed with
+$K_{\mathrm{brem}}$. GATE provides the response used to calibrate and check the
+effective width, while SIMIND provides a cross-code comparison.
+
+The first interval is the window used for this response simulation and is not
+identical to the $39.84$--$128.16\,\mathrm{keV}$ acquisition window used for the
+joint phantom study in Chapter~\ref{chapter:paper}. The single
+$6.9\,\mathrm{mm}$ effective width was retained across these closely related but
+non-identical protocols rather than re-estimated for each acquisition.
+
+Figure~\ref{fig:gaussian_bremss_range} reports the fitted detector-plane standard
+deviation. The geometric-only STIR model is systematically narrower than both
+Monte Carlo responses. Adding the image-space kernel moves the STIR prediction
+towards the GATE and SIMIND values at every evaluated distance and for all three
+energy windows. The agreement is not exact, particularly for the widest window at
+large distance, but the comparison supports the Gaussian kernel as a practical
+reduced-order representation of the missing net response broadening. The study did
+not include an event-class ablation separating external range, internal emission,
+scatter and penetration in the fitted response widths. It therefore does not
+independently validate the decomposition between $A_{\mathrm{prim}}$ and
+$b_{\mathrm{MC}}$.
+
+\begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{figures/Chapter3/Gaussian_bremss_range.png}
-    \caption{Example fits of an isotropic Gaussian proxy to the Monte Carlo source-to-emission displacement distribution for \isotope[90]{Y} Bremsstrahlung in water (clinical energy windows).}
+    \caption{Detector-plane response standard deviation $\sigma$ (cm) against
+    source--collimator distance for (a) $[39.8,126.6]$, (b) $[50,150]$ and
+    (c) $[75,225]\,\mathrm{keV}$. Markers show GATE MC, SIMIND MC, STIR with the
+    geometric response, and STIR with the geometric response plus the image-space
+    effective kernel. The geometric-only STIR projector
+    underestimates the response width; composing it with the image-space
+    Bremsstrahlung kernel substantially reduces the net width discrepancy across the
+    evaluated distances and windows.}
     \label{fig:gaussian_bremss_range}
 \end{figure}
 
-As mentioned previously, bremsstrahlung photons are generated along the $\beta$-particle track, inducing an additional \emph{range blur} that is absent in photopeak imaging. Several \glsentryshort{mc} frameworks can model this effect using detailed, energy-dependent \glspl{pdf} for the displacement between the decay location and the photon emission location. However, in practice, most general-purpose reconstruction toolkits are not designed to ingest arbitrary, precomputed displacement \glspl{pdf} within the forward projector and its adjoint.
 
-Here we adopt a pragmatic approximation: for clinically relevant energy windows and in water-equivalent tissue, the marginal displacement distribution is observed to be close to Gaussian. We therefore model the Bremsstrahlung range blur as an \emph{isotropic image-space Gaussian} whose variance is selected to match \glsentryshort{mc}-derived displacement statistics (Figure~\ref{fig:gaussian_bremss_range}). This is simple to implement (a single 3D Gaussian smoothing) and is compatible with standard projector architectures.
-
-\subsection{Projector point-spread function}
-\label{subsec:projector_psf}
-
-We model the \gls{cdr} by a Gaussian \gls{psf} whose width increases with the source--collimator distance $h$ and depends on energy $E$. In the projector we represent the depth-dependent blur by a spatially variant isotropic Gaussian with standard deviation
-\begin{equation}
-\sigma_{\mathrm{lin}}(h;E) = c_0(E) + c_1(E)\, h.
-\label{eq:sigma_lin_def}
-\end{equation}
-This linear model approximates the standard quadrature combination of intrinsic detector resolution and geometric collimator resolution,
-\begin{equation}
-\sigma_{\mathrm{true}}(h;E)
-= \bigl[\;\sigma_{\mathrm{intr}}(E)^2 + \sigma_{\mathrm{geom}}(h; E)^2\;\bigr]^{1/2},
-\label{eq:sigma_true}
-\end{equation}
-while avoiding repeated evaluation of a square root inside the projector. The coefficients $c_0(E)$ and $c_1(E)$ are obtained by a least-squares fit of $\sigma_{\mathrm{lin}}(h_i;E)$ to $\sigma_{\mathrm{true}}(h_i;E)$ over a clinically relevant distance range ($h \in [2,20]\,\mathrm{cm}$). Writing
-\begin{equation}
-\bar h = \frac{1}{N}\sum_{i=1}^N h_i,
-\qquad
-\bar\sigma = \frac{1}{N}\sum_{i=1}^N \sigma_{\mathrm{true}}(h_i;E),
-\end{equation}
-the closed-form solution (assuming $\sum_i(h_i-\bar h)^2>0$) is
-\begin{equation}
-c_1(E)
-=
-\frac{\sum_{i=1}^N (h_i-\bar h)\,(\sigma_{\mathrm{true}}(h_i;E)-\bar\sigma)}
-     {\sum_{i=1}^N (h_i-\bar h)^2},
-\qquad
-c_0(E)
-=
-\bar\sigma - c_1(E)\,\bar h .
-\end{equation}
-
-\paragraph{Intrinsic detector spatial response.}
-Intrinsic resolution is measured using a standard source \cite{pellsQuantitativeValidationMonte2023} and modelled as an isotropic Gaussian,
-\begin{equation}
-\mathrm{PSF}_{\mathrm{intr}}(\mathbf r;E)=
-\mathcal N\!\left(\mathbf r;\ \mathbf 0,\ \sigma_{\mathrm{intr}}^2(E)\,\mathbb I\right).
-\label{eq:intrinsic}
-\end{equation}
-When intrinsic resolution is reported as $\mathrm{FWHM}_{\mathrm{intr}}(E)$, we convert using
-\begin{equation}
-\sigma_{\mathrm{intr}}(E) = \frac{\mathrm{FWHM}_{\mathrm{intr}}(E)}{2\sqrt{2\ln 2}}.
-\end{equation}
-
-\paragraph{Geometric collimator response with penetration via effective length.}
-For a parallel-hole collimator, the (FWHM) geometric resolution at distance $h$ is commonly approximated by
-\begin{equation}
-\mathrm{FWHM}_{\mathrm{geom}}(h;E)
-\approx d_{\mathrm{eff}}
-\left(1+\frac{h}{l_{\mathrm{eff}}(E)}\right),
-\label{eq:fwhm_geom}
-\end{equation}
-where $d_{\mathrm{eff}}$ is the effective hole diameter and $l_{\mathrm{eff}}(E)$ is an \emph{effective} hole length used to account for septal penetration. We use
-\begin{equation}
-l_{\mathrm{eff}}(E) \;=\; l \;-\; \frac{2}{\mu_{\mathrm{Pb}}(E)} ,
-\qquad
-\mu_{\mathrm{Pb}}(E)\ \text{interpolated from NIST XCOM tables},
-\label{eq:leff}
-\end{equation}
-where $l$ is the physical hole length and $\mu_{\mathrm{Pb}}(E)$ is the linear attenuation coefficient of lead at energy $E$ \cite{XCOMPhotonCross2009}. Converting from FWHM to standard deviation gives
-\begin{equation}
-\sigma_{\mathrm{geom}}(h;E)=\frac{\mathrm{FWHM}_{\mathrm{geom}}(h;E)}{2\sqrt{2\ln 2}}.
-\label{eq:sigma_geom}
-\end{equation}
-
-\subsection{Bremsstrahlung-specific blur}
-\label{subsec:brem_specific_blur}
-
-\paragraph{Gaussian proxy for range blur.}
-Let $\Delta$ denote the displacement between the \isotope[90]{Y} decay location and the Bremsstrahlung photon emission location. Rather than using a detailed displacement PDF inside the projector, we approximate the induced range blur by an isotropic Gaussian kernel
-\begin{equation}
-\mathrm{PSF}_{\mathrm{brem}}(\mathbf r;E)
-=\mathcal N\!\left(\mathbf r;\ \mathbf 0,\ \sigma_{\mathrm{brem}}^2(E)\,\mathbb I\right).
-\label{eq:brem}
-\end{equation}
-For each clinical energy window, $\sigma_{\mathrm{brem}}(E)$ is obtained from a coarse \gls{lut} by fitting a zero-mean Gaussian proxy to \glsentryshort{mc} displacement curves for \isotope[90]{Y} Bremsstrahlung in water from \glsentryshort{gate} fast-simulation studies \cite{raultFastSimulationYttrium902010} (Figure~\ref{fig:gaussian_bremss_range}).
-
-\paragraph{Composite energy windows.}
-For a set of energy windows $\mathcal W$ combined into a single projection dataset, we collapse the corresponding Gaussian mixture by second-moment matching:
-\begin{equation}
-\sigma_{\mathrm{clin}}^2
-=\frac{\sum_{i\in\mathcal W} w_i\,\sigma_i^2}{\sum_{i\in\mathcal W} w_i},
-\qquad
-w_i \propto \text{per-window counts}.
-\label{eq:moment_match}
-\end{equation}
-
-\paragraph{Implementation in image space.}
-Because the convolution of isotropic Gaussians is Gaussian, incorporating Bremsstrahlung range blur is equivalent to adding variances. In practice we implement this as an image-space convolution by $\mathrm{PSF}_{\mathrm{brem}}$ (i.e.\ a 3D Gaussian smoothing) applied to the current activity estimate before forward projection. This keeps the forward model compatible with standard projector implementations while capturing the dominant range-broadening effect in water-equivalent tissue.
-
-\subsection{Validation against SIMIND and GATE forward projections}
-\label{subsec:brem_blur_validation}
-
-We assessed how well the isotropic Gaussian proxy reproduces the broader displacement PDFs (including angular effects in GATE) by comparing projected point-source responses produced by:
-\begin{enumerate}
-    \item \gls{stir} forward projections with geometric \glsentryshort{cdr} modelling only;
-    \item \glsentryshort{stir} forward projections with geometric \glsentryshort{cdr} plus the proposed isotropic Bremsstrahlung range blur;
-    \item SIMIND simulations (which use an approximate isotropic Bremsstrahlung emission model); and
-    \item GATE simulations (used here as a higher-fidelity reference that includes angular dependence of Bremsstrahlung emission).
-\end{enumerate}
-
-\paragraph{Point-source-in-sphere configuration.}
-A true \isotope[90]{Y} point source is not physically realisable at clinical activity levels because the $\beta$-particles have a finite range. To approximate a point source for spatial response measurements, we embedded the activity within a small water-equivalent sphere of radius $1.2\,\mathrm{cm}$, consistent with the maximum $\beta$-particle range in soft tissue/water (approximately $11\,\mathrm{mm}$) \cite{pasciakRadioembolizationDynamicRole2014}. For each configuration we measured the detector-plane FWHM at source--collimator distances of $2$, $5$, $10$, $15$, and $20\,\mathrm{cm}$.
-
-\paragraph{Clinical energy windows.}
-Comparisons were performed for three representative clinical windows:
-\begin{equation}
-[38.24,126.16]\,\mathrm{keV},
-\qquad
-[50.0,150.0]\,\mathrm{keV},
-\qquad
-[75.0,225.0]\,\mathrm{keV}.
-\end{equation}
-
-\paragraph{Scope and limitations.}
-This validation focuses on water-equivalent media, which is appropriate for the liver (the primary application in post-radioembolization imaging). Differences in range and scatter properties in lung or cortical bone are not explicitly modelled here and are not expected to dominate performance for liver-focused dosimetry.
-
-% Example figure placeholders for your measured/simulated FWHM curves:
-% \begin{figure}[hbtp]
-%     \centering
-%     \includegraphics[width=0.9\linewidth]{figures/Chapter3/FWHM_vs_distance_window1.png}
-%     \caption{Detector-plane FWHM versus source--collimator distance for $[38.24,126.16]\,\mathrm{keV}$: STIR (CDR only), STIR (CDR + Bremsstrahlung blur), SIMIND, and GATE.}
-%     \label{fig:fwhm_vs_distance_w1}
-% \end{figure}
-%
-% \begin{figure}[hbtp]
-%     \centering
-%     \includegraphics[width=0.9\linewidth]{figures/Chapter3/FWHM_vs_distance_window2.png}
-%     \caption{As Figure~\ref{fig:fwhm_vs_distance_w1} but for $[50.0,150.0]\,\mathrm{keV}$.}
-%     \label{fig:fwhm_vs_distance_w2}
-% \end{figure}
-%
-% \begin{figure}[hbtp]
-%     \centering
-%     \includegraphics[width=0.9\linewidth]{figures/Chapter3/FWHM_vs_distance_window3.png}
-%     \caption{As Figure~\ref{fig:fwhm_vs_distance_w1} but for $[75.0,225.0]\,\mathrm{keV}$.}
-%     \label{fig:fwhm_vs_distance_w3}
-% \end{figure}
-
-\section{Residual Correction}
-\label{sec:residual_correction}
-
-Fu and Qi proposed a residual-correction (RC) strategy to accelerate reconstructions when an \emph{accurate} forward model is too expensive to apply at every iteration \cite{fuResidualCorrectionMethod2010}. In their positron-range setting, the accurate system model can be expressed as a fast projector composed with an additional blurring operator. RC then intermittently estimates the modelling discrepancy and folds it into an additive term, allowing subsequent iterations to proceed using the computationally cheaper projector.
-
-In this work we investigate whether RC can be applied analogously to \isotope[90]{Y} Bremsstrahlung SPECT reconstruction. Empirically, we find that RC behaves well for high-count, low-background phantom data, but can become unreliable in low-count clinical-like regimes where regularisation is necessarily strong. We attribute this behaviour to the fact that RC corrects the \emph{forward prediction} but does not, in general, restore a \emph{matched} forward/adjoint pair inside a regularised reconstruction.
-
-\subsection{Residual correction update}
-\label{subsec:rc_update}
-
-Let $A_{\star}$ denote the fast (computationally cheap) system matrix used in the iterative updates and let $A_{\mathrm{MC}}$ denote a more accurate (expensive) system model (here, Monte Carlo based). We consider the Poisson model
-\begin{equation}
-y_i \sim \mathrm{Poisson}\!\left( (A_{\star}x)_i + b_{E,i} \right),
-\end{equation}
-where $b_E$ is an additive correction term (e.g.\ scatter). At spaced iterations, we estimate the discrepancy between the accurate and fast forward predictions at the current iterate by approximately solving
-\begin{equation}
-\hat{x} \approx \underset{x\geq0}{\mathrm{arg\,min}}\;\mathcal{O}\!\left(x \mid y\;; b_E, A_{\star}\right),
-\end{equation}
-and then forming the residual
-\begin{equation}
-(\Delta A)\hat{x} \;=\; A_{\mathrm{MC}}\hat{x} - A_{\star}\hat{x}.
-\label{eq:residual}
-\end{equation}
-This residual is incorporated into the additive term,
-\begin{equation}
-b_E^{(\mathrm{new})} \;=\; b_E^{(\mathrm{old})} + (\Delta A)\hat{x},
-\label{eq:be_update}
-\end{equation}
-after which reconstruction proceeds again under the updated additive correction. In favourable regimes, this produces forward predictions closer to those of $A_{\mathrm{MC}}$ while retaining the per-iteration cost of $A_{\star}$.
-
-\subsection{Regularised objective with a Relative Difference prior}
-\label{subsec:rc_objective_rdp}
-
-In Bremsstrahlung SPECT, low-count data frequently necessitate comparatively strong regularisation. In all RC experiments reported here, we reconstruct using a Relative Difference prior (RDP), i.e.\ we solve a MAP problem of the form
-\begin{equation}
-\hat{x}
-=
-\underset{x\ge 0}{\mathrm{arg\,min}}
-\left\{
-\Phi_{A_{\star}}(x)
-+
-\beta R_{\mathrm{RDP}}(x)
-\right\},
-\label{eq:map_rdp}
-\end{equation}
-where $\Phi_{A_{\star}}(x)$ is the negative Poisson log-likelihood (up to constants),
-\begin{equation}
-\Phi_{A_{\star}}(x)
-=
-\sum_{i=1}^{I}
-\left[
-(A_{\star}x)_i + b_{E,i}
--
-y_i \log\!\bigl((A_{\star}x)_i + b_{E,i}\bigr)
-\right],
-\label{eq:poisson_nll}
-\end{equation}
-and the Relative Difference prior is defined over a neighbourhood system $\mathcal{N}$ by
-\begin{equation}
-R_{\mathrm{RDP}}(x)
-=
-\frac{1}{2}\sum_{(j,k)\in \mathcal{N}}
-w_{jk}\;
-\frac{(x_j-x_k)^2}{x_j+x_k+\gamma|x_j-x_k|+\epsilon}.
-\label{eq:rdp_prior}
-\end{equation}
-Here, $x_j$ and $x_k$ denote neighbouring voxels, $w_{jk}\ge 0$ are neighbourhood weights, $\gamma$ controls edge preservation, and $\epsilon\geq0$ is the STIR RDP stabiliser; STIR assigns a zero contribution to a zero--zero voxel pair when $\epsilon=0$. The hyperparameter $\beta>0$ controls the overall strength of regularisation.
-
-\subsection{Interpretation via matched versus unmatched projectors}
-\label{subsec:rc_unmatched}
-
-To understand why RC can be fragile in low-count, strongly regularised settings, it is helpful to view the method through the lens of \emph{matched} versus \emph{unmatched} projector pairs.
-
-\paragraph{Set-up.}
-Suppose the accurate forward model can be written as a fast projector composed with an additional blur (or resolution) operator $K$,
-\begin{equation}
-P := A_{\mathrm{fast}}K,
-\qquad
-\bar y(x) = Px + r = A_{\mathrm{fast}}Kx + r,
-\end{equation}
-with $r$ an additive background term and Poisson data $y\sim\mathrm{Poisson}(\bar y(x))$.
-
-\paragraph{Maximum likelihood (no regularisation).}
-The negative log-likelihood for forward model $P$ has gradient
-\begin{equation}
-\nabla \Phi_{P}(x) = P^\top\!\left(1-\frac{y}{Px+r}\right).
-\end{equation}
-For $P=A_{\mathrm{fast}}K$, the \emph{matched} stationarity condition is
-\begin{equation}
-K^\top A_{\mathrm{fast}}^\top\!\left(1-\frac{y}{A_{\mathrm{fast}}Kx+r}\right)=0.
-\label{eq:matched_ml}
-\end{equation}
-If instead one uses the fast backprojector $A_{\mathrm{fast}}^\top$ with the same forward model (an \emph{unmatched} pair), the stationarity condition would be
-\begin{equation}
-A_{\mathrm{fast}}^\top\!\left(1-\frac{y}{A_{\mathrm{fast}}Kx+r}\right)=0.
-\label{eq:unmatched_ml}
-\end{equation}
-In the special case where $K^\top$ is injective (and numerically well-conditioned on the relevant subspace), \eqref{eq:matched_ml} and \eqref{eq:unmatched_ml} share the same stationary points, since $K^\top z=0 \Rightarrow z=0$. This explains why unmatched backprojection can appear benign in some unregularised, high-count regimes.
-
-\paragraph{How RC fits.}
-Residual correction aims to make the \emph{forward prediction} behave like the accurate model without applying $K$ at every iteration, i.e.
-\begin{equation}
-A_{\mathrm{fast}}Kx \;\approx\; A_{\mathrm{fast}}x + \mathrm{RC}(x),
-\end{equation}
-where $\mathrm{RC}(x)$ approximates $(A_{\mathrm{fast}}K-A_{\mathrm{fast}})x$ (often using lagged/intermittent updates). If the correction is consistent at a limit point $x^\star$, then the ratio term $y/(A_{\mathrm{fast}}Kx+r)$ is effectively ``accurate-forward''.
-However, the backprojection used by the iterative update remains $A_{\mathrm{fast}}^\top$, not $(A_{\mathrm{fast}}K)^\top = K^\top A_{\mathrm{fast}}^\top$. In this sense, RC can be interpreted as correcting the forward model while still behaving like an \emph{unmatched} method on the adjoint side.
-
-\paragraph{Why low-count + RDP regularisation is high-risk.}
-With an RDP prior, the MAP stationarity condition (ignoring the non-negativity constraint) is
-\begin{equation}
-P^\top\!\left(1-\frac{y}{Px+r}\right) + \beta \nabla R_{\mathrm{RDP}}(x)=0.
-\label{eq:map_stationary_general}
-\end{equation}
-For $P=A_{\mathrm{fast}}K$, the matched condition becomes
-\begin{equation}
-K^\top A_{\mathrm{fast}}^\top\!\left(1-\frac{y}{A_{\mathrm{fast}}Kx+r}\right) + \beta \nabla R_{\mathrm{RDP}}(x)=0,
-\label{eq:matched_map}
-\end{equation}
-whereas an unmatched analogue would be
-\begin{equation}
-A_{\mathrm{fast}}^\top\!\left(1-\frac{y}{A_{\mathrm{fast}}Kx+r}\right) + \beta \nabla R_{\mathrm{RDP}}(x)=0.
-\label{eq:unmatched_map}
-\end{equation}
-As total counts decrease, the likelihood term becomes flatter and noisier, so the relative influence of $\beta \nabla R_{\mathrm{RDP}}(x)$ increases even when $\beta$ is held fixed. Unlike the ML case, the factor $K^\top$ multiplies only the data-term gradient in \eqref{eq:matched_map} and does not act on $\nabla R_{\mathrm{RDP}}(x)$. Therefore, for $\beta>0$, matched and unmatched fixed points generally differ. In this prior-dominated regime, using an unmatched backprojector while correcting only the forward prediction can substantially alter the balance between data fidelity and regularisation, leading to marked divergence from the solution associated with the fully matched accurate model.
-
-\subsection{Empirical observations}
-\label{subsec:rc_empirical}
-
-For high-count, low-background phantom acquisitions (e.g.\ NEMA-style datasets), RC substantially improves agreement with accurate forward projections and remains stable. For low-count Bremsstrahlung acquisitions, however, we observe that RC can become unreliable when combined with strong RDP regularisation. These observations are consistent with the interpretation above: in prior-dominated regimes, mismatched adjoints change the effective weighting of the data term relative to the RDP, and RC does not in general restore a matched forward/adjoint pair.
-
-\section{Experimental Evaluation}
-\label{sec:brems_eval}
-
-The preceding sections introduced four modelling choices that can be layered onto
-the \isotope[90]{Y} Bremsstrahlung forward model: an image-space Gaussian
-approximation to the range blur (Section~\ref{sec:brem_range_blur}); an additive
-scatter term that is either fixed (\emph{offline}) or updated on-the-fly
-(\emph{online}) during reconstruction (Section~\ref{sec:additive_corrections});
-a damped rather than full update of that additive term
-(Section~\ref{subsec:rc_update}); and a Fu \& Qi-style residual correction of the
-resolution model (Section~\ref{sec:residual_correction}). This section evaluates
-each of these on measured data, and asks not whether any single option is
-universally ``best'', but how each behaves as the regularisation strength is
-varied and how they interact.
-
-\subsection{Datasets and reconstruction protocol}
-\label{subsec:brems_datasets}
-
-We evaluated the corrections on three measured phantom acquisitions and one
-patient study, chosen to span the range of background activity encountered in
-post-radioembolization imaging:
-\begin{itemize}
-    \item \textbf{NEMA (cold background):} a NEMA IEC body phantom with six
-    equal-concentration hot spheres ($10$--$37\,\mathrm{mm}$) in a
-    (nominally) cold background.
-    \item \textbf{NEMA (warm background):} the same phantom geometry with an
-    $8{:}1$ sphere-to-background activity ratio. The $17\,\mathrm{mm}$ sphere was
-    unfilled and is excluded; the two smallest spheres
-    ($\le 13\,\mathrm{mm}$) are noise-limited at these count levels and are
-    excluded from the quantitative analysis.
-    \item \textbf{Anthropomorphic liver:} an anthropomorphic phantom with a
-    single hot lesion insert in a warm liver compartment
-    ($\approx 4{:}1$).
-    \item \textbf{Patient (SIRT-3):} a clinical post-\gls{sirt} \isotope[90]{Y}
-    acquisition with five liver lesions delineated in the co-registered
-    \isotope[90]{Y} \gls{pet} space.
-\end{itemize}
-
-Each reconstruction was performed with \gls{osem} using $12$ staggered subsets and
-$10$ epochs ($120$ subset updates), warm-started from the previous outer iterate.
-The prior was included through a one-step-late gradient step applied after each
-subset update, using the Relative Difference prior (RDP,
-Equation~\ref{eq:rdp_prior}) with weight
-$\beta\in\{0,\,10^{-3},\,10^{-2},\,10^{-1}\}$; unless a $\beta$-sweep is shown, all
-other results use $\beta=10^{-2}$. The SPECTUB system matrix modelled attenuation
-(from the co-registered \gls{ct}) and a depth-dependent Gaussian
-collimator--detector response. The Bremsstrahlung range blur, when enabled, was
-the isotropic $6.9\,\mathrm{mm}$-\gls{fwhm} image-space Gaussian of
-Section~\ref{subsec:brem_specific_blur}, applied to the activity estimate inside
-the acquisition model before forward projection. This reconstruction was embedded
-in the outer \mbox{OSEM\,$\rightarrow$\,SIMIND} additive-update loop of
-Section~\ref{sec:additive_corrections}, run for $10$ outer iterations; between
-outer iterations the reconstruction was smoothed with a $5\,\mathrm{mm}$-\gls{fwhm}
-isotropic Gaussian before being used as the source for the next Monte Carlo
-simulation.
-
-\paragraph{Additive-term construction (reproducibility).}
-At each outer iteration $k$, a single SIMIND PENETRATE simulation
-(Section~\ref{sec:additive_corrections}) was run on the current, body-masked
-reconstruction, yielding two projection components: the total detected fluence
-$p_{\mathrm{tot}}^{(k)}$ (all interactions) and the geometrically collimated,
-attenuated primary $p_{\mathrm{geo}}^{(k)}$. The Monte Carlo output was calibrated
-to the fast \gls{spect} forward projector $A_{\star}$ by a scalar
-$s^{(k)}$, computed as a ratio-of-sums of $A_{\star}x^{(k)}$ to
-$p_{\mathrm{geo}}^{(k)}$ after trimming the $10\%$ most extreme per-bin ratios for
-robustness. The two corrections were then formed as
-\begin{align}
-\widehat{b}_{\mathrm{sc}}^{(k)} &= s^{(k)}\bigl(p_{\mathrm{tot}}^{(k)}-p_{\mathrm{geo}}^{(k)}\bigr)
-&&\text{(scatter: all non-geometric-primary counts),}\\
-(\Delta A)x^{(k)} &= s^{(k)}\,p_{\mathrm{geo}}^{(k)} - A_{\star}x^{(k)}
-&&\text{(residual, cf.\ Equation~\ref{eq:residual}).}
-\end{align}
-Each term was folded into the running additive estimate by the damped update of
-Section~\ref{subsec:rc_update} --- the scatter term with $\alpha=0.2$, the residual
-term with $\alpha\in\{0.2,\,1\}$ --- and the effective additive term applied to the
-\gls{osem} step, $b^{(k)}=b_{\mathrm{sc}}^{(k)}+(\Delta A)x^{(k)}$ (with only the
-component(s) active for a given strategy), was projected to non-negativity before
-each forward projection. The initial additive term $b^{(0)}$ was the pre-trained
-deep-learning scatter estimate of Section~\ref{sec:additive_corrections}; for the
-fixed-scatter strategies it was held constant. The body mask used to suppress
-out-of-patient activity before each simulation was obtained by thresholding the
-attenuation map (at $0.05\,\mathrm{cm}^{-1}$), with a morphological opening
-(radius $2$) and retention of the largest connected component. Crossing the two
-scatter options (fixed/updated), the residual option (off/on), the range blur
-(off/on) and the four values of $\beta$ yields the four correction
-\emph{strategies} --- fixed scatter, fixed scatter\,$+$\,residual, updated
-scatter, and updated scatter\,$+$\,residual --- each evaluated across the blur and
-$\beta$ axes.
-
-\paragraph{Monte Carlo (SIMIND) configuration.}
-All simulations used \gls{mc} code SIMIND \cite{ljungbergSIMINDMonteCarlo2012} with the
-PENETRATE scoring routine (which resolves geometric collimation, septal
-penetration and collimator scatter as separate components) and the
-Y-90 Frey Bremsstrahlung source model. Common settings were a
-$9.5\,\mathrm{mm}$ \gls{nai} crystal, a $10\,\mathrm{keV}$ energy-bin width up to
-$2.08\,\mathrm{MeV}$, a photon-history multiplier of $1$, and a low-energy
-photon-history cutoff at $75\%$ of the lower window threshold. The scanner-,
-collimator- and window-specific settings, which differ between the Mediso and
-Siemens acquisitions, are listed in Table~\ref{tab:brems_simind}.
-
-\begin{table}[htbp]
-    \centering
-    \caption{Dataset-specific SIMIND acquisition settings. The collimator routine
-    selects the penetration/collimator-scatter model (1) or a simpler geometric
-    model (0).}
-    \label{tab:brems_simind}
-    \begin{tabular}{lccccc}
-        \hline
-        Dataset & Nominal $E$ (keV) & Energy window (keV) & Collimator & Coll.\ routine & Scanner \\
-        \hline
-        \gls{nema} (cold) & 150 & 75--225 & \gls{mlegp} & 1 & Mediso \\
-        \gls{nema} (warm) & 83 & 39.8--126.2 & \gls{megp} & 0 & Siemens \\
-        Anthropomorphic & 150 & 75--225 & \acrshort{mlegp} & 1 & Mediso \\
-        Patient (\gls{sirt}-3) & 100 & 50--150 & \acrshort{megp} & 0 & Siemens \\
-        \hline
-    \end{tabular}
-\end{table}
-
-The regularisation strength $\beta$ is not itself an object of study here: it is
-well established that increasing the RDP weight suppresses noise and, beyond a
-point, also suppresses contrast recovery. We instead sweep $\beta$ so that each
-correction strategy traces out a recovery--noise \emph{operating curve}, allowing
-the strategies to be compared fairly at matched noise rather than at a single
-arbitrary $\beta$.
-
-\subsection{Figures of merit}
-\label{subsec:brems_fom}
-
-No spatially co-registered ground-truth image exists for any of these
-acquisitions (the only available \isotope[90]{Y} \gls{pet} volumes are not
-registered to the \gls{spect} grid). We therefore avoid any image-to-reference
-comparison and report only scale-invariant quantities:
-\begin{itemize}
-    \item \textbf{Recovery coefficient (RC):} the measured activity ratio between
-    a hot \gls{voi} and a reference region, divided by the \emph{known} true
-    ratio, so that perfect recovery gives $\mathrm{RC}=1$. For the
-    \emph{cold-background} NEMA phantom the spheres are all filled to the
-    \emph{same} concentration, so the reference is taken to be the eroded
-    \emph{centre of the largest ($37\,\mathrm{mm}$) sphere} and each sphere's
-    recovery is $\mathrm{RC}=\overline{x}_{\mathrm{sphere}}/\overline{x}_{37\,\mathrm{mm\,centre}}$,
-    with an ideal value of $1$ for every sphere (the $37\,\mathrm{mm}$ sphere thus
-    measures its own whole-VOI mean against its centre). Recovery is reported for
-    the six spheres ($10,13,17,22,28,37\,\mathrm{mm}$). For the
-    \emph{warm-background} NEMA phantom the sphere-to-background ratio is normalised
-    by the known $8{:}1$ (the unfilled $17\,\mathrm{mm}$ sphere is excluded, and the
-    two smallest spheres, $\le13\,\mathrm{mm}$, are noise-limited and excluded from
-    the quantitative summaries); for the anthropomorphic phantom the lesion-to-liver
-    ratio is normalised by the known $\approx4{:}1$ concentration.
-    \item \textbf{Noise:} the voxel-wise coefficient of variation (CoV, standard
-    deviation over mean) in a uniform region (the $37\,\mathrm{mm}$-sphere centre
-    for cold NEMA; the background compartment for warm NEMA; the liver for the
-    anthropomorphic phantom; a background region for the patient).
-    \item \textbf{Patient lesion contrast:} as no known activity ratio is
-    available \emph{in vivo}, we use the lesion-to-background uptake ratio as a
-    contrast proxy.
-\end{itemize}
-All quantities are read at the converged tenth outer iteration unless a
-convergence trajectory is shown explicitly. To keep comparisons fair, the reported
-paired effects hold every other factor fixed and change only the correction under
-test. Except where recovery is resolved by sphere size
-(Figure~\ref{fig:brems_residual_size}), a single reported recovery coefficient is
-the mean over the evaluated spheres of the phantom.
-
-\subsection{On-the-fly scatter update: gains, cost and stability}
-\label{subsec:res_update}
-
-Updating the additive scatter term during reconstruction, rather than fixing it,
-is the most aggressive of the four modelling choices, and its behaviour is
-strongly dataset-dependent (Figure~\ref{fig:brems_scatter_dynamics}). On the
-warm-background phantom the online update raises recovery substantially
-(mean $\Delta\mathrm{RC}\approx+0.10$ relative to a fixed scatter term) but nearly
-\emph{doubles} the noise (mean $\Delta\mathrm{CoV}\approx+0.9$, an increase in
-every matched run). On the cold-background phantom, where there is little patient
-scatter to re-estimate, the update is essentially inert in both recovery and
-noise. Pooled across all datasets the recovery benefit is not statistically
-reliable (recovery increased in only $\sim\!53\%$ of matched runs); the update
-helps precisely where there is substantial scatter to model, and destabilises the
-reconstruction as it does so. The convergence trajectories in
-Figure~\ref{fig:brems_scatter_dynamics} make the mechanism explicit: on the warm
-phantom the updated-scatter recovery oscillates violently in the early outer
-iterations while the noise climbs monotonically, whereas the fixed-scatter
-reconstruction is smooth and stable.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.95\linewidth]{figures/Chapter3/results_scatter_update_dynamics.pdf}
-    \caption{Convergence dynamics of the on-the-fly scatter update
-    ($\beta=10^{-2}$, range blur on). Recovery coefficient (top) and noise
-    (bottom) versus outer iteration for a fixed scatter term (blue) and an
-    on-the-fly updated term (orange), on the cold-background (left) and
-    warm-background (right) NEMA phantoms. On the warm phantom the updated term
-    drives an early recovery overshoot and a monotonic increase in noise; on the
-    cold phantom, where there is little scatter to re-estimate, the two strategies
-    are almost indistinguishable.}
-    \label{fig:brems_scatter_dynamics}
-\end{figure}
-
-\subsection{Damping the online update}
-\label{subsec:res_damping}
-
-The instability introduced by the online update motivates the damped update rule
-of Section~\ref{subsec:rc_update}. Replacing the full update ($\alpha=1$) with a
-damped one ($\alpha=0.2$) reduces noise consistently --- in every matched run on
-the warm-background and anthropomorphic phantoms (mean
-$\Delta\mathrm{CoV}\approx-0.09$ overall). Crucially, in the most unstable
-configuration --- the combined updated-scatter\,$+$\,residual strategy on the warm
-phantom --- damping improves \emph{both} recovery and noise simultaneously (mean
-$\Delta\mathrm{RC}\approx+0.15$, $\Delta\mathrm{CoV}\approx-0.28$), because it
-suppresses the iteration-to-iteration oscillation of the undamped update rather
-than merely trading recovery for smoothness (Figure~\ref{fig:brems_damping}). In
-the already-stable configurations damping behaves as expected, exchanging a small
-amount of recovery for reduced noise. The role of damping is therefore best
-understood not as a generic smoother but as the stabiliser that renders the
-aggressive online update usable.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.9\linewidth]{figures/Chapter3/results_damping_stability.pdf}
-    \caption{Effect of damping the online update on the warm-background NEMA
-    phantom, for the (most unstable) updated-scatter\,$+$\,residual strategy at
-    $\beta=0$. The full update ($\alpha=1$, red dashed) settles to lower recovery
-    and higher noise than the damped update ($\alpha=0.2$, violet solid); damping
-    improves both figures of merit by suppressing the inter-iteration
-    oscillation.}
-    \label{fig:brems_damping}
-\end{figure}
-
-\subsection{Bremsstrahlung range blur}
-\label{subsec:res_blur}
-
-Including the $6.9\,\mathrm{mm}$ Gaussian range-blur term in the forward model
-behaves as a near-``free'' regulariser rather than a resolution-recovery tool.
-Across all datasets its dominant, reliable effect is a reduction in noise (noise
-fell in every matched run on the warm-background and anthropomorphic phantoms,
-mean $\Delta\mathrm{CoV}\approx-0.07$ to $-0.15$), while the accompanying change in
-recovery is small and only weakly consistent (mean $\Delta\mathrm{RC}\approx+0.01$,
-positive in $\sim\!61\%$ of runs). Figure~\ref{fig:brems_blur_effect} shows this
-as off\,$\rightarrow$\,on displacement arrows in the recovery--noise plane: on the
-warm phantoms the arrows point predominantly leftward (lower noise) at little cost
-in recovery, whereas on the cold phantom --- where counts are low and scatter is
-minimal --- the blur has almost no effect. Modelling the range blur is thus
-worthwhile because it reduces noise essentially for free, not because it restores
-contrast.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=\linewidth]{figures/Chapter3/results_brems_blur_effect.pdf}
-    \caption{Effect of the Bremsstrahlung range-blur model in the recovery--noise
-    plane. Each arrow runs from ``blur off'' to ``blur on'' for one correction
-    strategy at one value of $\beta$; colour denotes strategy. Leftward arrows
-    indicate a noise reduction. The effect is consistent and noise-reducing on the
-    warm-background and anthropomorphic phantoms and negligible on the
-    cold-background phantom.}
-    \label{fig:brems_blur_effect}
-\end{figure}
-
-\subsection{Residual correction and resolution recovery}
-\label{subsec:res_residual}
-
-Of the four choices, the Fu \& Qi-style residual correction is the most
-dependable route to improved recovery. Added to a stable (fixed-scatter) base it
-raises recovery in $86\%$ of matched runs (mean $\Delta\mathrm{RC}\approx+0.035$,
-with a small spread), at a modest and universal noise cost
-(mean $\Delta\mathrm{CoV}\approx+0.09$) --- a textbook resolution-recovery /
-noise trade-off. The recovery gain is largest on the warm-background phantom
-($\approx+0.10$) and smallest on the cold-background phantom ($\approx+0.02$),
-mirroring the scatter-update behaviour. Figure~\ref{fig:brems_residual_size}
-resolves the effect by lesion size: the residual correction and the online update
-both lift the recovery-versus-diameter curve above the fixed-scatter baseline,
-with the largest gains on the mid-to-large spheres. When the residual correction
-is instead stacked on the \emph{unstable} online update its average benefit
-persists but becomes erratic (its run-to-run spread grows roughly eight-fold),
-consistent with the interpretation in Section~\ref{subsec:rc_unmatched} that the
-correction is well behaved only when the underlying reconstruction is stable.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.9\linewidth]{figures/Chapter3/results_residual_vs_size.pdf}
-    \caption{Recovery coefficient versus sphere diameter at $\beta=10^{-2}$ (range
-    blur on) for the cold-background (left) and warm-background (right) NEMA
-    phantoms. Recovery increases monotonically with size; adding residual
-    correction and/or an online scatter update raises the curve, most clearly on
-    the warm phantom. Values above unity on the large warm-phantom spheres reflect
-    edge enhancement. The two smallest warm-phantom spheres are noise-limited and
-    omitted.}
-    \label{fig:brems_residual_size}
-\end{figure}
-
-\subsection{Overall trade-off and method comparison}
-\label{subsec:res_tradeoff}
-
-Sweeping $\beta$ turns each correction strategy into an operating curve in the
-recovery--noise plane (Figure~\ref{fig:brems_master_tradeoff}). Read this way, the
-strategies separate cleanly on the warm-background and anthropomorphic phantoms
-but collapse onto one another on the cold-background phantom, where recovery
-saturates near $0.4$ irrespective of the correction applied. On the warm phantoms
-the ordering is consistent: the updated-scatter\,$+$\,residual strategy reaches the
-highest recovery, followed by the residual-only and updated-only strategies, with
-fixed scatter lowest --- but the higher-recovery strategies also sit at higher
-noise, so no strategy dominates across the whole curve. The paired-effect summary
-of Figure~\ref{fig:brems_effect_summary} condenses the four mechanisms into a
-single view: residual correction gives a reliable recovery gain at a fixed noise
-cost; the online scatter update offers a large but dataset-dependent recovery gain
-at a large noise cost; damping and the range blur are noise-reducers; and every
-effect is modulated by whether the background is cold or warm.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=\linewidth]{figures/Chapter3/results_master_tradeoff.pdf}
-    \caption{Recovery--noise operating curves for the four correction strategies,
-    obtained by sweeping the RDP weight $\beta$ (range blur on, converged
-    iteration). Each marker is one value of $\beta$; the dotted line marks ideal
-    recovery. The strategies separate on the warm-background (centre) and
-    anthropomorphic (right) phantoms and are indistinguishable on the
-    cold-background phantom (left).}
-    \label{fig:brems_master_tradeoff}
-\end{figure}
-
-The same behaviour is visible directly in the reconstructions
-(Figure~\ref{fig:brems_recon_phantoms}): on the cold phantom the four strategies
-are almost indistinguishable by eye, whereas on the two warm phantoms the
-updated-scatter strategies visibly sharpen the hot inserts against a noticeably
-noisier background.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=\linewidth]{figures/Chapter3/results_recon_phantoms_strategies.pdf}
-    \caption{Reconstructed activity for the four correction strategies on the
-    three phantoms: cold-background NEMA (top), warm-background NEMA (middle) and
-    the anthropomorphic warm-liver phantom (bottom), at $\beta=10^{-2}$ with the
-    range blur enabled and at the converged tenth outer iteration (single axial
-    slice through the hot inserts). All panels within a row share an intensity
-    window; cyan outlines mark the hot VOIs and the inset reports the mean
-    recovery coefficient (RC) and background noise (CoV). On the cold phantom the
-    strategies are visually near-indistinguishable and recovery saturates
-    irrespective of the correction; on the two warm phantoms the updated-scatter
-    strategies recover markedly more insert contrast, but at conspicuously higher
-    background noise --- the image-space counterpart of the operating curves in
-    Figure~\ref{fig:brems_master_tradeoff}.}
-    \label{fig:brems_recon_phantoms}
-\end{figure}
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=\linewidth]{figures/Chapter3/results_effect_summary.pdf}
-    \caption{Paired effect of each correction on recovery (left) and noise
-    (right), as the mean $\pm$ standard deviation over all matched runs at the
-    converged iteration, split by dataset. Positive $\Delta$RC is more recovery;
-    positive $\Delta$CoV is more noise. Residual correction and the online scatter
-    update raise recovery (the latter only on warm backgrounds, at large noise
-    cost); the range blur and damping reduce noise.}
-    \label{fig:brems_effect_summary}
-\end{figure}
-
-\subsection{Clinical example}
-\label{subsec:res_patient}
-
-The single patient study is consistent with the phantom findings and, in
-particular, behaves like the \emph{warm}-background phantom, as expected for a
-liver with diffuse uptake surrounding the lesions
-(Figure~\ref{fig:brems_patient}). The online scatter update markedly increases
-lesion-to-background contrast relative to a fixed scatter term, again at the price
-of higher background noise, reproducing on measured clinical data the trade-off
-seen in the warm-background phantom. This should be read qualitatively --- it is a
-single subject with no ground-truth activity ratio --- but it demonstrates that
-the phantom-derived behaviour transfers to the clinical setting. The effect is
-apparent in the reconstructions themselves
-(Figure~\ref{fig:brems_recon_patient}): the online update suppresses the diffuse
-liver background and lifts the delineated lesion out of it, at the price of a
-grainier background, exactly as in the warm-background phantom.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=\linewidth]{figures/Chapter3/results_recon_patient_strategies.pdf}
-    \caption{Patient (SIRT-3) reconstructions for the four correction strategies,
-    resampled into PET space (single axial slice) at $\beta=10^{-2}$ with the
-    range blur on and at the converged iteration; the cyan outline is a
-    PET-defined lesion. All panels share an intensity window; the inset gives the
-    mean lesion-to-background contrast (C) and background noise (CoV). The online
-    scatter update (c,\,d) suppresses the diffuse liver background and raises
-    lesion contrast relative to the fixed-scatter reconstructions (a,\,b), at the
-    cost of higher background noise --- the clinical counterpart of
-    Figure~\ref{fig:brems_patient}.}
-    \label{fig:brems_recon_patient}
-\end{figure}
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.62\linewidth]{figures/Chapter3/results_patient_tradeoff.pdf}
-    \caption{Patient (SIRT-3): lesion-to-background uptake ratio versus background
-    noise, sweeping $\beta$ (range blur on), averaged over five PET-space lesions.
-    The online scatter update reaches substantially higher lesion contrast than a
-    fixed scatter term, mirroring the warm-background phantom.}
-    \label{fig:brems_patient}
-\end{figure}
-
-\subsection{Summary}
-\label{subsec:brems_summary}
-
-Taken together, the four modelling choices form a hierarchy of aggressiveness and
-risk. The range blur is a low-risk, noise-reducing addition that is worth
-including by default. Residual correction is the dependable way to improve
-contrast recovery, provided the underlying reconstruction is stable. The on-the-fly
-scatter update offers the largest recovery gains, but only where the background is
-warm enough to carry substantial scatter, and it destabilises the reconstruction;
-damping is what makes it usable, and in the most unstable configuration recovers
-both accuracy and noise simultaneously. No single strategy is universally optimal:
-the appropriate choice depends on the imaging task and on where along the
-recovery--noise trade-off one wishes to operate. For quantitative liver dosimetry,
-where warm backgrounds dominate, a damped online update combined with residual
-correction and the range blur, operated at a moderate RDP weight
-($\beta\approx10^{-2}$), offers the most favourable balance observed here.
+\section{Scope, Limitations and Deployment}
+\label{sec:brems_deployment}
+
+The work in this chapter is deliberately a component-level commissioning study.
+Iterative Monte Carlo estimation of scatter is established methodology, and
+under-relaxation is a standard numerical device. The contribution here is the
+integration of a domain-shifted learned initial estimate with a calibrated SIMIND
+refinement, the empirical identification and suppression of unstable full
+replacement, and the definition of a frozen additive term compatible with the
+subsequent reconstruction. Likewise, the physical existence of Bremsstrahlung
+range broadening is established; the contribution is an inexpensive fixed-width
+effective Gaussian surrogate that can be composed with a standard matched
+projector, calibrated against GATE and cross-checked against SIMIND.
+
+Several limitations follow from these choices. The network output is used outside
+its training protocol and is only a scatter-derived initialisation; because the
+update is damped, it continues to influence the finite-budget estimate. The scalar calibration in
+Equation~\ref{eq:simind_scale} cannot correct spatially varying differences between
+SIMIND and the analytic projector. The relaxation factor and ten-iteration budget
+were fixed heuristically, and Figure~\ref{fig:nema_scatter_est} is a stability
+diagnostic rather than a convergence proof. The range kernel is isotropic and
+water-equivalent, so it does not model material-dependent transport in lung or
+bone, nor the detailed angular and spectral structure represented by a full Monte
+Carlo projector. A single effective width is also used across protocols and does
+not explicitly model the internal/external Bremsstrahlung mixture. The response
+study contains no event-class ablation and therefore cannot isolate range blur
+from every broadening mechanism in the Monte Carlo curves. The GATE result is a
+calibration-consistency comparison rather than an independent validation; SIMIND
+supplies the cross-code check. Finally, the analysis isolates selected model
+components and does not by itself establish improved clinical quantification.
+
+The configuration carried forward is consequently explicit. A learned additive
+estimate is refined for ten outer iterations using SIMIND and
+Equation~\ref{eq:additive_damped_update}; the final non-primary term is frozen;
+and the $6.9\,\mathrm{mm}$ effective range kernel is retained within the matched SPECT
+acquisition model. Chapter~\ref{chapter:paper} uses this fixed model for the
+joint \isotope[90]{Y} \glsentryshort{pet}/\glsentryshort{spect} experiments.
+
+
+\section{Summary}
+
+This chapter established the two Bremsstrahlung-specific components required by
+the later reconstruction experiments. First, a learned projection estimate was
+used to initialise object- and acquisition-specific SIMIND simulations of
+non-primary contamination. Full replacement was unstable in the measured NEMA
+example, whereas an under-relaxed update with $\alpha=0.2$ remained bounded over
+the prescribed refinement budget. The resulting additive estimate was then
+frozen. Second, Monte Carlo response broadening was represented by a fixed
+$6.9\,\mathrm{mm}$-\gls{fwhm} image-space Gaussian. Composing this kernel with
+the analytic projector brought projected response widths substantially closer to
+GATE and SIMIND across three energy windows. Together, these components define the
+fixed \isotope[90]{Y} Bremsstrahlung \glsentryshort{spect} model used in the final
+joint-reconstruction study.
