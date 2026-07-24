@@ -10,7 +10,7 @@ The resulting mean projection model is
     y_i\sim\operatorname{Poisson}\!\left(\bar y_i(x)\right),
     \label{eq:brems_forward_model}
 \end{equation}
-where $A_{\mathrm{prim}}$ contains attenuation, geometric projection, the intrinsic detector response and the geometric collimator response; $K_{\mathrm{brem}}$ is the image-space range-blur operator; and $b_{\mathrm{MC}}$ represents detected counts not described by this primary-event model. The latter includes patient scatter, collimator scatter and septal penetration, so these effects are not also included in $A_{\mathrm{prim}}$. It is therefore referred to throughout as a \emph{non-primary additive term}, rather than as patient scatter alone.
+where $A_{\mathrm{prim}}$ contains attenuation, geometric projection, the intrinsic detector response and the geometric collimator response; $K_{\mathrm{brem}}$ is the image-space range-blur operator; and $b_{\mathrm{MC}}$ represents detected counts not described by this primary-event model. The latter includes patient scatter, collimator scatter and septal penetration, so these effects are not also included in $A_{\mathrm{prim}}$. It is therefore referred to throughout as a non-primary additive term, rather than as patient scatter alone.
 
 The two components in Equation~\ref{eq:brems_forward_model} are estimated in a preparatory stage. Once estimated, both the acquisition model and $b_{\mathrm{MC}}$ are fixed during the target reconstruction. This separation is important: the purpose of the reconstruct--simulate loop below is to prepare an object- and acquisition-specific additive estimate, not to alter the likelihood model while the subsequent penalised reconstruction is running.
 
@@ -22,7 +22,7 @@ Monte Carlo estimates of scatter and penetration can be combined with a faster a
 
 \subsection{Learned initialisation}
 
-The scatter-derived initial estimate $b^{(0)}$ is produced by the convolutional neural network of Xiang \emph{et al.}, which predicts scatter projections from measured emission data and \glsentryshort{ct}-derived attenuation information \cite{xiangDeepNeuralNetwork2020}. The available network was trained for a different scanner, collimator and energy-window configuration from the acquisitions used in this thesis. Its output is consequently treated only as a computationally inexpensive warm start for the broader non-primary term, not as a final quantitative correction or as an independently validated contribution. The adapted \glsentryshort{sirf} inference workflow is documented in Appendix~\ref{app:scatter_dl}.
+The scatter-derived initial estimate $b^{(0)}$ is produced by the convolutional neural network of Xiang et al., which predicts scatter projections from measured emission data and \glsentryshort{ct}-derived attenuation information \cite{xiangDeepNeuralNetwork2020}. The available network was trained for a different scanner, collimator and energy-window configuration from the acquisitions used in this thesis. Its output is consequently treated only as a computationally inexpensive warm start for the broader non-primary term, not as a final quantitative correction or as an independently validated contribution. The adapted \glsentryshort{sirf} inference workflow is documented in Appendix~\ref{app:scatter_dl}.
 
 \subsection{Reconstruct--simulate refinement}
 \label{subsec:additive_refinement}
@@ -114,7 +114,7 @@ External Bremsstrahlung photons may be emitted after the $\beta^-$ particle has 
     \caption{Probability of external Bremsstrahlung photon emission as a function
     of displacement from the \isotope[90]{Y} decay site for four photon-energy
     intervals. Curves were derived from the fast-simulation data reported by
-    Rault \emph{et al.}\ \cite{raultFastSimulationYttrium902010}.}
+    Rault et al.\ \cite{raultFastSimulationYttrium902010}.}
     \label{fig:source_to_emission}
 \end{figure}
 
@@ -137,7 +137,7 @@ An exact reduced transport model would distinguish internal Bremsstrahlung, repr
     \sigma_{\mathrm{eff}}^2\mathbb I\right).
     \label{eq:brem}
 \end{equation}
-The Gaussian form is motivated by the external-photon displacement distributions of Rault \emph{et al.}, while its effective width was estimated from the water-equivalent Monte Carlo response study described below \cite{raultFastSimulationYttrium902010}. A single $6.9\,\mathrm{mm}$-\gls{fwhm} kernel ($\sigma_{\mathrm{eff}}\approx2.93\,\mathrm{mm}$) was then used throughout the reconstructions. This is not a microscopic displacement \glsentryshort{pdf}: by applying one Gaussian to all source activity, it approximates the combined internal/external response with one fitted width.
+The Gaussian form is motivated by the external-photon displacement distributions of Rault et al., while its effective width was estimated from the water-equivalent Monte Carlo response study described below \cite{raultFastSimulationYttrium902010}. A single $6.9\,\mathrm{mm}$-\gls{fwhm} kernel ($\sigma_{\mathrm{eff}}\approx2.93\,\mathrm{mm}$) was then used throughout the reconstructions. This is not a microscopic displacement \glsentryshort{pdf}: by applying one Gaussian to all source activity, it approximates the combined internal/external response with one fitted width.
 
 The resulting operator $K_{\mathrm{brem}}$ is a three-dimensional Gaussian convolution applied in image space. It is composed with the analytic projector in the forward operation and with the analytic backprojector in reverse order in the adjoint,
 \begin{equation}
