@@ -41,7 +41,7 @@ Starting from $b^{(0)}$, an outer iteration consists of the following operations
 \end{enumerate}
 Each intermediate reconstruction used 12 staggered subsets and 10 epochs (120 subset updates), warm-started from the preceding outer iterate. Ten outer iterations were used as a pre-specified computational budget. This endpoint is not presented as evidence of asymptotic convergence. The simulations were driven from Python using the interface described in Appendix~\ref{app:simind_python_connector}.
 
-At outer iteration $k$, one SIMIND PENETRATE simulation produces the total simulated detected projection counts $p_{\mathrm{tot}}^{(k)}$ and the attenuated, geometrically collimated primary component $p_{\mathrm{geo}}^{(k)}$. The Monte Carlo projections are first placed on the scale of the analytic acquisition model $A_{\star}=A_{\mathrm{prim}}K_{\mathrm{brem}}$. Let $\mathcal I_k$ contain bins with non-zero $p_{\mathrm{geo},i}^{(k)}$ after the lowest and highest 5\% of the per-bin ratios $(A_{\star}\widetilde x^{(k)})_i/ p_{\mathrm{geo},i}^{(k)}$ have been excluded. The scalar calibration is
+At outer iteration $k$, one simulation produces the total simulated detected projection counts $p_{\mathrm{tot}}^{(k)}$ and the attenuated, geometrically collimated primary component $p_{\mathrm{geo}}^{(k)}$. The Monte Carlo projections are first placed on the scale of the analytic acquisition model $A_{\star}=A_{\mathrm{prim}}K_{\mathrm{brem}}$. Let $\mathcal I_k$ contain bins with non-zero $p_{\mathrm{geo},i}^{(k)}$ after the lowest and highest 5\% of the per-bin ratios $(A_{\star}\widetilde x^{(k)})_i/ p_{\mathrm{geo},i}^{(k)}$ have been excluded. The scalar calibration is
 \begin{equation}
     s^{(k)} =
     \frac{\sum_{i\in\mathcal I_k}(A_{\star}\widetilde x^{(k)})_i}
@@ -54,7 +54,7 @@ and the newly simulated additive term is
     s^{(k)}\!\left(p_{\mathrm{tot}}^{(k)}-p_{\mathrm{geo}}^{(k)}\right).
     \label{eq:simind_additive}
 \end{equation}
-Thus, Equation~\ref{eq:simind_additive} includes all simulated counts outside the geometrically collimated primary component; it is not an estimate of patient Compton scatter alone. Before simulation, the body mask was formed by thresholding the attenuation map at $0.05\,\mathrm{cm}^{-1}$, applying a morphological opening of radius two voxels and retaining the largest connected component.
+Thus, Equation~\ref{eq:simind_additive} includes all simulated counts outside the geometrically collimated primary component; it is not an estimate of patient Compton scatter alone. Before simulation, the body mask was formed by thresholding the attenuation map at $0.05\,\mathrm{cm}^{-1}$, applying a morphological opening of radius two voxels and retaining the largest connected component in order to remove \gls{ct} acquisition noise and the patient bed.
 
 \subsection{Under-relaxed updates}
 \label{subsec:additive_damping}
@@ -64,15 +64,15 @@ The most direct update replaces the running estimate with the new simulation,
     b^{(k+1)}=\widehat b^{(k+1)}.
     \label{eq:additive_full_update}
 \end{equation}
-This coupled iteration need not be monotone: changing $b$ changes the likelihood used to obtain the next activity estimate, which in turn changes the source used by SIMIND. To reduce the resulting iteration-to-iteration variation, an under-relaxed update was used,
+Using this methods, we observed some divergence in non-primary additive term where subsequent updates would result in increasing oscillating underestimation followed by overestimation. To reduce the resulting iteration-to-iteration variation, an under-relaxed update was used,
 \begin{equation}
     b^{(k+1)}=(1-\alpha)b^{(k)}+\alpha\widehat b^{(k+1)},
     \qquad \alpha=0.2.
     \label{eq:additive_damped_update}
 \end{equation}
-The value $\alpha=0.2$ was selected heuristically rather than through an optimisation study. It should therefore be understood as the fixed engineering choice evaluated for these data, not as a generally optimal relaxation factor.
+The value $\alpha=0.2$ was selected heuristically rather than through an optimisation study.
 
-Figure~\ref{fig:nema_scatter_est} shows the diagnostic that motivated this choice. With full replacement, the scale of successive projection profiles oscillates and grows rapidly; by the fourth outer iteration, the estimated additive profile exceeds the measured total-emission profile. Under-relaxation keeps the profiles bounded over the ten-step refinement budget and suppresses the large iteration-to-iteration swings. The figure supports a finite-iteration stability claim; it does not establish convergence or absolute accuracy of the additive estimate.
+Figure~\ref{fig:nema_scatter_est} shows the diagnostic that motivated this choice. With full replacement, the scale of successive projection profiles oscillates and grows rapidly. By the fourth outer iteration, the estimated additive profile exceeds the measured total-emission profile. Under-relaxation keeps the profiles bounded over the ten-step refinement budget and suppresses the large iteration-to-iteration swings.
 
 \begin{figure}[H]
     \centering
@@ -87,20 +87,12 @@ Figure~\ref{fig:nema_scatter_est} shows the diagnostic that motivated this choic
         \includegraphics[width=\linewidth]{figures/Chapter3/offline_scatter_damped.png}
         \caption{Under-relaxed update, $\alpha=0.2$.}
     \end{subfigure}
-    \caption{Projection-domain behaviour of the preparatory additive-term
-    refinement for a measured NEMA phantom. Coloured curves are profiles of the
-    estimated non-primary term $b^{(k)}$; every displayed iteration belongs to
-    the preparatory reconstruct--simulate loop. Profiles are summed over views at an
-    axial position through the spheres; the horizontal coordinate is the
-    tangential detector bin and the vertical coordinate is counts. The measured
-    total-emission profile and learned scatter initialisation are scale and shape
-    references, not ground truth for $b^{(k)}$. Full replacement
-    produces large alternating changes within four outer iterations, whereas the
-    under-relaxed profiles remain bounded through the tenth outer iteration.}
+    \caption{Projection-domain behaviour of the preparatory additive-term refinement for a measured NEMA phantom. Coloured curves are profiles of the estimated non-primary term $b^{(k)}$; every displayed iteration belongs to the preparatory reconstruct--simulate loop. Profiles are summed over views at an axial position through the spheres; the horizontal coordinate is the tangential detector bin and the vertical coordinate is counts. The measured total-emission profile and learned scatter initialisation are scale and shape references, not ground truth for $b^{(k)}$. Full replacement
+    produces large alternating changes within four outer iterations, whereas the under-relaxed profiles remain bounded through the tenth outer iteration.}
     \label{fig:nema_scatter_est}
 \end{figure}
 
-After the tenth outer iteration, the final estimate is denoted $b_{\mathrm{MC}}=b^{(10)}$ and is frozen. No additional SIMIND simulation or additive-term update is performed during the target reconstruction. This makes $b_{\mathrm{MC}}$ a data- and activity-dependent plug-in estimate: the target reconstruction has a fixed conditional objective, but uncertainty in the additive estimate is not propagated.
+After the tenth outer iteration, the final estimate is denoted $b_{\mathrm{MC}}=b^{(10)}$ and is frozen. No additional SIMIND simulation or additive-term update is performed during the target reconstruction. This makes $b_{\mathrm{MC}}$ a data- and activity-dependent plug-in estimate and the target reconstruction has a fixed objective.
 
 
 \section{Image-Space Bremsstrahlung Range Blur}
