@@ -112,12 +112,19 @@ External Bremsstrahlung photons may be emitted after the $\beta^-$ particle has 
 
 \subsection{Primary collimator--detector response}
 
-The analytic primary projector models the intrinsic and geometric components of the \gls{cdr} as a depth-dependent Gaussian; scatter and penetration remain in $b_{\mathrm{MC}}$. For photon energy $E$ and source--collimator distance $h$, its standard deviation is represented by
+The analytic primary projector blurs each source plane with a depth-dependent Gaussian point-spread function that represents the intrinsic and geometric components of the \gls{cdr}; scatter and penetration remain in $b_{\mathrm{MC}}$. For photon energy $E$ and source--collimator distance $h$, this \gls{psf} is
 \begin{equation}
-    \sigma_{\mathrm{cdr}}(h;E)=c_0(E)+c_1(E)h.
+    K_{\mathrm{cdr}}(\mathbf r;h,E)=
+    \mathcal N\!\left(\mathbf r;\mathbf 0,
+    \sigma_{\mathrm{cdr}}(h;E)^2\mathbb I\right),
+    \label{eq:cdr_psf}
+\end{equation}
+an isotropic Gaussian in the detector plane whose standard deviation $\sigma_{\mathrm{cdr}}$ sets the blur width. \gls{stir} models this width as affine in depth,
+\begin{equation}
+    \sigma_{\mathrm{cdr}}(h;E)=c_0(E)+c_1(E)h,
     \label{eq:cdr_linear}
 \end{equation}
-The coefficients are obtained by least-squares fitting over $h\in[2,20]\,\mathrm{cm}$ to the quadrature sum of the measured intrinsic width and the analytic parallel-hole geometric width. This retains the conventional distance dependence of the collimator response while remaining inexpensive to evaluate inside the projector \cite{angerSensitivityResolutionLinearity1966}.
+so the two coefficients $c_0(E),c_1(E)$ fully specify the depth-dependent \gls{cdr} for a given energy. Physically, however, the \gls{cdr} standard deviation is the quadrature sum of a depth-independent intrinsic term and a depth-dependent parallel-hole geometric term, $\sqrt{\sigma_{\mathrm{int}}(E)^2+\sigma_{\mathrm{geo}}(h;E)^2}$, which is not affine in $h$. We therefore fit \gls{stir}'s affine model \eqref{eq:cdr_linear} by least squares over $h\in[2,20]\,\mathrm{cm}$ to this quadrature sum, evaluated from the measured intrinsic and analytic geometric standard deviations. Over this range the quadrature sum is close to linear, so the affine surrogate reproduces the conventional distance dependence of the collimator response to within the accuracy required inside the projector \cite{angerSensitivityResolutionLinearity1966}.
 
 \subsection{Effective Gaussian range-kernel approximation}
 \label{subsec:brem_specific_blur}
