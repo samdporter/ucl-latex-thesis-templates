@@ -1,10 +1,7 @@
 \chapter{Monte Carlo-Informed Modelling for \isotope[90]{Y} Bremsstrahlung SPECT}
 \label{chapterlabel3}
 
-Chapter~\ref{chap:intro_material} described the principal limitations of
-\isotope[90]{Y} Bremsstrahlung \gls{spect}: the continuous photon spectrum makes conventional energy-window scatter correction unsuitable, high-energy photons undergo septal penetration and collimator scatter, and external Bremsstrahlung photons may be emitted away from the original decay site as the $\beta^-$ particle
-traverses tissue. This chapter develops the practical \glsentryshort{spect} model used later for joint \glsentryshort{pet}/\glsentryshort{spect} reconstruction. It addresses two specific components: a \glsentryshort{simind}-derived estimate of non-primary
-counts and an image-space approximation to Bremsstrahlung range blur.
+Chapter~\ref{chap:intro_material} described the principal limitations of \isotope[90]{Y} Bremsstrahlung \gls{spect}: the continuous photon spectrum makes conventional energy-window scatter correction unsuitable, high-energy photons undergo septal penetration and collimator scatter, and external Bremsstrahlung photons may be emitted away from the original decay site as the $\beta^-$ particle traverses tissue. This chapter develops the practical \glsentryshort{spect} model used later for joint \glsentryshort{pet}/\glsentryshort{spect} reconstruction. It addresses two specific components: a \glsentryshort{simind}-derived estimate of non-primary counts and an image-space approximation to Bremsstrahlung range blur.
 
 The resulting mean projection model is
 \begin{equation}
@@ -13,43 +10,19 @@ The resulting mean projection model is
     y_i\sim\operatorname{Poisson}\!\left(\bar y_i(x)\right),
     \label{eq:brems_forward_model}
 \end{equation}
-where $A_{\mathrm{prim}}$ contains attenuation, geometric projection, the intrinsic detector response and the geometric collimator response;
-$K_{\mathrm{brem}}$ is the image-space range-blur operator; and $b_{\mathrm{MC}}$ represents detected counts not described by this primary-event model. The latter includes patient scatter, collimator scatter and septal
-penetration, so these effects are not also included in $A_{\mathrm{prim}}$. It is
-therefore referred to throughout as a \emph{non-primary additive term}, rather
-than as patient scatter alone.
+where $A_{\mathrm{prim}}$ contains attenuation, geometric projection, the intrinsic detector response and the geometric collimator response; $K_{\mathrm{brem}}$ is the image-space range-blur operator; and $b_{\mathrm{MC}}$ represents detected counts not described by this primary-event model. The latter includes patient scatter, collimator scatter and septal penetration, so these effects are not also included in $A_{\mathrm{prim}}$. It is therefore referred to throughout as a \emph{non-primary additive term}, rather than as patient scatter alone.
 
-The two components in Equation~\ref{eq:brems_forward_model} are estimated in a
-preparatory stage. Once estimated, both the acquisition model and
-$b_{\mathrm{MC}}$ are fixed during the target reconstruction. This separation is
-important: the purpose of the reconstruct--simulate loop below is to prepare an
-object- and acquisition-specific additive estimate, not to alter the likelihood
-model while the subsequent penalised reconstruction is running.
+The two components in Equation~\ref{eq:brems_forward_model} are estimated in a preparatory stage. Once estimated, both the acquisition model and $b_{\mathrm{MC}}$ are fixed during the target reconstruction. This separation is important: the purpose of the reconstruct--simulate loop below is to prepare an object- and acquisition-specific additive estimate, not to alter the likelihood model while the subsequent penalised reconstruction is running.
 
 
 \section{Pre-Reconstruction Estimation of Non-Primary Counts}
 \label{sec:additive_corrections}
 
-Monte Carlo estimates of scatter and penetration can be combined with a faster
-analytic projector by alternating reconstruction and simulation
-\cite{dewarajaImprovedQuantitative90Y2017}. The approach used here follows that
-established principle. The practical questions addressed in this chapter are how
-to initialise the simulation for a different acquisition protocol and how to
-prevent an alternating update from becoming unstable before the final additive
-term is frozen.
+Monte Carlo estimates of scatter and penetration can be combined with a faster analytic projector by alternating reconstruction and simulation \cite{dewarajaImprovedQuantitative90Y2017}. The approach used here follows that established principle. The practical questions addressed in this chapter are how to initialise the simulation for a different acquisition protocol and how to prevent an alternating update from becoming unstable before the final additive term is frozen.
 
 \subsection{Learned initialisation}
 
-The scatter-derived initial estimate $b^{(0)}$ is produced by the convolutional
-neural network of Xiang \emph{et al.}, which predicts scatter projections from
-measured emission data and \glsentryshort{ct}-derived attenuation information
-\cite{xiangDeepNeuralNetwork2020}. The available network was trained for a
-different scanner, collimator and energy-window configuration from the
-acquisitions used in this thesis. Its output is consequently treated only as a
-computationally inexpensive warm start for the broader non-primary term, not as a
-final quantitative correction or as an independently validated contribution. The adapted
-\glsentryshort{sirf} inference workflow is documented in
-Appendix~\ref{app:scatter_dl}.
+The scatter-derived initial estimate $b^{(0)}$ is produced by the convolutional neural network of Xiang \emph{et al.}, which predicts scatter projections from measured emission data and \glsentryshort{ct}-derived attenuation information \cite{xiangDeepNeuralNetwork2020}. The available network was trained for a different scanner, collimator and energy-window configuration from the acquisitions used in this thesis. Its output is consequently treated only as a computationally inexpensive warm start for the broader non-primary term, not as a final quantitative correction or as an independently validated contribution. The adapted \glsentryshort{sirf} inference workflow is documented in Appendix~\ref{app:scatter_dl}.
 
 \subsection{Reconstruct--simulate refinement}
 \label{subsec:additive_refinement}
@@ -66,21 +39,9 @@ Starting from $b^{(0)}$, an outer iteration consists of the following operations
     \item extract a newly simulated non-primary estimate
     $\widehat b^{(k+1)}$ and update the running estimate.
 \end{enumerate}
-Each intermediate reconstruction used 12 staggered subsets and 10 epochs
-(120 subset updates), warm-started from the preceding outer iterate. Ten outer
-iterations were used as a pre-specified computational budget. This endpoint is
-not presented as evidence of asymptotic convergence. The simulations were driven
-from Python using the interface described in
-Appendix~\ref{app:simind_python_connector}.
+Each intermediate reconstruction used 12 staggered subsets and 10 epochs (120 subset updates), warm-started from the preceding outer iterate. Ten outer iterations were used as a pre-specified computational budget. This endpoint is not presented as evidence of asymptotic convergence. The simulations were driven from Python using the interface described in Appendix~\ref{app:simind_python_connector}.
 
-At outer iteration $k$, one SIMIND PENETRATE simulation produces the total
-simulated detected projection counts $p_{\mathrm{tot}}^{(k)}$ and the attenuated,
-geometrically collimated primary component $p_{\mathrm{geo}}^{(k)}$. The Monte
-Carlo projections are first placed on the scale of the analytic acquisition model
-$A_{\star}=A_{\mathrm{prim}}K_{\mathrm{brem}}$. Let $\mathcal I_k$ contain bins
-with non-zero $p_{\mathrm{geo},i}^{(k)}$ after the lowest and highest 5\% of the
-per-bin ratios $(A_{\star}\widetilde x^{(k)})_i/
-p_{\mathrm{geo},i}^{(k)}$ have been excluded. The scalar calibration is
+At outer iteration $k$, one SIMIND PENETRATE simulation produces the total simulated detected projection counts $p_{\mathrm{tot}}^{(k)}$ and the attenuated, geometrically collimated primary component $p_{\mathrm{geo}}^{(k)}$. The Monte Carlo projections are first placed on the scale of the analytic acquisition model $A_{\star}=A_{\mathrm{prim}}K_{\mathrm{brem}}$. Let $\mathcal I_k$ contain bins with non-zero $p_{\mathrm{geo},i}^{(k)}$ after the lowest and highest 5\% of the per-bin ratios $(A_{\star}\widetilde x^{(k)})_i/ p_{\mathrm{geo},i}^{(k)}$ have been excluded. The scalar calibration is
 \begin{equation}
     s^{(k)} =
     \frac{\sum_{i\in\mathcal I_k}(A_{\star}\widetilde x^{(k)})_i}
@@ -93,11 +54,7 @@ and the newly simulated additive term is
     s^{(k)}\!\left(p_{\mathrm{tot}}^{(k)}-p_{\mathrm{geo}}^{(k)}\right).
     \label{eq:simind_additive}
 \end{equation}
-Thus, Equation~\ref{eq:simind_additive} includes all simulated counts outside the
-geometrically collimated primary component; it is not an estimate of patient
-Compton scatter alone. Before simulation, the body mask was formed by thresholding
-the attenuation map at $0.05\,\mathrm{cm}^{-1}$, applying a morphological opening
-of radius two voxels and retaining the largest connected component.
+Thus, Equation~\ref{eq:simind_additive} includes all simulated counts outside the geometrically collimated primary component; it is not an estimate of patient Compton scatter alone. Before simulation, the body mask was formed by thresholding the attenuation map at $0.05\,\mathrm{cm}^{-1}$, applying a morphological opening of radius two voxels and retaining the largest connected component.
 
 \subsection{Under-relaxed updates}
 \label{subsec:additive_damping}
@@ -107,27 +64,15 @@ The most direct update replaces the running estimate with the new simulation,
     b^{(k+1)}=\widehat b^{(k+1)}.
     \label{eq:additive_full_update}
 \end{equation}
-This coupled iteration need not be monotone: changing $b$ changes the likelihood
-used to obtain the next activity estimate, which in turn changes the source used
-by SIMIND. To reduce the resulting iteration-to-iteration variation, an
-under-relaxed update was used,
+This coupled iteration need not be monotone: changing $b$ changes the likelihood used to obtain the next activity estimate, which in turn changes the source used by SIMIND. To reduce the resulting iteration-to-iteration variation, an under-relaxed update was used,
 \begin{equation}
     b^{(k+1)}=(1-\alpha)b^{(k)}+\alpha\widehat b^{(k+1)},
     \qquad \alpha=0.2.
     \label{eq:additive_damped_update}
 \end{equation}
-The value $\alpha=0.2$ was selected heuristically rather than through an
-optimisation study. It should therefore be understood as the fixed engineering
-choice evaluated for these data, not as a generally optimal relaxation factor.
+The value $\alpha=0.2$ was selected heuristically rather than through an optimisation study. It should therefore be understood as the fixed engineering choice evaluated for these data, not as a generally optimal relaxation factor.
 
-Figure~\ref{fig:nema_scatter_est} shows the diagnostic that motivated this choice.
-With full replacement, the scale of successive projection profiles oscillates and
-grows rapidly; by the fourth outer iteration, the estimated additive profile
-exceeds the measured total-emission profile. Under-relaxation keeps the profiles
-bounded over the ten-step refinement budget and suppresses the large
-iteration-to-iteration swings. The figure supports a finite-iteration stability
-claim; it does not establish convergence or absolute accuracy of the additive
-estimate.
+Figure~\ref{fig:nema_scatter_est} shows the diagnostic that motivated this choice. With full replacement, the scale of successive projection profiles oscillates and grows rapidly; by the fourth outer iteration, the estimated additive profile exceeds the measured total-emission profile. Under-relaxation keeps the profiles bounded over the ten-step refinement budget and suppresses the large iteration-to-iteration swings. The figure supports a finite-iteration stability claim; it does not establish convergence or absolute accuracy of the additive estimate.
 
 \begin{figure}[H]
     \centering
@@ -155,28 +100,13 @@ estimate.
     \label{fig:nema_scatter_est}
 \end{figure}
 
-After the tenth outer iteration, the final estimate is denoted
-$b_{\mathrm{MC}}=b^{(10)}$ and is frozen. No additional SIMIND simulation or
-additive-term update is performed during the target reconstruction. This makes
-$b_{\mathrm{MC}}$ a data- and activity-dependent plug-in estimate: the target
-reconstruction has a fixed conditional objective, but uncertainty in the additive
-estimate is not propagated.
+After the tenth outer iteration, the final estimate is denoted $b_{\mathrm{MC}}=b^{(10)}$ and is frozen. No additional SIMIND simulation or additive-term update is performed during the target reconstruction. This makes $b_{\mathrm{MC}}$ a data- and activity-dependent plug-in estimate: the target reconstruction has a fixed conditional objective, but uncertainty in the additive estimate is not propagated.
 
 
 \section{Image-Space Bremsstrahlung Range Blur}
 \label{sec:brem_range_blur}
 
-External Bremsstrahlung photons may be emitted after the $\beta^-$ particle has
-travelled away from the \isotope[90]{Y} decay site, whereas internal
-Bremsstrahlung is emitted at the decay site. The displacement distribution of the
-external component is energy dependent, as illustrated in
-Figure~\ref{fig:source_to_emission}, and its net contribution adds a resolution
-loss distinct from the collimator--detector response
-\cite{raultFastSimulationYttrium902010,rongDevelopmentEvaluationImproved2012,
-dewarajaImpactInternalBremsstrahlung2018}.
-Detailed Monte Carlo projectors can model this transport directly, but repeatedly
-evaluating such a model is impractical for the iterative and joint reconstructions
-developed later in this thesis.
+External Bremsstrahlung photons may be emitted after the $\beta^-$ particle has travelled away from the \isotope[90]{Y} decay site, whereas internal Bremsstrahlung is emitted at the decay site. The displacement distribution of the external component is energy dependent, as illustrated in Figure~\ref{fig:source_to_emission}, and its net contribution adds a resolution loss distinct from the collimator--detector response \cite{raultFastSimulationYttrium902010,rongDevelopmentEvaluationImproved2012, dewarajaImpactInternalBremsstrahlung2018}. Detailed Monte Carlo projectors can model this transport directly, but repeatedly evaluating such a model is impractical for the iterative and joint reconstructions developed later in this thesis.
 
 \begin{figure}[H]
     \centering
@@ -190,49 +120,26 @@ developed later in this thesis.
 
 \subsection{Primary collimator--detector response}
 
-The analytic primary projector models the intrinsic and geometric components of
-the \gls{cdr} as a depth-dependent Gaussian; scatter and penetration remain in
-$b_{\mathrm{MC}}$. For
-photon energy $E$ and source--collimator distance $h$, its standard deviation is
-represented by
+The analytic primary projector models the intrinsic and geometric components of the \gls{cdr} as a depth-dependent Gaussian; scatter and penetration remain in $b_{\mathrm{MC}}$. For photon energy $E$ and source--collimator distance $h$, its standard deviation is represented by
 \begin{equation}
     \sigma_{\mathrm{cdr}}(h;E)=c_0(E)+c_1(E)h.
     \label{eq:cdr_linear}
 \end{equation}
-The coefficients are obtained by least-squares fitting over
-$h\in[2,20]\,\mathrm{cm}$ to the quadrature sum of the measured intrinsic width
-and the analytic parallel-hole geometric width. This retains the conventional
-distance dependence of the collimator response while remaining inexpensive to
-evaluate inside the projector \cite{angerSensitivityResolutionLinearity1966}.
+The coefficients are obtained by least-squares fitting over $h\in[2,20]\,\mathrm{cm}$ to the quadrature sum of the measured intrinsic width and the analytic parallel-hole geometric width. This retains the conventional distance dependence of the collimator response while remaining inexpensive to evaluate inside the projector \cite{angerSensitivityResolutionLinearity1966}.
 
 \subsection{Effective Gaussian range-kernel approximation}
 \label{subsec:brem_specific_blur}
 
-An exact reduced transport model would distinguish internal Bremsstrahlung,
-represented by an identity component at the decay site, from the displaced
-external component. The reconstruction implementation instead uses one zero-mean
-isotropic Gaussian as an empirical surrogate for their net central-response
-broadening,
+An exact reduced transport model would distinguish internal Bremsstrahlung, represented by an identity component at the decay site, from the displaced external component. The reconstruction implementation instead uses one zero-mean isotropic Gaussian as an empirical surrogate for their net central-response broadening,
 \begin{equation}
     G_{\mathrm{brem}}(\mathbf r)=
     \mathcal N\!\left(\mathbf r;\mathbf 0,
     \sigma_{\mathrm{eff}}^2\mathbb I\right).
     \label{eq:brem}
 \end{equation}
-The Gaussian form is motivated by the external-photon displacement distributions
-of Rault \emph{et al.}, while its effective width was estimated from the
-water-equivalent Monte Carlo response study described below
-\cite{raultFastSimulationYttrium902010}. A single
-$6.9\,\mathrm{mm}$-\gls{fwhm} kernel
-($\sigma_{\mathrm{eff}}\approx2.93\,\mathrm{mm}$) was then used throughout the
-reconstructions. This is not a microscopic displacement \glsentryshort{pdf}: by
-applying one Gaussian to all source activity, it approximates the combined
-internal/external response with one fitted width.
+The Gaussian form is motivated by the external-photon displacement distributions of Rault \emph{et al.}, while its effective width was estimated from the water-equivalent Monte Carlo response study described below \cite{raultFastSimulationYttrium902010}. A single $6.9\,\mathrm{mm}$-\gls{fwhm} kernel ($\sigma_{\mathrm{eff}}\approx2.93\,\mathrm{mm}$) was then used throughout the reconstructions. This is not a microscopic displacement \glsentryshort{pdf}: by applying one Gaussian to all source activity, it approximates the combined internal/external response with one fitted width.
 
-The resulting operator $K_{\mathrm{brem}}$ is a three-dimensional Gaussian
-convolution applied in image space. It is composed with the analytic projector in
-the forward operation and with the analytic backprojector in reverse order in the
-adjoint,
+The resulting operator $K_{\mathrm{brem}}$ is a three-dimensional Gaussian convolution applied in image space. It is composed with the analytic projector in the forward operation and with the analytic backprojector in reverse order in the adjoint,
 \begin{equation}
     A_{\star}=A_{\mathrm{prim}}K_{\mathrm{brem}},
     \qquad
@@ -240,41 +147,16 @@ adjoint,
     A_{\mathrm{prim}}^{\mathsf T}.
     \label{eq:brem_matched_operator}
 \end{equation}
-For the symmetric Gaussian kernel,
-$K_{\mathrm{brem}}^{\mathsf T}=K_{\mathrm{brem}}$. This construction therefore
-preserves a matched forward--adjoint pair while adding only an image-space
-convolution to each operation.
+For the symmetric Gaussian kernel, $K_{\mathrm{brem}}^{\mathsf T}=K_{\mathrm{brem}}$. This construction therefore preserves a matched forward--adjoint pair while adding only an image-space convolution to each operation.
 
 \subsection{Projection-response calibration and cross-code comparison}
 \label{subsec:brem_blur_validation}
 
-The approximation was assessed using compact \isotope[90]{Y} source distributions
-in water and four source--collimator distances ($2$, $5$, $10$ and
-$20\,\mathrm{cm}$). Detector-plane response widths were compared for three
-representative energy windows: $[39.8,126.6]$, $[50,150]$ and
-$[75,225]\,\mathrm{keV}$. The four models were GATE Monte Carlo, SIMIND Monte
-Carlo, \glsentryshort{stir} with the geometric \glsentryshort{cdr} alone, and
-\glsentryshort{stir} with the geometric response composed with
-$K_{\mathrm{brem}}$. GATE provides the response used to calibrate and check the
-effective width, while SIMIND provides a cross-code comparison.
+The approximation was assessed using compact \isotope[90]{Y} source distributions in water and four source--collimator distances ($2$, $5$, $10$ and $20\,\mathrm{cm}$). Detector-plane response widths were compared for three representative energy windows: $[39.8,126.6]$, $[50,150]$ and $[75,225]\,\mathrm{keV}$. The four models were GATE Monte Carlo, SIMIND Monte Carlo, \glsentryshort{stir} with the geometric \glsentryshort{cdr} alone, and \glsentryshort{stir} with the geometric response composed with $K_{\mathrm{brem}}$. GATE provides the response used to calibrate and check the effective width, while SIMIND provides a cross-code comparison.
 
-The first interval is the window used for this response simulation and is not
-identical to the $39.84$--$128.16\,\mathrm{keV}$ acquisition window used for the
-joint phantom study in Chapter~\ref{chapter:paper}. The single
-$6.9\,\mathrm{mm}$ effective width was retained across these closely related but
-non-identical protocols rather than re-estimated for each acquisition.
+The first interval is the window used for this response simulation and is not identical to the $39.84$--$128.16\,\mathrm{keV}$ acquisition window used for the joint phantom study in Chapter~\ref{chapter:paper}. The single $6.9\,\mathrm{mm}$ effective width was retained across these closely related but non-identical protocols rather than re-estimated for each acquisition.
 
-Figure~\ref{fig:gaussian_bremss_range} reports the fitted detector-plane standard
-deviation. The geometric-only STIR model is systematically narrower than both
-Monte Carlo responses. Adding the image-space kernel moves the STIR prediction
-towards the GATE and SIMIND values at every evaluated distance and for all three
-energy windows. The agreement is not exact, particularly for the widest window at
-large distance, but the comparison supports the Gaussian kernel as a practical
-reduced-order representation of the missing net response broadening. The study did
-not include an event-class ablation separating external range, internal emission,
-scatter and penetration in the fitted response widths. It therefore does not
-independently validate the decomposition between $A_{\mathrm{prim}}$ and
-$b_{\mathrm{MC}}$.
+Figure~\ref{fig:gaussian_bremss_range} reports the fitted detector-plane standard deviation. The geometric-only STIR model is systematically narrower than both Monte Carlo responses. Adding the image-space kernel moves the STIR prediction towards the GATE and SIMIND values at every evaluated distance and for all three energy windows. The agreement is not exact, particularly for the widest window at large distance, but the comparison supports the Gaussian kernel as a practical reduced-order representation of the missing net response broadening. The study did not include an event-class ablation separating external range, internal emission, scatter and penetration in the fitted response widths. It therefore does not independently validate the decomposition between $A_{\mathrm{prim}}$ and $b_{\mathrm{MC}}$.
 
 \begin{figure}[H]
     \centering
@@ -294,53 +176,13 @@ $b_{\mathrm{MC}}$.
 \section{Scope, Limitations and Deployment}
 \label{sec:brems_deployment}
 
-The work in this chapter is deliberately a component-level commissioning study.
-Iterative Monte Carlo estimation of scatter is established methodology, and
-under-relaxation is a standard numerical device. The contribution here is the
-integration of a domain-shifted learned initial estimate with a calibrated SIMIND
-refinement, the empirical identification and suppression of unstable full
-replacement, and the definition of a frozen additive term compatible with the
-subsequent reconstruction. Likewise, the physical existence of Bremsstrahlung
-range broadening is established; the contribution is an inexpensive fixed-width
-effective Gaussian surrogate that can be composed with a standard matched
-projector, calibrated against GATE and cross-checked against SIMIND.
+The work in this chapter is deliberately a component-level commissioning study. Iterative Monte Carlo estimation of scatter is established methodology, and under-relaxation is a standard numerical device. The contribution here is the integration of a domain-shifted learned initial estimate with a calibrated SIMIND refinement, the empirical identification and suppression of unstable full replacement, and the definition of a frozen additive term compatible with the subsequent reconstruction. Likewise, the physical existence of Bremsstrahlung range broadening is established; the contribution is an inexpensive fixed-width effective Gaussian surrogate that can be composed with a standard matched projector, calibrated against GATE and cross-checked against SIMIND.
 
-Several limitations follow from these choices. The network output is used outside
-its training protocol and is only a scatter-derived initialisation; because the
-update is damped, it continues to influence the finite-budget estimate. The scalar calibration in
-Equation~\ref{eq:simind_scale} cannot correct spatially varying differences between
-SIMIND and the analytic projector. The relaxation factor and ten-iteration budget
-were fixed heuristically, and Figure~\ref{fig:nema_scatter_est} is a stability
-diagnostic rather than a convergence proof. The range kernel is isotropic and
-water-equivalent, so it does not model material-dependent transport in lung or
-bone, nor the detailed angular and spectral structure represented by a full Monte
-Carlo projector. A single effective width is also used across protocols and does
-not explicitly model the internal/external Bremsstrahlung mixture. The response
-study contains no event-class ablation and therefore cannot isolate range blur
-from every broadening mechanism in the Monte Carlo curves. The GATE result is a
-calibration-consistency comparison rather than an independent validation; SIMIND
-supplies the cross-code check. Finally, the analysis isolates selected model
-components and does not by itself establish improved clinical quantification.
+Several limitations follow from these choices. The network output is used outside its training protocol and is only a scatter-derived initialisation; because the update is damped, it continues to influence the finite-budget estimate. The scalar calibration in Equation~\ref{eq:simind_scale} cannot correct spatially varying differences between SIMIND and the analytic projector. The relaxation factor and ten-iteration budget were fixed heuristically, and Figure~\ref{fig:nema_scatter_est} is a stability diagnostic rather than a convergence proof. The range kernel is isotropic and water-equivalent, so it does not model material-dependent transport in lung or bone, nor the detailed angular and spectral structure represented by a full Monte Carlo projector. A single effective width is also used across protocols and does not explicitly model the internal/external Bremsstrahlung mixture. The response study contains no event-class ablation and therefore cannot isolate range blur from every broadening mechanism in the Monte Carlo curves. The GATE result is a calibration-consistency comparison rather than an independent validation; SIMIND supplies the cross-code check. Finally, the analysis isolates selected model components and does not by itself establish improved clinical quantification.
 
-The configuration carried forward is consequently explicit. A learned additive
-estimate is refined for ten outer iterations using SIMIND and
-Equation~\ref{eq:additive_damped_update}; the final non-primary term is frozen;
-and the $6.9\,\mathrm{mm}$ effective range kernel is retained within the matched SPECT
-acquisition model. Chapter~\ref{chapter:paper} uses this fixed model for the
-joint \isotope[90]{Y} \glsentryshort{pet}/\glsentryshort{spect} experiments.
+The configuration carried forward is consequently explicit. A learned additive estimate is refined for ten outer iterations using SIMIND and Equation~\ref{eq:additive_damped_update}; the final non-primary term is frozen; and the $6.9\,\mathrm{mm}$ effective range kernel is retained within the matched SPECT acquisition model. Chapter~\ref{chapter:paper} uses this fixed model for the joint \isotope[90]{Y} \glsentryshort{pet}/\glsentryshort{spect} experiments.
 
 
 \section{Summary}
 
-This chapter established the two Bremsstrahlung-specific components required by
-the later reconstruction experiments. First, a learned projection estimate was
-used to initialise object- and acquisition-specific SIMIND simulations of
-non-primary contamination. Full replacement was unstable in the measured NEMA
-example, whereas an under-relaxed update with $\alpha=0.2$ remained bounded over
-the prescribed refinement budget. The resulting additive estimate was then
-frozen. Second, Monte Carlo response broadening was represented by a fixed
-$6.9\,\mathrm{mm}$-\gls{fwhm} image-space Gaussian. Composing this kernel with
-the analytic projector brought projected response widths substantially closer to
-GATE and SIMIND across three energy windows. Together, these components define the
-fixed \isotope[90]{Y} Bremsstrahlung \glsentryshort{spect} model used in the final
-joint-reconstruction study.
+This chapter established the two Bremsstrahlung-specific components required by the later reconstruction experiments. First, a learned projection estimate was used to initialise object- and acquisition-specific SIMIND simulations of non-primary contamination. Full replacement was unstable in the measured NEMA example, whereas an under-relaxed update with $\alpha=0.2$ remained bounded over the prescribed refinement budget. The resulting additive estimate was then frozen. Second, Monte Carlo response broadening was represented by a fixed $6.9\,\mathrm{mm}$-\gls{fwhm} image-space Gaussian. Composing this kernel with the analytic projector brought projected response widths substantially closer to GATE and SIMIND across three energy windows. Together, these components define the fixed \isotope[90]{Y} Bremsstrahlung \glsentryshort{spect} model used in the final joint-reconstruction study.
