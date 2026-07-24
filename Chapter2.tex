@@ -177,7 +177,7 @@ Regularisation strategies also exist outside the standard Bayesian (penalised-li
     x = K\alpha,
 \end{equation}
 where $\alpha \in \mathbb{R}^J$ is a coefficient image and $K\in\mathbb{R}^{J\times J}$ is a (typically sparse) kernel matrix whose entries encode similarity between voxels based on features extracted from a guidance image \cite{hutchcroftAnatomicallyaidedPETReconstruction2016}. Each voxel $j$ is assigned a feature vector $f_j$ (commonly a patch of intensities in the high-resolution guidance image), and a radial Gaussian kernel is often used,
-\begin{equation}
+\begin{equation} \label{eq:gaussian_kernel}
     \kappa(f_j,f_k)=\exp\!\left(-\frac{\|f_j-f_k\|_2^2}{2\sigma^2}\right),
 \end{equation}
 with $\sigma$ controlling edge sensitivity. The kernel matrix is then defined entrywise by $K_{jk}=\kappa(f_j,f_k)$, with additional sparsification for tractability: for each voxel $j$, only a small set of the most similar neighbours (e.g.\ via a local $k$-nearest-neighbour search within a window) are allowed to contribute, yielding a sparse $K$. To preserve overall intensity scaling (counts), $K$ is typically row-normalised.
@@ -188,11 +188,11 @@ Substituting $x=K\alpha$ into the Poisson forward model gives a kernelised expec
 \end{equation}
 so that reconstruction reduces to maximum-likelihood estimation of $\alpha$ under the same Poisson model, followed by $\hat{x}=K\hat{\alpha}$. Importantly, because the model remains linear in the unknown coefficients, an \gls{em}-type update can be derived with essentially the same structure as conventional MLEM/OSEM, but with $K$ embedded within the projector/backprojector operations. This yields a procedure that is straightforward to implement in existing \gls{em} pipelines, while often delivering improved bias--variance trade-offs at low counts by enforcing anatomically-informed, spatially adaptive smoothing in the image representation \cite{wangPETImageReconstruction2015,hutchcroftAnatomicallyaidedPETReconstruction2016}.
 
-A known limitation of purely anatomy-derived kernels is \gls{pet}-unique feature suppression: structures present in the emission image but absent (or weak) in the guidance image can be over-smoothed or biased towards anatomically plausible but functionally incorrect solutions \cite{deiddaHybridPETMR2019}. To mitigate this, \gls{hkem} augments the kernel with synergistic information from the evolving \gls{pet} estimate itself, yielding an iteration-dependent kernel that combines anatomical and emission-driven similarity . In the \gls{hkem} formulation of Deidda \textit{et al.}, the hybrid kernel entry factorises as
+A known limitation of purely anatomy-derived kernels is \gls{pet}-unique feature suppression: structures present in the anatomical image but absent (or weak) in the emission image can be biased towards anatomically plausible but functionally incorrect solutions \cite{deiddaHybridPETMR2019}. To mitigate this, \gls{hkem} augments the kernel with synergistic information from the evolving \gls{pet} estimate itself, yielding an iteration-dependent kernel that combines anatomical and emission-driven similarity . In the \gls{hkem} formulation of Deidda \textit{et al.}, the hybrid kernel entry factorises as
 \begin{equation}
     k^{(n)}_{fj} = k_m(v_f,v_j)\,k_p(z^{(n)}_f,z^{(n)}_j),
 \end{equation}
-where $v_j$ denotes the (fixed) anatomical feature vector at voxel $j$ and $z^{(n)}_j$ is a feature derived from the current \gls{pet} update (updated each iteration) \cite{deiddaHybridPETMR2019}. Both factors are commonly chosen as Gaussian similarities modulated by spatial proximity,
+where $v_j$ denotes the (fixed) anatomical feature vector at voxel $j$ and $z^{(n)}_j$ is a feature derived from the current \gls{pet} update (updated each iteration) \cite{deiddaHybridPETMR2019}. Both factors are commonly chosen as Gaussian similarities (Equation \ref{eq:gaussian_kernel} extended) modulated by spatial proximity,
 \begin{align}
     k_m(v_j,v_k) &= \exp\!\left(-\frac{\|v_j-v_k\|_2^2}{2\sigma_a^2}\right)
                    \exp\!\left(-\frac{\|x_j-x_k\|_2^2}{2\sigma_{da}^2}\right),\\
@@ -201,7 +201,7 @@ where $v_j$ denotes the (fixed) anatomical feature vector at voxel $j$ and $z^{(
 \end{align}
 where $x_j$ denotes the voxel coordinates and the parameters $\sigma_a,\sigma_f,\sigma_{da},\sigma_{df}$ control the relative influence of anatomical similarity, functional-driven (emission) similarity, and spatial locality. The functional term helps address emission--guidance mismatch and, crucially, reduces the tendency of anatomy-only kernels to suppress \gls{pet}-unique lesions by allowing the neighbourhood coupling to adapt to features emerging in the emission estimate. Empirically, Deidda \textit{et al.} report that this hybridisation can reduce negative bias under low-count conditions and improve lesion contrast while retaining the denoising benefits of kernelised reconstruction \cite{deiddaHybridPETMR2019}.
 
-Kernel approaches extend naturally to multiple guidance sources by enlarging the feature vectors (e.g.\ concatenating features from \gls{ct} and/or additional functional channels \cite{wangPETImageReconstruction2015}) and defining the kernel on the resulting joint feature space; this provides a flexible mechanism for sequential or multi-modality guidance without introducing an explicit Bayesian penalty term.
+Kernel approaches extend naturally to multiple guidance sources by enlarging the feature vectors (e.g.\ concatenating features from \gls{ct} and/or additional functional channels \cite{wangPETImageReconstruction2015}) and defining the kernel on the resulting joint feature space. This provides a flexible mechanism for sequential or multi-modality guidance without introducing an explicit Bayesian penalty term.
 
 \subsection{Synergistic Regularisation}\label{subsec:synergistic_recon}
 
@@ -232,9 +232,9 @@ A practical way to exploit multiple modalities without solving a fully joint inv
         \hat{x}_m \in \arg\min_{x_m\in\mathcal{C}}
 \left\{\mathcal{L}_m(x_m) + \beta\,\mathcal{R}(x_m;W_{m\leftarrow(m-1)}x_{m-1})\right\},
 \end{equation}
-where $W_{m\leftarrow(m-1)}$ maps the image reconstructed in the previous stage, $\hat{x}_{m-1}$, into the spatial grid of modality $m$.
+where $W_{m\leftarrow(m-1)}$ maps the image reconstructed in the previous stage, $x_{m-1}$, into the spatial grid of modality $m$.
 
-Deidda \emph{et al.}~have previously investigated a similar method for \isotope[90]{Y} bremsstrahlung \gls{spect}--informed \gls{pet} reconstructions \cite{deiddaTripleModalityImage2023}. Bremsstrahlung \gls{spect} images are first reconstructed using \gls{hkem} with \gls{ct} and \gls{spect} image-update information to obtain an enhanced \gls{spect} estimate. This \gls{spect} image is then resampled to the \gls{pet} grid and used as functional guidance for \gls{pet} reconstruction.
+Deidda \emph{et al.}~have previously investigated a related method for \isotope[90]{Y} bremsstrahlung \gls{spect}--informed \gls{pet} reconstructions \cite{deiddaTripleModalityImage2023}. Bremsstrahlung \gls{spect} images are first reconstructed using \gls{hkem} with \gls{ct} and \gls{spect} image-update information to obtain an enhanced \gls{spect} estimate. This \gls{spect} image is then resampled to the \gls{pet} grid and used as functional guidance for \gls{pet} reconstruction.
 \begin{equation}
     \hat{\alpha}_m \in \arg\min_{\alpha_m\in\mathcal{C}}
     \left\{
@@ -287,20 +287,7 @@ Total Nuclear variation will form the basis for the synergistic prior demonstrat
 
 \section{Optimisation Algorithms}\label{sec:optimisation}
 
-The reconstruction of \gls{map} (and, even more so, synergistic images) requires more nuanced algorithms. \gls{mlem} can be relatively simply extended for penalised reconstruction via Green's one-step-late-method \cite{greenBayesianReconstructionsEmission1990}. The one-step-late method constructs an EM-type multiplicative update by evaluating the penalty derivative  at the current iterate $x^{(n)}$ rather than at $x^{(n+1)}$. The resulting OSL-\gls{map} update is
-\begin{equation}
-    x^{(n+1)}_j
-    =
-    \frac{x^{(n)}_j}{\displaystyle \sum_{i=1}^I a_{ij}
-    \;+\;\beta \left.\frac{\partial R(x)}{\partial x_j}\right|_{x=x^{(n)}}}
-    \;
-    \sum_{i=1}^I a_{ij}\,
-    \frac{y_i}{\bar y_i\!\left(x^{(n)}\right)},
-    \qquad j=1,\dots,J,
-\end{equation}
-The term $\left.\frac{\partial R}{\partial x_j}\right|_{x^{(n)}}$ acts as an iteration-dependent modification of the \glsentryshort{mlem} denominator, yielding an algorithm that is typically simple to implement for a broad class of differentiable priors. Unfortunately, the one-step-late method is not convergent and special attention must be paid to initialisation conditions for a reasonable reconstruction \cite{zengGreensOnesteplateAlgorithm2019}.
-
-Although too fragile for low count / synergistic reconstruction, the one-step-late algorithm has some useful takeaways. Primarily the joint update of data and prior functions with some kind of voxel-wise scaling. This is otherwise known as a preconditioner. \glsentryshort{mlem} has the multiplicative update equation for iteration $k$:
+\gls{mlem} has the multiplicative update equation for iteration $k$:
 \begin{equation}
     x^{(k+1)}
     =
@@ -308,7 +295,7 @@ Although too fragile for low count / synergistic reconstruction, the one-step-la
         A^{\mathsf T}\!\left(\, y \oslash \bar{y}\right)
 ,
 \end{equation}
-where $\odot$ and $\oslash$ denote elementwise multiplication and division, respectively, $\mathbf{1}_I\in\mathbb{R}^{I}$ is an all-ones vector and $k$ denotes the iteration number. For notational simplicity, we drop the explicit elementwise operators; all divisions are understood componentwise. Then
+where $\odot$ and $\oslash$ denote elementwise multiplication and division, respectively, $\mathbf{1}_I\in\mathbb{R}^{I}$ is an all-ones vector and $k$ denotes the iteration number. For notational simplicity, we drop the explicit elementwise operators so that all divisions are understood componentwise. Then
 \begin{equation}
 x^{(k+1)}
 =
@@ -319,16 +306,6 @@ A^{\mathsf T}\!\left(\frac{y}{\bar{y}}\right).
 This can be rearranged to form the additive update equation
 \begin{align}
     x^{(k+1)}
-    & = x^{(k)} +
-    \operatorname{diag}\!\left(\frac{x^{(k)}}{A^{\mathsf T}\mathbf{1}_I}\right)
-    \left(
-        A^{\mathsf T}\!\left(\frac{y}{\bar{y}\!\left(x^{(k)}\right)}\right)
-        -\mathbf{1}_J\right)  \nonumber \\
-    & = x^{(k)} +
-    \operatorname{diag}\!\left(\frac{x^{(k)}}{A^{\mathsf T}\mathbf{1}_I}\right)
-    \left(
-        A^{\mathsf T}\!\left(\frac{y}{\bar{y}\!\left(x^{(k)}\right)}\right)
-        -A^{\mathsf T}\mathbf{1}_I \right) \nonumber \\
     & = x^{(k)} +
     \operatorname{diag}\!\left(\frac{x^{(k)}}{A^{\mathsf T}\mathbf{1}_I}\right)
         A^{\mathsf T}\!\left(\frac{y}{\bar{y}\!\left(x^{(k)}\right)} -\mathbf{1}_I \right) \nonumber \\
