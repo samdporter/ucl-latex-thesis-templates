@@ -319,61 +319,33 @@ where $\mathbf{1}_J\in\mathbb{R}^{J}$ is an all-ones vector. This form highlight
 \end{align}
 with a step size $\varsigma=1$.
 
-A preconditioner aims to recondition the reconstruction space so that gradient steps are appropriately scaled across voxels, improving numerical conditioning and convergence. Intuitively, we seek larger steps in poorly sensitive directions and smaller steps in highly sensitive directions, thereby approximating curvature information. Since curvature is governed by the inverse Hessian, it is often approximated in a diagonal form for computational efficiency.
-
-For the Poisson negative log-likelihood, the expected Hessian (Fisher information) is
-\begin{equation}
-\mathcal I(x)\;\coloneqq\;\mathbb E\!\left[\nabla_x^2\,\mathcal D(y\mid x)\right]
-\;=\;
-A^{\mathsf T}\operatorname{diag}\!\left(\frac{1}{\bar y(x)}\right)A.
-\end{equation}
-Its diagonal entries satisfy, for each voxel index $j$,
-\begin{align}
-\mathcal I_{jj}(x)
-&=
-\sum_{i}\frac{a_{ij}^2}{\bar y_i(x)}
-\;\le\;
-\sum_{i}\frac{a_{ij}^2}{a_{ij}x_j}
-\;=\;
-\frac{(A^{\mathsf T}\mathbf 1)_j}{x_j},
-\end{align}
-where we used $\bar y_i(x)=\sum_{\ell}a_{i\ell}x_{\ell}+r_i\ge a_{ij}x_j$ and $r_i\ge 0$. Consequently,
-\begin{equation}\label{eq:majorise_em}
-\mathcal I_{jj}(x)\;\le\;\frac{(A^{\mathsf T}\mathbf 1)_j}{x_j}.
-\end{equation}
-This motivates the diagonal scaling
-\begin{equation}\label{eq:precond_em}
-\mathcal{P}_{\mathrm{EM}}^{(k)}
-\;\coloneqq\;
-\operatorname{diag}\!\left(\frac{x^{(k)}}{A^{\mathsf T}\mathbf 1}\right),
-\end{equation}
-which can be interpreted as the inverse of a conservative diagonal upper bound on the per-voxel curvature of the Poisson negative log-likelihood (in expectation).
+A preconditioner aims to recondition the reconstruction space so that gradient steps are appropriately scaled across voxels, improving numerical conditioning and convergence. Intuitively, we seek larger steps in poorly sensitive directions and smaller steps in highly sensitive directions, thereby approximating curvature information.
 
 Subsets are commonly used to accelerate early convergence by partitioning the data into $S$ subsets and updating the image using only the contribution from a single subset (or a small batch of subsets) at each iteration. Writing the negative log-likelihood as a sum of subset terms,
 \begin{equation}
     \mathcal{L}(x)=\sum_{s=1}^S \mathcal{L}_s(x),
 \end{equation}
-a generic subset (stochastic / incremental) scaled-gradient update takes the form
+a generic subset scaled-gradient update takes the form
 \begin{equation}
     x^{(k+1)}
     =
     x^{(k)} - \varsigma\,\mathcal{P}^{(k)}\,\nabla_x \mathcal{L}_{s}\!\left(x^{(k)}\right).
 \end{equation}
-If multiple subsets are used per iteration, $\nabla_x \mathcal{L}_{s}$ is replaced by an average (or sum) over the chosen subset indices. The most common algorithm found in clinical systems is the \gls{osem} algorithm. For subset $s$ at iteration $k$, a standard \glsentryshort{osem} update can be written as
+If multiple subsets are used per iteration, $\nabla_x \mathcal{L}_{s}$ can be replaced by an average over the chosen subset indices. The most common algorithm found in clinical systems is the \gls{osem} algorithm. For subset $s$ at iteration $k$, a standard \glsentryshort{osem} update can be written as
 \begin{equation}
 x^{(k+1)}
 =
 \operatorname{diag}\!\left(\frac{x^{(k)}}{A_s^{\mathsf T}\mathbf{1}_I}\right)\,
 A_s^{\mathsf T}\!\left(\frac{y_s}{\bar{y}_s\!\left(x^{(k)}\right)}\right),
 \end{equation}
-where $A_s$ denotes the system matrix and data restricted to subset $s$.
+where $A_s$ denotes the system matrix and data restricted to subset $s$. \gls{OSEM} cycles through subsets incrementally.
 
-\glsentryshort{osem} typically shows a marked improvement in early-stage convergence by providing a cheaper, higher-variance approximation of the full-data \glsentryshort{em} update. However, because the subset gradient is only an approximation to the full gradient, \glsentryshort{osem} is not, in general, a convergent algorithm for the maximum-likelihood problem: as the iterates approach a solution, the stochasticity introduced by cycling through subsets can dominate, leading to limit-cycle behaviour in which successive subset updates fail to settle to a fixed point (Figure~\ref{fig:osem_limit_cycle}).
+\glsentryshort{osem} typically shows a marked improvement in early-stage convergence by providing a cheaper approximation of the full-data \glsentryshort{em} update. However, because the subset gradient is only an approximation to the full gradient, \glsentryshort{osem} is not, in general, a convergent algorithm for the maximum-likelihood problem: as the iterates approach a solution, incremental sub-gradient updates can lead to cyclical behaviour. An example illustrating this is shown in  Figure~\ref{fig:osem_limit_cycle}.
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\linewidth]{figures/Chapter2/osem_limit_cycle.png}
-    \caption{Demonstration of limit cycle behaviour with an ordered subset gradient descent algorithm. Top row: 3 different simple sub-functions representing subset likelihoods. Bottom row: left, full function with sub-gradient steps; centre, zoomed version of the full function demonstrating limit cycle behaviour (green dots show approximate points of limit cycle); right, likelihood value per iteration, demonstrating limit cycle precession.}
+    \caption{Demonstration of limit cycle behaviour with an ordered subset gradient descent algorithm. Top row: 3 different simple binomial sub-functions representing subset likelihoods. Bottom row: left, full function with sub-gradient steps; centre, zoomed version of the full function demonstrating limit cycle behaviour (green dots show approximate points of limit cycle); right, likelihood value per iteration, demonstrating thre limit cycle.}
     \label{fig:osem_limit_cycle}
 \end{figure}
 
@@ -396,17 +368,17 @@ where $\varsigma_k>0$ is an iteration dependent step size. Convergence is promot
     \label{fig:relaxed_limit_cycle}
 \end{figure}
 
-However, we can do better. Variance-reduced subset methods have become increasingly popular in the \gls{pet} reconstruction literature because they retain the low per-iteration cost of subset updates while substantially reducing the subset-induced stochasticity that drives OSEM limit cycles. The key idea is to replace the raw subset gradient, which is a high-variance estimator of the full gradient, with a variance-reduced estimator that is (approximately) unbiased and whose variance decreases as the iterates approach a solution. This allows the use of larger (or non-vanishing) relaxation parameters than classical diminishing-step BSREM-type schemes, while maintaining stable convergence behaviour in practice \cite{ehrhardtFastPETReconstruction2025,twymanInvestigationStochasticVariance2022}.
+Variance-reduced subset methods have become increasingly popular in the \gls{pet} reconstruction literature because they retain the low per-iteration cost of subset updates while substantially reducing the limit cycling observed in \gls{osem}. The key idea is to replace the raw subset gradient, which is a high-variance estimator of the full gradient, with a variance-reduced estimator that is (approximately) unbiased and whose variance decreases as the iterates approach a solution \cite{ehrhardtFastPETReconstruction2025,twymanInvestigationStochasticVariance2022}.
 
-A generic subset (stochastic) scaled-gradient step uses $g_{s_k}(x^{(k)})$ in place of $\nabla \mathcal{L}(x^{(k)})=\sum_s g_s(x^{(k)})$, i.e.
+A stochastic subset gradient step uses $g_{s_k}(x^{(k)})$ in place of $\nabla \mathcal{L}(x^{(k)})=\sum_s g_s(x^{(k)})$, i.e.
 \begin{equation}
     x^{(k+1)}
     = x^{(k)} - \varsigma_k\,\mathcal{P}^{(k)}
-    \Big(g_{s_k}(x^{(k)}) + \beta \nabla_x\mathcal{R}(x^{(k)})\Big),
+    g_{s_k}(x^{(k)}),
 \end{equation}
 which is cheap but noisy. Variance reduction augments this step by incorporating additional information (stored gradients or periodic full-gradient computations) to form a corrected estimator $\tilde g_k$ with reduced variance. Two widely used examples are \gls{saga} and \gls{svrg}:
 
-\gls{saga} maintains a table of the most recently computed subset gradients $\{g_s(\cdot)\}_{s=1}^S$ and updates using
+\gls{saga} \cite{defazio_saga_2014} maintains a table of the most recently computed subset gradients $\{g_s(\cdot)\}_{s=1}^S$ and updates using
 \begin{equation}
     \tilde g_k
     \;=\;
@@ -414,13 +386,13 @@ which is cheap but noisy. Variance reduction augments this step by incorporating
 \end{equation}
 where $\tilde x_s$ denotes the iterate at which the stored gradient for subset $s$ was last evaluated.
 
-\emph{\gls{svrg}} periodically computes a reference full gradient at a snapshot $\tilde x$ and then performs inner iterations using
+\gls{svrg} \cite{johnsonAcceleratingStochasticGradient2013} periodically computes a reference full gradient at a snapshot $\tilde x$ and then performs inner iterations using
 \begin{equation}
     \tilde g_k
     \;=\;
     g_{s_k}(x^{(k)}) - g_{s_k}(\tilde x) + \nabla_x \mathcal{L}(\tilde x).
 \end{equation}
-In both cases, $\tilde g_k$ is designed so that $\mathbb{E}[\tilde g_k]\approx \nabla_x \mathcal{L}(x^{(k)})$ while its variance decreases as $x^{(k)}$ approaches a stationary point, thereby mitigating the oscillatory behaviour seen in OSEM and improving stability at high iteration counts (see Figure~\ref{fig:svrg_limit_cycle}).
+In both cases, $\tilde g_k$ is designed so that $\mathbb{E}[\tilde g_k]\approx 1/S \;\nabla_x \mathcal{L}(x^{(k)})$ while its variance decreases as $x^{(k)}$ approaches a stationary point, thereby mitigating the oscillatory behaviour seen in OSEM and improving stability at high iteration counts (see Figure~\ref{fig:svrg_limit_cycle}).
 
 \begin{figure}[htbp]
     \centering
@@ -446,28 +418,28 @@ they constructed a preconditioner as
 \begin{equation}
     \mathcal{P}^{(k)} = \operatorname{diag}\left( \frac{x^{(k)}+\delta}{A^\top \mathbf{1} + \alpha \;\operatorname{diag}\!\left(\beta \mathcal{H}_{\mathrm{RDP}}\left(x^{(k)}\right)\right)\left(x^{(k)}+\delta\right)}\right)
 \end{equation}
-with scalar $\alpha$ tuned to correct for the loss of off-diagonal information. Although this is not emphasised explicitly in \cite{ehrhardtFastPETReconstruction2025}, the harmonic averaging viewpoint can also be interpreted as a majorisation-preserving way to combine curvature information from the likelihood and the prior. In particular, the voxel-wise harmonic blend can be rearranged as
+with scalar $\alpha$ tuned to correct for the loss of off-diagonal information. 
+\begin{comment}
+Although this is not emphasised explicitly in \cite{ehrhardtFastPETReconstruction2025}, the harmonic averaging viewpoint can also be interpreted as a majorisation-preserving way to combine curvature information from the likelihood and the prior. In particular, the voxel-wise harmonic blend can be rearranged as
 \begin{equation}
 \left(\frac{1}{a}+\frac{1}{b}\right)^{-1},
 \end{equation}
 so that combining two diagonal scalings $a$ and $b$ harmonically is equivalent to inverting the sum of the corresponding inverse-scalings (i.e.\ two diagonal Hessian surrogates). Consequently, when these inverse-scalings are chosen as upper-bounding approximations of the respective Hessians, their sum remains a valid upper bound, and the resulting harmonic combination inherits this majorising property while still incorporating both data-fidelity and prior-induced curvature.
+\end{comment}
 
 Preconditioning and stochastic variance reduction for synergistic \gls{map} reconstruction has not been well investigated in the literature so far and will form a part of this thesis.
 
-A widely used alternative to \gls{em}-type and subset-gradient schemes is the limited-memory BFGS algorithm with bound constraints (L-BFGS-B) \cite{broydenConvergenceClassDoublerank1970, fletcherNewApproachVariable1970, goldfarbFamilyVariablemetricMethods1970, shannoConditioningQuasiNewtonMethods1970, liuLimitedMemoryBFGS1989, boydDistributedOptimizationStatistical2010}, a quasi-Newton method that targets
-\(
-\min_{x\in\mathcal C}\{\mathcal{L}(x)+\beta\mathcal{R}(x)\}
-\)
-by iteratively building a low-rank approximation to the inverse Hessian from successive iterate and gradient differences. The “limited-memory” construction stores only a small number of correction pairs, making it viable for high-dimensional images, while the “B” variant enforces simple bounds (e.g.\ non-negativity) via an active-set strategy and projected search directions. In practice, L-BFGS-B can exhibit rapid local convergence on smooth penalised objectives, but each iteration requires one or more full objective and gradient evaluations (coupled with a line search), which is computationally burdensome in large-scale emission tomography when the likelihood is evaluated over all subsets. For this reason it is not used in the main reconstruction experiments in this thesis; nevertheless, it provides a useful reference optimiser and is employed later for a small demonstrative deconvolution problem in Chapter~\ref{chapter:deconvolution_pvc}.
+A widely used alternative to \gls{em}-type and subset-gradient schemes is the limited-memory BFGS algorithm with bound constraints (L-BFGS-B) \cite{broydenConvergenceClassDoublerank1970, fletcherNewApproachVariable1970, goldfarbFamilyVariablemetricMethods1970, shannoConditioningQuasiNewtonMethods1970, liuLimitedMemoryBFGS1989, boydDistributedOptimizationStatistical2010}, a quasi-Newton method that iteratively builds a low-rank approximation to the inverse Hessian from successive iterate and gradient differences. The “limited-memory” construction stores only a small number of correction pairs, making it viable for high-dimensional images, while the “B” variant enforces simple bounds (e.g.\ non-negativity) via an active-set strategy and projected search directions. 
 
-A practical limitation of vanilla L-BFGS-B in emission tomography is its sensitivity to poor variable scaling: the line search and the quasi-Newton curvature updates can be dominated by a small subset of high-sensitivity voxels, leading to slow progress. Tsai \textit{et al.}\ propose a diagonally preconditioned variant (L-BFGS-B-PC) that embeds analytic curvature information into the optimisation via a change of variables \cite{tsaiFastQuasiNewtonAlgorithms2018}. We can choose a diagonal preconditioner $\mathcal{P}$ from a cheap curvature surrogate (e.g.\ an \gls{em}-type diagonal approximation of the Hessian), and run L-BFGS-B on the transformed problem $\mathcal{P}x$. This rescales the objective so that gradients are more isotropic in the transformed coordinates, while bound constraints are preserved by transforming the box constraints accordingly. The resulting method combines low-cost, problem-specific diagonal curvature (from $\mathcal{P}$) with the low-rank curvature learned by L-BFGS-B, typically yielding substantially faster and more robust convergence than unpreconditioned L-BFGS-B in penalised reconstructions.
+Tsai \textit{et al.}\ propose a diagonally preconditioned variant (L-BFGS-B-PC) that embeds analytic curvature information into the optimisation via a change of variables \cite{tsaiFastQuasiNewtonAlgorithms2018}. We can choose a diagonal preconditioner $\mathcal{P}$ from a cheap curvature surrogate and run L-BFGS-B on the transformed problem $\mathcal{P}x$. This rescales the objective so that gradients are more isotropic in the transformed coordinates, while bound constraints are preserved. The resulting method combines low-cost, problem-specific diagonal curvature (from $\mathcal{P}$) with the low-rank curvature learned by L-BFGS-B, typically yielding substantially faster and more robust convergence than unpreconditioned L-BFGS-B in penalised reconstructions.
 
+In practice, L-BFGS-B-PC can exhibit rapid local convergence on smooth penalised objectives, but each iteration requires one or more full objective and gradient evaluations (coupled with a line search), which is computationally burdensome in large-scale emission tomography when the likelihood is evaluated over all subsets. For this reason it is not used in the main reconstruction experiments in this thesis. Nevertheless, it provides a useful reference optimiser and is employed later for a small demonstrative deconvolution problem in Chapter~\ref{chapter:deconvolution_pvc}.
 
 \section{Summary and Research Gap}
 
 This chapter reviewed the statistical and algorithmic foundations of emission tomography reconstruction under a Poisson measurement model. Starting from maximum-likelihood estimation, we motivated penalised-likelihood (\gls{map}) formulations as a principled alternative to early stopping, particularly in low-count and quantitatively demanding settings. We then surveyed regularisation strategies ranging from quadratic smoothness and total variation to clinically deployed edge-preserving models such as the relative difference prior, before focusing on anatomically guided approaches (e.g.\ Bowsher, \glsentryshort{pls}/\glsentryshort{dtv}) and kernelised representations that incorporate structural side-information through the image model.
 
-A central theme in modern \gls{pet}/\gls{spect} practice is the availability of multiple co-registered modalities. While sequential (one-way) guidance can be effective, it is inherently limited by asymmetric information flow and by the risk of propagating errors or mismatches from the guidance image into the emission reconstruction. This motivates synergistic reconstruction, in which modalities are coupled through joint priors. In this setting, Jacobian-based penalties such as \glsentryshort{jtv} and \glsentryshort{tnv} provide a natural mechanism to promote co-located, directionally consistent edges across modalities while allowing modality-specific contrast.
+A central theme in modern \gls{pet}/\gls{spect} practice is the availability of multiple co-registered modalities. While sequential (one-way) guidance can be effective, it is inherently limited by asymmetric information flow and by the risk of propagating errors or mismatches from the guidance image into the emission reconstruction. This motivates synergistic reconstruction, in which modalities are coupled through joint priors. In this setting, jacobian-based penalties such as \glsentryshort{jtv} and \glsentryshort{tnv} provide a natural mechanism to promote co-located, directionally consistent edges across modalities while allowing modality-specific contrast.
 
 From an optimisation perspective, clinical subset-accelerated EM methods achieve fast early progress but can exhibit limit-cycle behaviour and lack convergence guarantees in penalised problems without relaxation. Convergent frameworks such as BSREM recover stability via diminishing step sizes, but may converge slowly when the curvature induced by strong, spatially varying priors dominates the data term. Variance-reduced subset methods (e.g.\ \gls{saga}/\gls{svrg}) offer a promising compromise, retaining low per-iteration cost while suppressing subset-induced stochasticity. However, their practical performance depends critically on effective preconditioning.
 
