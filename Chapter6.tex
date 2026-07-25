@@ -1,481 +1,270 @@
-\chapter{Preconditioning and Subset Selection for Synergistic Reconstruction}
-\label{chapter:optimisation}
+\chapter{Introduction to Weighted Directional Total Nuclear Variation}
+\label{chapter:wdtnv}
+%\SA{Check comment}
+In this chapter, we introduce a smoothed \acrfull{wdtnv} prior for synergistic emission tomography. The chapter focuses on the regulariser itself: its relationship to total nuclear variation, its differentiability after singular-value smoothing, the use of anatomical information through directional operators, and the modality-wise weighting needed when coupling heterogeneous emission images.
 
-Chapter~\ref{chapter:wdtnv} defined the smoothed weighted directional total nuclear variation prior. Applying this coupled, edge-preserving prior at scale raises three linked optimisation questions. First, overlapping \gls{pet} bed positions must be reconstructed into a common image if the prior is to act consistently across their overlap. Second, \gls{pet} and \gls{spect} subsets can be paired or treated as separate stochastic functions, and the prior can be folded into every sampled function, sampled alongside the data, or applied once per data pass. Third, the very different data and prior curvature scales require an effective preconditioner. This chapter addresses these questions in turn and uses the resulting evidence to motivate the optimisation protocol carried forward into Chapter~\ref{chapter:paper}. That application protocol had already been frozen before the wider preconditioner comparison reported here.
+The optimisation machinery used to apply this prior in large-scale \gls{pet}/\gls{spect} reconstruction, including prior-aware preconditioning, subset selection, and multi-bed \gls{pet} handling, is developed separately in Chapter~\ref{chapter:optimisation}.
 
-\section{Multi-Bed \gls{pet} Acquisition}
-\label{sec:multibed}
+\section{Total Nuclear Variation Revisited}
+\label{sec:tv_to_tnv}
 
-Whole-liver \gls{pet} commonly requires multiple partially overlapping bed positions. Reconstructing each bed independently and fusing the resulting images is awkward for an edge-preserving prior because the regularisation decisions on either side of the overlap are then made independently. A joint formulation instead estimates one activity image over the combined field of view.
+This section builds on the definitions in Section~\ref{subsec:synergistic_recon}. For convenience, we restate the key definitions here:
+\begin{itemize}
+    \item Registered images: $\bm{z} \coloneqq \{ z_m \}_{m=1}^{M}$, where $z_m \coloneqq W_m x_m$ and
+    $W_m : \mathbb{R}_+^{J_m} \to \mathbb{R}_+^{N}$.
+    \item Finite-difference operator: for $\ell=1,\dots,d$,
+    \[
+        \big((D x)_n\big)^{(\ell)} \coloneqq \frac{x_{n+\delta_\ell} - x_{n}}{\Delta_{\ell}} .
+    \]
+    \item Voxel-wise Jacobian:
+    \[
+        \mathcal{G}_n(\bm{z})
+        \coloneqq
+        \begin{bmatrix}
+        D z_{1,n} & D z_{2,n} & \cdots & D z_{M,n}
+        \end{bmatrix}
+        \in \mathbb{R}^{d\times M}.
+    \]
+    \item Nuclear norm: for a matrix $Y$ with singular values $\{\sigma_k(Y)\}_{k=1}^{r}$ and $r=\operatorname{rank}(Y)$,
+    \[
+        \|Y\|_* \coloneqq \sum_{k=1}^{r}\sigma_k(Y).
+    \]
+    \item Total nuclear variation:
+    \[
+        \mathcal{R}_{\mathrm{TNV}}(\bm{z}) \coloneqq \sum_{n=1}^N  \|\mathcal{G}_n(\bm{z})\|_* .
+    \]
+\end{itemize}
 
-\subsection{Notation}
-\label{subsec:multibed_notation}
+\subsection{Mathematical properties and differentiability}
+\label{subsec:tnv_differentiability}
 
-Let $x$ be the \gls{pet} activity image on the combined reconstruction grid. For bed position $\mathrm{bed}=1,\ldots,N_{\mathrm{bed}}$, let $R_{\mathrm{bed}}$ restrict the combined image to the axial support reconstructed by that bed. The expected \gls{pet} data for bed position $\mathrm{bed}$ are
+Briefly revisiting total variation, optimisation of $\mathcal{R}_{\mathrm{TV}}$ (cf.\ \eqref{eq:tv}) is inconvenient in gradient-based methods because these functionals are not globally smooth: the TV gradient is undefined when $(D x_m)_j=0$. A standard remedy is to introduce a small smoothing parameter $\epsilon>0$.
+
+If we define
 \begin{equation}
-    \bar y_{\mathrm{bed}}(x)
-    =
-    A_{\mathrm{bed}} R_{\mathrm{bed}} x + r_{\mathrm{bed}},
-    \label{eq:multibed_forward_model}
+\tilde{\mathcal{R}}_{\mathrm{TV}}(x_m)
+\;:=\;
+\sum_{j=1}^{J_m} \|(D x_m)_j\|_{2,\epsilon},
+\qquad
+\|v\|_{2,\epsilon}:=\sqrt{\|v\|_2^2+\epsilon^2},
 \end{equation}
-where $A_{\mathrm{bed}}$ is the bed-specific \gls{pet} system matrix and $r_{\mathrm{bed}}$ collects additive corrections. The joint \gls{pet} data term is
+then the image-space gradient is
 \begin{equation}
-    \mathcal{D}_{\mathrm{PET}}^{\mathrm{multi}}(x)
-    =
-    \sum_{\mathrm{bed}=1}^{N_{\mathrm{bed}}}
-    \mathcal{D}_{\mathrm{bed}}
-    \left(
-        y_{\mathrm{bed}} \mid A_{\mathrm{bed}} R_{\mathrm{bed}} x + r_{\mathrm{bed}}
-    \right),
-    \label{eq:multibed_data_term}
+\nabla_{x_m}\tilde{\mathcal{R}}_{\mathrm{TV}}(x_m)
+\;=\;
+-\,\operatorname{div}\!\left(\frac{D x_m}{\|D x_m\|_{2,\epsilon}}\right),
 \end{equation}
-with gradient
-\begin{equation}
-    \nabla \mathcal{D}_{\mathrm{PET}}^{\mathrm{multi}}(x)
-    =
-    \sum_{\mathrm{bed}=1}^{N_{\mathrm{bed}}}
-    R_{\mathrm{bed}}^\top
-    A_{\mathrm{bed}}^\top
-    \nabla_{\bar y_{\mathrm{bed}}}
-    \mathcal{D}_{\mathrm{bed}}
-    \left(
-        y_{\mathrm{bed}} \mid A_{\mathrm{bed}} R_{\mathrm{bed}} x + r_{\mathrm{bed}}
-    \right).
-    \label{eq:multibed_gradient}
+where the division is understood pointwise over voxels.
+
+For nuclear-norm vectorial total variation, the unsmoothed singular-value map is not differentiable at zero singular values, and hence the corresponding nuclear norm is not $C^1$ at rank-deficient points. We therefore apply the Charbonnier function to the singular values:
+\begin{equation}\label{eq:charbonnier_g}
+g(s)=\sqrt{s^2+\epsilon^2}-\epsilon,
+\qquad
+g'(s) = \frac{s}{\sqrt{s^2+\epsilon^2}},
+\qquad
+g''(s)=\frac{\epsilon^2}{(s^2+\epsilon^2)^{3/2}}.
 \end{equation}
-The corresponding \gls{pet} sensitivity image on the combined grid is
+The constant $-\epsilon$ matches the implemented objective value and does not affect gradients or optimisation.
+
+The nuclear norm is orthogonally invariant: for any orthogonal $U\in\mathbb{R}^{d\times d}$ and $V\in\mathbb{R}^{M\times M}$,
 \begin{equation}
-    s_{\mathrm{PET}}^{\mathrm{multi}}
-    =
-    \sum_{\mathrm{bed}=1}^{N_{\mathrm{bed}}}
-    R_{\mathrm{bed}}^\top A_{\mathrm{bed}}^\top \bm 1.
-    \label{eq:multibed_sensitivity}
+\|Y\|_* \;=\; \|U Y V^\top\|_*.
 \end{equation}
-This sensitivity is used in the \gls{em}/\gls{bsrem} data-curvature term in exactly the same way as the single-bed sensitivity in Equation~\eqref{eq:data_hessian_surrogate}.
-
-\subsection{Why Not Stitch Independent Reconstructions?}
-\label{subsec:stitching_failure}
-
-A common practical alternative is to reconstruct each \gls{pet} bed independently and fuse the images using sensitivity-weighted stitching in the overlap. With an edge-preserving prior, however, each reconstruction makes its own noise-suppression and edge decisions before fusion. The qualitative example in Figure~\ref{fig:optim_multibed_qualitative} shows overlap-region noise and discontinuities after separate reconstruction and fusion. It is included to motivate the joint formulation; no quantitative comparison was performed. \TODO{Add the Zenodo-managed citation for the multi-bed PET work.}
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.72\linewidth]{figures/PiW/comparison.png}
-    \caption{Qualitative comparison of separately reconstructed and fused \gls{pet} bed positions with a joint multi-bed reconstruction using \gls{ct}-guided edge-preserving regularisation. The shaded region marks the bed overlap and the cyan lines mark the displayed profiles. This example illustrates overlap-region behaviour only; no quantitative comparison was performed.}
-    \label{fig:optim_multibed_qualitative}
-\end{figure}
-
-\subsection{Joint Reconstruction}
-\label{subsec:joint_multibed}
-
-The joint formulation in Equation~\eqref{eq:multibed_data_term} estimates a single combined \gls{pet} image. Each bed contributes its own data term and sensitivity, while the image-domain prior is evaluated over the complete combined field of view. The combined reconstruction therefore permits the edge-preserving prior to act consistently across the overlap, which is the behaviour required for the dual-bed application in Chapter~\ref{chapter:paper}. This construction does not itself guarantee an artefact-free reconstruction; the evidence here is qualitative.
-
-\section{Stochastic \gls{map} Optimisation}
-\label{sec:optimisation_svrg}
-
-Let $\bm z=(z_1,z_2)$ denote the \gls{pet} and \gls{spect} images represented on a common reconstruction grid. For $N_{\mathrm d}$ sampled data functions, define $\mathcal D(\bm z)=\sum_{i=1}^{N_{\mathrm d}}\mathcal D_i(\bm z)$. The objective is
+More generally, any function of the form
 \begin{equation}
-    \mathcal{O}(\bm z)
-    =
-    \mathcal D(\bm z)
-    +
-    \mathcal{R}_{\mathrm{w\text{-}dTNV}}(\bm z)
-    +
-    \iota_{\mathbb{R}_+}(\bm z),
-    \label{eq:optimisation_objective}
+\phi(Y) \;:=\; f(\sigma(Y)),
+\qquad
+f(s)=\sum_{\ell=1}^{r} g(s_\ell),
+\qquad
+r=\min\{d,M\},
 \end{equation}
-where $\mathcal{D}_i$ is a Poisson negative log-likelihood term composed with the relevant projector, image-space registration operator, and optional resolution model; $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ is the prior from Chapter~\ref{chapter:wdtnv}; and $\iota_{\mathbb{R}_+}$ is the indicator function of the non-negative orthant,
-\begin{equation}
-    \iota_{\mathbb{R}_+}(\bm z)
-    =
-    \begin{cases}
-        0, & \bm z \geq 0,\\
-        +\infty, & \text{otherwise},
-    \end{cases}
-    \label{eq:nonneg_indicator}
-\end{equation}
-with the inequality understood componentwise. As $\iota_{\mathbb{R}_+}$ is non-smooth, it is kept out of the gradient estimator $g^{(k)}$ below and instead handled by proximal (projected) gradient splitting: the smooth terms $\mathcal D+\mathcal R$ are advanced by a stochastic gradient step, and the result is passed through $\operatorname{prox}_{\varsigma^{(k)}\iota_{\mathbb{R}_+}}$, which for an indicator function reduces to Euclidean projection onto $\mathbb{R}_+$, i.e.\ clipping negative voxels to zero. This is exactly the $\{\cdot\}_{\geq 0}$ operation in the update Equation~\eqref{eq:optimisation_projected_update}.
+is orthogonally invariant and depends on $Y$ only through its singular values $\sigma(Y)=(\sigma_1(Y),\dots,\sigma_r(Y))$.
+Since $g\in C^\infty([0,\infty))$ for $\epsilon>0$, the symmetric function $f$ is smooth and hence $\phi$ is differentiable, with gradient given by the standard formula for orthogonally invariant matrix functions \cite{lewisConvexAnalysisUnitarily1995,lewisDerivativesSpectralFunctions1996}.
 
-The stochastic experiments use \gls{svrg} \cite{johnsonAcceleratingStochasticGradient2013,twymanInvestigationStochasticVariance2022,ehrhardtFastPETReconstruction2025}. Writing $\mathcal R=\mathcal{R}_{\mathrm{w\text{-}dTNV}}$, the implemented estimator keeps the complete prior outside the sampler. At anchor point $\widetilde{\bm z}$ it is
+\paragraph{Jacobian-space gradient.}
+Let $\phi(\mathcal{G})=\sum_{\ell=1}^{\min(d,M)} g(\sigma_\ell(\mathcal{G}))$, where $\sigma_\ell(\mathcal{G})$ are the singular values of the voxel-wise Jacobian matrix $\mathcal{G}\in\mathbb{R}^{d\times M}$. A thin \gls{svd}
 \begin{equation}
-    g^{(k)} = \nabla\mathcal R(\bm z^{(k)})
-    + \nabla\mathcal D(\widetilde{\bm z})
-    + N_{\mathrm d}\!\left[
-        \nabla\mathcal D_{i_k}(\bm z^{(k)})
-        -\nabla\mathcal D_{i_k}(\widetilde{\bm z})
-    \right],
-    \qquad i_k\sim\operatorname{Unif}\{1,\ldots,N_{\mathrm d}\}.
-    \label{eq:svrg_estimator_general}
+\mathcal{G} \;=\; U\,\Sigma\,V^\top,
+\qquad
+U\in\mathbb{R}^{d\times r},\ \Sigma=\mathrm{diag}(\sigma)\in\mathbb{R}^{r\times r},\ V\in\mathbb{R}^{M\times r},
 \end{equation}
-The data functions are sampled uniformly with replacement. The complete prior gradient is evaluated at every stochastic update, and the full data-gradient snapshot is refreshed once per epoch. The subset-selection experiment in Section~\ref{sec:optimisation_subset_selection} also evaluates coarser prior schedules that keep the same average prior weight per data pass.
+with $r=\min\{d,M\}$ gives
+\begin{equation}\label{eq:phi_grad_svd}
+\nabla_{\mathcal{G}} \phi(\mathcal{G})
+\;=\;
+U\,\mathrm{diag}\!\bigl(g'(\sigma)\bigr)\,V^\top,
+\qquad
+g'(\sigma_\ell)=\frac{\sigma_\ell}{\sqrt{\sigma_\ell^2+\epsilon^2}}.
+\end{equation}
 
-The image update is a projected, preconditioned gradient step,
+In practice, it is unnecessary to form $U$ if we exploit the small Gram matrix
 \begin{equation}
-    \bm z^{(k+1)}
-    =
-    \left\{
-    \bm z^{(k)}
-    -
-    \varsigma^{(k)} \mathcal{P}^{(k)} g^{(k)}
-    \right\}_{\geq 0},
-    \label{eq:optimisation_projected_update}
+G := \mathcal{G}^\top \mathcal{G}\in\mathbb{R}^{M\times M},
+\qquad G\succeq 0.
 \end{equation}
-where $\mathcal{P}^{(k)}$ is either a diagonal preconditioner or a voxel-wise $2\times2$ block preconditioner coupling the \gls{pet} and \gls{spect} update components. The step size follows the linear decay rule
+Let $G=V\Lambda V^\top$ with $\Lambda=\mathrm{diag}(\lambda_1,\dots,\lambda_M)$. Then $\lambda_\ell=\sigma_\ell^2$ for the nonzero spectrum and $V$ coincides with the right singular vectors of $\mathcal{G}$. On the range of $\mathcal{G}$ we have $U=\mathcal{G}V\Sigma^{-1}$, so substituting into~\eqref{eq:phi_grad_svd} yields
+\begin{equation}\label{eq:phi_grad_gram}
+\nabla_{\mathcal{G}} \phi(\mathcal{G})
+\;=\;
+\mathcal{G}\,V\,\mathrm{diag}\!\left(\frac{g'(\sigma_\ell)}{\sigma_\ell}\right)\,V^\top,
+\end{equation}
+with the continuous extension at $\sigma_\ell=0$. For Charbonnier smoothing,
 \begin{equation}
-    \varsigma^{(k)}
-    =
-    \frac{\varsigma^{(0)}}{1+\eta_{\mathrm{relax}} k},
+\frac{g'(\sigma_\ell)}{\sigma_\ell}
+=
+\frac{1}{\sqrt{\sigma_\ell^2+\epsilon^2}}
+=
+\frac{1}{\sqrt{\lambda_\ell+\epsilon^2}},
+\end{equation}
+hence
+\begin{equation}\label{eq:phi_grad_inv_sqrt}
+\nabla_{\mathcal{G}} \phi(\mathcal{G})
+\;=\;
+\mathcal{G}\,V\,\mathrm{diag}\!\left(\frac{1}{\sqrt{\lambda_\ell+\epsilon^2}}\right)\,V^\top
+\;=\;
+\mathcal{G}\,(G+\epsilon^2 \mathbb{I})^{-1/2}.
+\end{equation}
+Equation~\eqref{eq:phi_grad_inv_sqrt} shows that the Jacobian-space gradient is obtained by applying the inverse square-root of the $M\times M$ \gls{spd} matrix $G+\epsilon^2 \mathbb{I}$ to the columns of $\mathcal{G}$.
+
+For $M=2$ modalities, even an eigendecomposition of $G$ can be avoided. Writing
+\begin{equation}
+G=
+\begin{pmatrix}
+a & c\\
+c & b
+\end{pmatrix},
+\qquad
+a=\|\mathcal{G}_{:,1}\|_2^2,\ \ b=\|\mathcal{G}_{:,2}\|_2^2,\ \ c=\langle \mathcal{G}_{:,1},\mathcal{G}_{:,2}\rangle,
+\end{equation}
+define $S:=G+\epsilon^2 \mathbb{I}=\begin{psmallmatrix}s_{11} & s_{12}\\ s_{12} & s_{22}\end{psmallmatrix}$ with $s_{11}=a+\epsilon^2$, $s_{22}=b+\epsilon^2$, $s_{12}=c$, and the invariants
+\begin{equation}
+t:=\mathrm{tr}(S)=s_{11}+s_{22},
+\qquad
+s:=\sqrt{\det(S)}=\sqrt{s_{11}s_{22}-s_{12}^2}.
+\end{equation}
+Since $\epsilon>0$ implies $S\succ 0$, the following identity holds for $2\times2$ \glsentryshort{spd} matrices:
+\begin{equation}\label{eq:inv_sqrt_2x2}
+S^{-1/2}
+=
+\sqrt{t+2s}\,(S+s\mathbb{I})^{-1}
+=
+\frac{\sqrt{t+2s}}{2\det(S)+s\,t}
+\begin{pmatrix}
+s_{22}+s & -s_{12}\\
+-s_{12} & s_{11}+s
+\end{pmatrix}.
+\end{equation}
+Therefore, for two modalities the Jacobian-space gradient can be evaluated via
+\begin{equation}\label{eq:2x2_gram}
+\nabla_{\mathcal{G}} \phi(\mathcal{G})
+=
+\mathcal{G}\,S^{-1/2},
+\qquad S=G+\epsilon^2 \mathbb{I},
+\end{equation}
+using only dot products and scalar square-roots per voxel.
+
+\paragraph{Image-space gradient.}
+Define voxel-wise
+\begin{equation}
+Q_n \;:=\; \nabla_{\mathcal{G}} \phi\bigl(\mathcal{G}_n(\bm{z})\bigr)
+\in\mathbb{R}^{d\times M},
+\end{equation}
+and let $Q=\{Q_n\}_{n=1}^N$. Applying the chain rule through the linear map $\bm{z}\mapsto D\bm{z}$ yields
+\begin{equation}
+\delta \tilde{\mathcal{R}}_{\mathrm{TNV}}(\bm{z})[\delta \bm{z}]
+=
+\sum_{n=1}^N \left\langle Q_n,\ (D\,\delta \bm{z})_n \right\rangle_F
+=
+\left\langle Q,\ D\,\delta \bm{z} \right\rangle.
+\end{equation}
+By definition of the adjoint $D^\ast$,
+\begin{equation}
+\left\langle Q,\ D\,\delta \bm{z} \right\rangle
+=
+\left\langle D^\ast Q,\ \delta \bm{z} \right\rangle.
+\end{equation}
+Defining the discrete divergence as $\operatorname{div}:=-D^\ast$, we obtain
+\begin{equation}
+\nabla_{\bm{z}} \tilde{\mathcal{R}}_{\mathrm{TNV}}(\bm{z})
+=
+-\,\operatorname{div} Q,
+\end{equation}
+where $\operatorname{div}$ acts column-wise on $Q$.
+
+\section{Weighted Directional Total Nuclear Variation ($\wdtnv$)}
+\label{sec:wdtnv}
+
+This section extends TNV \cite{rigieJointReconstructionMultichannel2015, holtTotalNuclearVariation2014} in two orthogonal ways:
+\begin{itemize}
+    \item high-resolution anatomical information is incorporated directionally rather than as an additional coupled intensity channel;
+    \item voxel-wise, modality-wise diagonal weighting compensates for heterogeneous scaling and spatially varying reliability across modalities.
+\end{itemize}
+
+The starting point is the standard TNV construction: penalising the nuclear norm of a multi-modality Jacobian promotes joint sparsity and alignment of edges, since a low nuclear norm favours a locally low-rank Jacobian.
+
+\subsection{Directional operators from guidance}
+\label{subsec:directional_from_guidance}
+
+To incorporate guidance information, such as a high-resolution anatomical image, we borrow the operator from directional total variation (Equation~\ref{eq:directional_op}). The key design choice is that the guidance image is used only to steer the penalty, not to add an extra column to the joint Jacobian. This avoids directly coupling an anatomical channel, with distinct units, resolution, and artefacts, to the emission channels through the singular spectrum.
+
+If a guidance image were appended as an additional modality, then a single global scaling would have data-dependent and spatially non-uniform consequences. Where emission gradients are weak, even modest guidance gradients can dominate the local Jacobian and hence the singular values; where emission gradients are strong, the same scaling may become negligible. Since the nuclear norm couples modalities through the eigenstructure of the local Gram matrix, such reweighting can also transfer structured guidance artefacts into the coupled reconstruction. By contrast, a directional operator modifies which gradient components are penalised, without forcing the presence of edges where the emission data do not support them.
+
+Applying $\Pi_{m,n}$ to each modality gradient defines the directional multi-modality Jacobian
+\begin{equation}
+\mathcal{G}^{\mathrm{dir}}_n(\bm{z})= \bigl[\Pi_{1,n}(D z_1)_n \;|\; \cdots \;|\; \Pi_{M,n}(D z_M)_n\bigr]\in\mathbb{R}^{d\times M}.
+\end{equation}
+Here $D$ denotes the chosen discrete directional-difference operator and each $\Pi_{m,n}\in\mathbb{R}^{d\times d}$ is constructed from the guidance field at voxel $n$. In the implementation used in this work, a guidance image $u$ defines
+\begin{equation}
+\xi_n
+=
+\frac{(D u)_n}{\sqrt{\|(D u)_n\|_2^2+\eta^2}},
+\qquad
+\Pi_{m,n}=\mathbb{I}_d-\gamma_m\,\xi_n\xi_n^\top,
+\qquad \gamma_m\in[0,1].
+\label{eq:wdtnv_directional_operator}
+\end{equation}
+When $\eta$ is not specified explicitly it is set from a robust scale estimate of $\|(Du)_n\|_2$, namely $0.01$ times the difference between its $99$th and $1$st percentiles. In homogeneous regions of the guidance image, $\xi_n$ is small and $\Pi_{m,n}$ is close to the identity, so the regulariser reduces to an approximately isotropic TNV-type coupling.
+
+Using \gls{ct} only to construct the directional operators decouples anatomical steering from emission-to-emission weighting. Modality weights determine how strongly emission gradients are coupled to one another through the nuclear norm, while $\Pi_{m,n}$ determines how strongly the penalty prefers guidance-consistent edge directions. Retaining a two-modality Jacobian also preserves the efficient $2\times2$ Gram-matrix structure derived in Section~\ref{sec:tv_to_tnv}.
+
+\subsection{Modality-wise weighting and the full \texorpdfstring{$\wdtnv$}{w-dTNV} prior}
+\label{subsec:modality_weighting}
+\label{subsec:voxelwise_weighting}
+
+\gls{pet} and \gls{spect} images of the same administered \gls{y90} activity differ substantially in dynamic range: the effective count level, sensitivity, and noise characteristics vary by orders of magnitude between the two modalities, and in clinical imaging the two reconstructions may also operate at different spatial resolutions. If the directional emission gradients $\Pi_{m,n}(D z_m)_n$ are used directly without normalisation, the nuclear-norm coupling is dominated by the modality with the larger gradient magnitudes.
+
+To compensate, we introduce a voxel-wise, modality-wise diagonal weight matrix
+\begin{equation}
+    B_n := \mathrm{diag}(\rho_{1,n},\,\rho_{2,n}) \in \mathbb{R}^{2\times 2},
+    \qquad \rho_{m,n} > 0.
+    \label{eq:Bn_def}
+\end{equation}
+The weighted directional Jacobian is
+\begin{equation}
+    \tilde{\mathcal{G}}_n(\bm{z}) := \mathcal{G}_n^{\mathrm{dir}}(\bm{z})\,B_n
+    = \bigl[\Pi_{1,n}(D z_1)_n \;\big|\; \Pi_{2,n}(D z_2)_n\bigr]\,
+    \mathrm{diag}(\rho_{1,n},\rho_{2,n})
+    \in \mathbb{R}^{d\times 2}.
+    \label{eq:Yn_weighted}
+\end{equation}
+The columns of $\tilde{\mathcal{G}}_n$ are $\tilde{g}_{m,n} := \rho_{m,n}\,\Pi_{m,n}(D z_m)_n \in \mathbb{R}^d$.
+
+The weighted directional Total Nuclear Variation ($\wdtnv$) prior is then
+\begin{equation}
+    \mathcal{R}_{\mathrm{w\text{-}dTNV}}(\bm{z})
+    :=
+    V_{\mathrm{vox}}\sum_{n=1}^{N} \phi\!\left(\tilde{\mathcal{G}}_n(\bm{z})\right),
     \qquad
-    \varsigma^{(0)}=1,
-    \qquad
-    \eta_{\mathrm{relax}}=0.002,
-    \label{eq:optimisation_step_size}
+    \phi(Y) := \sum_{\ell=1}^{\min(d,M)} g(\sigma_\ell(Y)),
+    \label{eq:wdtnv_prior}
 \end{equation}
-for the 20-pass comparisons described below.
+where $V_{\mathrm{vox}}$ is the voxel volume and $g$ is the Charbonnier smoothing from~\eqref{eq:charbonnier_g}. Choosing equal weights $\rho_{m,n}\equiv 1$ recovers unweighted $d$TNV. Choosing $\rho_{m,n}$ proportional to the inverse of a characteristic modality scale brings both channels to a comparable range before the nuclear-norm coupling is evaluated. The \gls{pet}/\gls{spect} normalisation used in the application study is specified in Chapter~\ref{chapter:paper}.
 
-\subsection{Common Evaluation Protocol}
-\label{subsec:optimisation_evaluation_protocol}
-
-The convergence experiments used an anthropomorphic phantom scanned on the Mediso AnyScan at the National Physical Laboratory. \gls{pet} and \gls{spect} were each partitioned into 18 subsets. Each plotted comparison curve comprises five stochastic realisations and covers the first 20 complete data passes, extended to 25 for the preconditioner comparisons of Section~\ref{sec:optimisation_preconditioners}. A single 1000-epoch reconstruction of the same objective, run with more conservative optimisation settings, provided the reference image $x^\star$; it is a final long-run iterate rather than a proven global minimiser. Appendix~\ref{app:baseline_convergence} reports the objective and iterate diagnostics supporting its effective stationarity relative to the best observed iterate.
-
-For each stochastic run and each saved iteration, the \acrfull{nrmse} in region $R$ is
-\begin{equation}
-    \operatorname{NRMSE}(x_k,x^\star;R)
-    =
-    \frac{\sqrt{N^{-1}\sum_{j\in R}(x_{k,j}-x^\star_j)^2}}
-         {\sqrt{N^{-1}\sum_{j\in R}(x^\star_j)^2}},
-    \qquad N=|R|.
-    \label{eq:optimisation_nrmse}
-\end{equation}
-The regions are evaluated separately over the whole image, the hot-sphere mask, and the cold-sphere mask. The plotted centre line is the arithmetic mean of the five per-run \gls{nrmse} values at each iteration, not the \gls{nrmse} of an averaged reconstruction; the envelope is their pointwise minimum--maximum. The long-run reference itself was generated once.
-
-\section{Subset Selection}
-\label{sec:optimisation_subset_selection}
-
-Subset methods accelerate early iterations in emission tomography by replacing full data passes with stochastic or ordered blocks of projection data \cite{hudsonAcceleratedImageReconstruction1994}. Joint \gls{pet}/\gls{spect} reconstruction introduces two further choices. Corresponding modality subsets can be added to form paired stochastic functions, or each modality subset can remain a separate function; and the prior can be applied on different schedules relative to the sampled data functions. The experiment below crosses these two subset organisations with three prior-application schedules. All three schedules deliver the same average prior weight, one complete prior contribution per data pass, and differ only in how finely that contribution is distributed across updates. \TODO{Add the Zenodo-managed citation for IEEE Xplore document 10654962.}
-
-\subsection{Data-Subset Organisation}
-\label{subsec:subset_data_organisation}
-
-The one-bed phantom data were divided into 18 \gls{pet} and 18 \gls{spect} subsets. Two organisations were tested.
-
-\paragraph{Separate subsets.}
-\gls{pet} and \gls{spect} subsets are treated as distinct stochastic functions. For a one-bed acquisition with $N_{\mathrm{PET}}=18$ and $N_{\mathrm{SPECT}}=18$, this gives
-\begin{equation}
-    \{\mathcal{D}_i\}_{i=1}^{36}
-    =
-    \{
-    \mathcal{D}_{\mathrm{PET},1},\ldots,\mathcal{D}_{\mathrm{PET},18},
-    \mathcal{D}_{\mathrm{SPECT},1},\ldots,\mathcal{D}_{\mathrm{SPECT},18}
-    \}.
-    \label{eq:separate_subset_functions}
-\end{equation}
-
-\paragraph{Paired subsets.}
-\gls{pet} and \gls{spect} subsets with matching indices are summed into one stochastic function. For one bed this gives
-\begin{equation}
-    \mathcal{D}^{\mathrm{pair}}_j
-    =
-    \mathcal{D}_{\mathrm{PET},j}
-    +
-    \mathcal{D}_{\mathrm{SPECT},j},
-    \qquad j=1,\ldots,18.
-    \label{eq:paired_subset_functions}
-\end{equation}
-
-\subsection{Prior-Application Schedules}
-\label{subsec:subset_prior_schedules}
-
-Writing $N_{\mathrm d}$ for the number of data functions in the chosen organisation ($N_{\mathrm d}=36$ separate, $N_{\mathrm d}=18$ paired), three schedules for applying the prior $\mathcal R$ were compared. All runs use the \gls{svrg} estimator.
-
-\paragraph{Folded.}
-The scaled prior $\mathcal R/N_{\mathrm d}$ is added to every data function, so each sampled function is $\mathcal D_i + \mathcal R/N_{\mathrm d}$ and every update evaluates the complete prior gradient. Because the prior enters every sampled function with the same weight, the estimator reduces algebraically to Equation~\eqref{eq:svrg_estimator_general}: folding is mathematically identical to holding the complete prior outside the sampler and evaluating it at every update. This is the schedule used by the preconditioner experiments later in this chapter and by the application protocol of Chapter~\ref{chapter:paper}.
-
-\paragraph{Sampled.}
-The prior, scaled by $1/N_{\mathrm d}$, is kept outside the data functions and instead enters the sampler as additional stochastic functions on the same footing as the data. Prior-only updates therefore occur on half of the draws in expectation, roughly every other update, and accumulate one complete prior contribution per data pass on average. This schedule is labelled prior/half in the figure legend.
-
-\paragraph{Once per epoch.}
-The sampled data updates exclude the prior entirely; the complete prior gradient is instead applied in a single dedicated update once per data pass.
-
-\subsection{Experiment Design and Work Accounting}
-\label{subsec:subset_selection_experiment_methods}
-
-All stochastic functions were sampled uniformly with replacement. To compare the configurations on a common horizontal axis, one matched data pass is defined by 36 modality-specific data-subset evaluations. Paired organisation reaches this count after 18 joint \gls{pet}+\gls{spect} data updates, each evaluating one \gls{pet} and one \gls{spect} subset; separate organisation reaches it after 36 modality-specific data updates. Prior work per matched pass then depends on the schedule. The folded schedule evaluates the complete prior gradient at every data update (36 evaluations per pass separate, 18 paired). The sampled schedule interleaves on average as many prior-only updates as data updates, roughly doubling the parameter-update count per pass for a comparable number of prior-gradient evaluations. The once-per-epoch schedule adds a single prior-gradient evaluation and update per pass.
-
-This accounting matches data-projection work and average prior weight, but it does not match parameter-update count, prior-gradient work, or elapsed computation. Prior-only updates do not advance the horizontal axis, and a prior-gradient evaluation is much cheaper than a data-subset evaluation, so the additional prior work of the folded and sampled schedules, up to $N_{\mathrm d}$ evaluations per pass, is not reflected in the plotted axis. All configurations used the same objective and the \gls{mm} local-diagonal curvature preconditioner, and were assessed with the common 20-pass protocol in Section~\ref{subsec:optimisation_evaluation_protocol}.
-
-\begin{figure}[htbp]
-    \centering
-    \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/subsets/full/exp_subset_selection_1bpos_mm_diag_tight_combine_majoriser_alpha_1.png}
-        \caption{\gls{pet}.}
-    \end{subfigure}
-    \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/subsets/full/exp_subset_selection_1bpos_mm_diag_tight_combine_majoriser_alpha_1_SPECT.png}
-        \caption{\gls{spect}.}
-    \end{subfigure}
-    \caption{Convergence for the six combinations of subset organisation (paired, separate) and prior-application schedule (folded, sampled, once per epoch) using the \gls{mm} local-diagonal curvature preconditioner. Lines show the mean per-run \gls{nrmse} over five stochastic realisations and shading shows the pointwise minimum--maximum over the first 20 matched data passes. In the legend, prior folded, prior/half, and prior once/epoch denote the folded, sampled, and once-per-epoch schedules; every schedule applies on average one complete prior contribution per matched data pass.}
-    \label{fig:optim_subset_organisation}
-\end{figure}
-
-\subsection{Results}
-
-Figure~\ref{fig:optim_subset_organisation} separates the six configurations by prior schedule far more than by subset organisation. Only the folded schedule converged. Separate folded subsets reached the lowest \gls{nrmse} in every region for both modalities, with paired folded subsets close behind and the clearest gaps in the hot- and cold-sphere regions; the separate folded \gls{pet} whole-image mean shows one large transient excursion near pass six before recovering. Under the sampled and once-per-epoch schedules, neither organisation made net progress within the 20 passes: the curves stagnate near their starting values, with the once-per-epoch runs additionally showing large excursions and, for \gls{spect}, early transient progress that subsequently regressed. Because all six configurations deliver the same average prior weight per matched data pass, the failures are attributable to the granularity of prior application rather than to its total contribution. A plausible explanation is that stable progress at these step sizes requires the data and prior gradients to be combined within each preconditioned update: the sampled and once-per-epoch schedules concentrate the prior into intermittent prior-only corrections, which repeatedly disturb iterates that the intervening data-only updates have advanced without regularisation.
-
-Within the folded schedule, the organisation effect is plausibly an update-frequency effect: the separate organisation performs 36 parameter updates per matched data pass, compared with 18 paired updates, and therefore makes more frequent progress for the same number of data-subset projections. The experiment does not isolate modality grouping from update frequency, and should be interpreted as a data-projection-matched comparison of the implemented configurations, not as a compute-matched speed benchmark or a causal test of modality splitting alone. All runs used the \gls{mm} local-diagonal curvature preconditioner with the common step-size schedule, so the schedule sensitivity reported here is an observation under that protocol rather than an established general property.
-
-\section{Prior-Aware Preconditioning}
-\label{sec:optimisation_preconditioners}
-\label{subsec:preconditioning}
-
-Preconditioning is critical for subset-based \gls{map} reconstruction because the data term and the edge-preserving prior can have very different local curvature scales \cite{clinthornePreconditioningMethodsImproved1993,ahnGloballyConvergentOrdered2002,depierroFastEMlikeMethods2001,ehrhardtFastPETReconstruction2025}. The comparison below includes data-only \gls{bsrem} scaling and four prior-aware curvature models for $\wdtnv$.
-
-\subsection{Data Curvature}
-\label{subsec:optimisation_data_preconditioning}
-
-For modality $m$, let $s_m$ denote the sensitivity image on the shared grid,
-\begin{equation}
-    s_m
-    =
-    W_m A_m^\top \bm 1,
-    \label{eq:shared_grid_sensitivity}
-\end{equation}
-where $A_m$ is the native-grid system matrix and $W_m$ maps native images to the shared prior grid. The data-only \gls{em}/\gls{bsrem} preconditioner is
-\begin{equation}
-    \mathcal{P}_{\mathrm{BSREM},m}
-    =
-    (z_m+\epsilon_x)\oslash s_m,
-    \label{eq:bsrem_preconditioner}
-\end{equation}
-with element-wise division. This scaling models the data term only; it contains no prior curvature. Equivalently, the corresponding diagonal data Hessian surrogate is
-\begin{equation}
-    \widehat H_{\mathrm{data},m}
-    =
-    s_m \oslash (z_m+\epsilon_x).
-    \label{eq:data_hessian_surrogate}
-\end{equation}
-The implementation optionally smooths the numerator image used in the \gls{em} preconditioner with a Gaussian filter. In the experiments below the smoothing \gls{fwhm} is $5\,\mathrm{mm}$ in each direction.
-
-\subsection{Prior Curvature Models}
-\label{subsec:optimisation_prior_preconditioning}
-
-Four prior-curvature constructions were considered: three based on a local \acrfull{mm}/\acrfull{irls} surrogate and one based on the Lewis--Sendov Hessian of the smoothed spectral penalty. The term \gls{mm} describes the derivation of the first family; none of the implemented preconditioners has been established as a majoriser of the complete objective, and no monotone-descent guarantee is claimed.
-
-For the \gls{mm} family, at voxel $n$ let
-\begin{equation}
-    \tilde{\mathcal{G}}_n
-    =
-    \left[
-        \rho_{1,n}\Pi_{1,n}(Dz_1)_n
-        \;\middle|\;
-        \rho_{2,n}\Pi_{2,n}(Dz_2)_n
-    \right]\in\mathbb{R}^{d\times2}
-    \label{eq:optimisation_weighted_jacobian}
-\end{equation}
-be the weighted directional Jacobian from Chapter~\ref{chapter:wdtnv} (Equation~\eqref{eq:Yn_weighted}). The active code forms the modality-space \glsentryshort{mm} weight
-\begin{equation}
-    C_n
-    =
-    \left(\tilde{\mathcal{G}}_n^\top \tilde{\mathcal{G}}_n + \epsilon^2 \mathbb{I}_2\right)^{-1/2}
-    =
-    \begin{pmatrix}
-        c_{11,n} & c_{12,n}\\
-        c_{12,n} & c_{22,n}
-    \end{pmatrix}.
-    \label{eq:mm_weight_current_code}
-\end{equation}
-This matrix is the same $2\times2$ inverse square-root used in the gradient calculation in Chapter~\ref{chapter:wdtnv} (Equation~\eqref{eq:2x2_gram}), now interpreted as the local quadratic-surrogate weight.
-
-For diagonal preconditioning, the finite-difference stencil and directional projectors are collapsed to a per-voxel participation factor $\tau_{m,n}$. This factor includes the number of valid forward/backward stencil incidences at voxel $n$, the squared finite-difference scale factors, and the diagonal entries of $\Pi_{m,n}^\top\Pi_{m,n}$. The local diagonal \wdtnv{} curvature approximation is
-\begin{equation}
-    \widehat H_{\mathcal R,m,n}^{\mathrm{loc\text{-}diag}}
-    =
-    V_{\mathrm{vox}}\,
-    \rho_{m,n}^2\,c_{mm,n}\,\tau_{m,n}.
-    \label{eq:diag_tight_preconditioner}
-\end{equation}
-This is the diagonal extraction of the local \glsentryshort{mm} curvature surrogate. A more conservative Gershgorin-inflated diagonal surrogate adds the magnitude of the cross-modal term,
-\begin{equation}
-    \widehat H_{\mathcal R,1,n}^{\mathrm{diag\text{-}G}}
-    =
-    V_{\mathrm{vox}}\,
-    \rho_{1,n}^2\,(c_{11,n}+|c_{12,n}|)\,\tau_{1,n},
-    \qquad
-    \widehat H_{\mathcal R,2,n}^{\mathrm{diag\text{-}G}}
-    =
-    V_{\mathrm{vox}}\,
-    \rho_{2,n}^2\,(c_{22,n}+|c_{12,n}|)\,\tau_{2,n}.
-    \label{eq:diag_gersh_preconditioner}
-\end{equation}
-
-For block preconditioning, the \gls{pet} and \gls{spect} update components at each voxel are coupled by a $2\times2$ block. Let $\mathcal{N}(n)$ be the set of target voxels whose finite-difference stencil depends on source voxel $n$. For target voxel $r\in\mathcal{N}(n)$, let $c_{r\leftarrow n}\in\mathbb{R}^d$ be the finite-difference impulse vector produced in the directional channels when source voxel $n$ is perturbed. The local voxel-block curvature approximation uses
-\begin{equation}
-    \alpha_{r\leftarrow n}^{mm'}
-    =
-    c_{r\leftarrow n}^\top
-    \Pi_{m,r}^\top
-    \Pi_{m',r}
-    c_{r\leftarrow n},
-    \label{eq:block_alpha}
-\end{equation}
-and
-\begin{equation}
-    \widehat H_{\mathcal R,n}^{\mathrm{loc\text{-}block}}
-    =
-    V_{\mathrm{vox}}
-    \sum_{r\in\mathcal{N}(n)}
-    \left[
-        B_r C_r B_r
-    \right]
-    \circ
-    A_{r\leftarrow n},
-    \qquad
-    A_{r\leftarrow n}
-    =
-    \begin{pmatrix}
-        \alpha_{r\leftarrow n}^{11} & \alpha_{r\leftarrow n}^{12}\\
-        \alpha_{r\leftarrow n}^{21} & \alpha_{r\leftarrow n}^{22}
-    \end{pmatrix},
-    \label{eq:block_tight_preconditioner}
-\end{equation}
-where $B_r=\mathrm{diag}(\rho_{1,r},\rho_{2,r})$ and $\circ$ denotes the Hadamard product.
-
-The fourth construction uses the exact Lewis--Sendov Hessian of the smoothed spectral penalty \cite{lewisDerivativesSpectralFunctions1996}. If $H_{\mathcal R}=\nabla^2\mathcal R$ denotes the resulting image-space Hessian, the implemented approximation retains only its voxel-wise diagonal blocks,
-\begin{equation}
-    \widehat H_{\mathcal R}^{\mathrm{LS\text{-}block}}
-    =
-    \operatorname{blkdiag}
-    \left(
-        [H_{\mathcal R}]_{11},\ldots,[H_{\mathcal R}]_{NN}
-    \right),
-    \qquad
-    [H_{\mathcal R}]_{nn}\in\mathbb R^{2\times2}.
-    \label{eq:ls_block_preconditioner}
-\end{equation}
-It therefore retains \gls{pet}/\gls{spect} cross-curvature within each voxel but discards spatial off-diagonal blocks. Evaluating the smoothed spectral Hessian requires the voxel-wise singular-value decompositions used by the Lewis--Sendov construction. Recomputing this block model once per epoch consequently has a non-negligible cost.
-
-\subsection{Combining Data and Prior Curvature}
-\label{subsec:optimisation_preconditioner_combination}
-
-Let $\mathcal{P}_{\mathrm D}=\widehat H_{\mathrm D}^{-1}$ denote the data preconditioner and $\mathcal{P}_{\mathcal R}=\widehat H_{\mathcal R}^{-1}$ the preconditioner obtained from one of the prior-curvature models above. For block methods, $\widehat H_{\mathrm D}$ is the $2\times2$ diagonal matrix containing the modality-specific data curvatures at each voxel. The principal comparison combines the operands through the inverse-sum, or parallel-sum, rule
-\begin{equation}
-    \mathcal{P}_{\parallel}
-    =
-    \left(\mathcal{P}_{\mathrm D}^{-1}+\mathcal{P}_{\mathcal R}^{-1}\right)^{-1}
-    =
-    \left(\widehat H_{\mathrm D}+\widehat H_{\mathcal R}\right)^{-1}.
-    \label{eq:parallel_sum_combination}
-\end{equation}
-The same expression applies to diagonal and voxel-block operands, with numerical floors used before inversion. It is a combination of approximate curvature preconditioners, not a statement that either operand or their sum majorises the full objective.
-
-The preconditioner is updated once per epoch and held fixed between updates. This limits curvature-computation cost, particularly for the Lewis--Sendov construction, but means the preconditioner becomes progressively stale within each epoch.
-
-\begin{table}[htbp]
-\centering
-\caption{Preconditioner models used in the principal comparison. The four prior-aware models use the inverse-sum combination in Equation~\eqref{eq:parallel_sum_combination}.}
-\label{tab:preconditioner_settings}
-\small
-\begin{tabular}{p{0.25\linewidth}p{0.45\linewidth}p{0.19\linewidth}}
-\toprule
-Preconditioner & Prior-curvature construction & Combination\\
-\midrule
-Data-only BSREM & None; EM data scaling only & Not applicable\\
-MM local diagonal & Diagonal extraction of the local MM curvature surrogate & Inverse sum\\
-MM Gershgorin-inflated diagonal & Local diagonal inflated by the magnitude of cross-modal coupling & Inverse sum\\
-MM local voxel-block & Voxel-wise $2\times2$ local MM curvature surrogate & Inverse sum\\
-Lewis--Sendov block-diagonal & Voxel-block diagonal of the exact smoothed spectral Hessian & Inverse sum\\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\subsection{Preconditioner Comparison Methods}
-\label{subsec:preconditioner_experiment_methods}
-
-Five settings are compared: data-only \gls{bsrem}, \gls{mm} local diagonal, \gls{mm} Gershgorin-inflated diagonal, \gls{mm} local voxel-block, and Lewis--Sendov block-diagonal preconditioning. These settings are summarised in Table~\ref{tab:preconditioner_settings}. The four prior-aware settings use the inverse-sum combination.
-
-The comparison uses the one-bed anthropomorphic phantom, modality-separated subsets, and the folded prior schedule, i.e.\ the complete prior gradient at every update. All methods use the same objective, initialisation, long-run reference, initial step $\varsigma^{(0)}=1$, and relaxation parameter $\eta_{\mathrm{relax}}=0.002$. Five stochastic realisations are evaluated for the first 25 matched data passes. Sensitivity-derived support masks are enabled with relative threshold $10^{-3}$, and the data component is smoothed with a $5\,\mathrm{mm}$ Gaussian \gls{fwhm}.
-
-The reference is separate from this five-method comparison: it is a single 1000-epoch run with the same objective, a Gershgorin-diagonal \gls{mm} preconditioner, and more conservative optimisation settings, including $\eta_{\mathrm{relax}}=10^{-4}$. It provides $x^\star$ for the \gls{nrmse} calculation rather than an additional candidate method.
-
-\subsection{Preconditioner Comparison}
-
-\begin{figure}[htbp]
-    \centering
-    \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos.png}
-        \caption{\gls{pet}.}
-    \end{subfigure}
-    \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_SPECT.png}
-        \caption{\gls{spect}.}
-    \end{subfigure}
-    \caption{Convergence of data-only \gls{bsrem} and the four prior-aware preconditioners in Table~\ref{tab:preconditioner_settings}. All methods use the same objective and long-run reference within each modality. Lines show the mean per-run \gls{nrmse} over five stochastic realisations, and shading shows the pointwise minimum--maximum over the first 25 matched data passes. The \gls{pet} vertical axis spans the full range reached by the data-only trajectory.}
-    \label{fig:optim_preconditioners}
-\end{figure}
-
-The four prior-aware constructions in Figure~\ref{fig:optim_preconditioners} behave broadly similarly. Their ordering varies between regions, and the differences are small compared with the distinction between prior-aware and data-only scaling; there is no universal winner. For count-limited \gls{pet}, the whole-image data-only \gls{bsrem} error grows by more than eight orders of magnitude within the first few passes and never recovers, indicating divergence under the tested schedule, whereas the prior-aware methods remain bounded and continue to reduce the hot- and cold-sphere errors. Prior curvature was therefore required for stable \gls{pet} convergence under this common step-size schedule.
-
-\gls{spect} is more robust. All five methods remain stable, and data-only \gls{bsrem} is competitive with, or slightly faster than, the prior-aware alternatives in the sphere regions. This contrast suggests that the tested prior-aware scalings can be conservative for \gls{spect} even though they are needed to stabilise the limited-count \gls{pet} case.
-
-\subsection{Sensitivity to the Initial Step Size}
-
-\begin{figure}[htbp]
-    \centering
-    \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_step1_2_limited.png}
-        \caption{\gls{pet}.}
-    \end{subfigure}
-    \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_step1_2_SPECT.png}
-        \caption{\gls{spect}.}
-    \end{subfigure}
-    \caption{Sensitivity to the common initial step size for the displayed preconditioners. Solid curves use $\varsigma^{(0)}=1$ and dashed curves use $\varsigma^{(0)}=2$. Lines and envelopes again show the five-run mean and pointwise minimum--maximum over 25 matched data passes.}
-    \label{fig:optim_step_size}
-\end{figure}
-
-Doubling the common initial step improves \gls{spect} convergence across the three regions in Figure~\ref{fig:optim_step_size}, but destabilises the limited-count \gls{pet} reconstruction. A single shared relaxation schedule is therefore not equally well calibrated to both modalities. Modality-dependent initial steps or relaxation rates are a natural direction for future work, but were not tested here.
-
-\subsection{Lehmer Combination}
-
-The inverse sum is one member of a broader matrix Lehmer family. For the voxel-wise symmetric positive-definite preconditioners $\mathcal{P}_{\mathcal R}$ and $\mathcal{P}_{\mathrm D}$, define
-\begin{equation}
-    C=\mathcal{P}_{\mathrm D}^{-1/2}\mathcal{P}_{\mathcal R}\mathcal{P}_{\mathrm D}^{-1/2},
-    \qquad
-    L_p(\mathcal{P}_{\mathcal R},\mathcal{P}_{\mathrm D})
-    =\mathcal{P}_{\mathrm D}^{1/2}f_p(C)\mathcal{P}_{\mathrm D}^{1/2},
-    \qquad
-    f_p(t)=\frac{t^p+1}{t^{p-1}+1},
-    \label{eq:matrix_lehmer_combination}
-\end{equation}
-where $f_p(C)$ is evaluated spectrally. The implemented preconditioner is $\tfrac12L_p(\mathcal{P}_{\mathcal R},\mathcal{P}_{\mathrm D})$. At $p=0$ this reduces exactly to the parallel sum,
-\begin{equation}
-    \tfrac12L_0(\mathcal{P}_{\mathcal R},\mathcal{P}_{\mathrm D})
-    =
-    \left(\mathcal{P}_{\mathrm D}^{-1}+\mathcal{P}_{\mathcal R}^{-1}\right)^{-1}.
-    \label{eq:lehmer_parallel_equivalence}
-\end{equation}
-
-\begin{figure}[htbp]
-    \centering
-    \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/lehmer_vs_parallel_1bpos_ls_block_diag.png}
-        \caption{Count-limited \gls{pet}.}
-    \end{subfigure}
-    \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/lehmer_vs_parallel_1bpos_ls_block_diag_SPECT.png}
-        \caption{\gls{spect} represented on the \gls{pet} grid.}
-    \end{subfigure}
-    \caption{Parallel-sum and Lehmer combinations for the Lewis--Sendov block-diagonal prior model. This experiment changes only the combination rule; lines and shading show the five-run mean and pointwise minimum--maximum over 20 matched data passes.}
-    \label{fig:optim_lehmer_parallel}
-\end{figure}
-
-For the Lewis--Sendov block model, $p=0.01$ is marginally better than the inverse-sum result in these curves, but the difference is small. This comparison does not establish that the same order is preferable for the \gls{mm}-derived preconditioners. Chapter~\ref{chapter:paper} had already frozen the Lewis--Sendov block-diagonal model with $p=0.01$ before the broader benchmark in this chapter. Retaining it therefore provides protocol continuity, not a post-hoc claim that Lewis--Sendov or $p=0.01$ is universally optimal.
+\paragraph{Effect on the singular spectrum.}
+Right-multiplying by $B_n$ scales the $m$-th column of $\tilde{\mathcal{G}}_n$ by $\rho_{m,n}$. This scales the singular values of $\tilde{\mathcal{G}}_n$ in a non-trivial way, since the singular values of $YB$ are not simply $\sigma_\ell(Y)\rho_m$. The intended effect is instead on the Gram matrix: $\tilde{\mathcal{G}}_n^\top \tilde{\mathcal{G}}_n$ contains modality self-terms and cross-terms after scaling, so suitable $\rho_{m,n}$ values allow both modalities to contribute comparably to the coupled singular spectrum. The $2\times2$ Gram-matrix algebra in Section~\ref{sec:tv_to_tnv} applies directly to this weighted case.
 
 \section{Conclusion}
-\label{sec:optimisation_conclusion}
 
-Joint reconstruction of the \gls{pet} bed positions is required for the edge-preserving prior to act consistently across their overlap; the qualitative example showed the noise and discontinuities that can remain after separate reconstruction and fusion. For the one-bed convergence study, the prior-application schedule mattered more than the subset organisation: with the average prior weight per data pass matched, only the folded schedule, mathematically identical to evaluating the complete prior at every update, converged, while the sampled and once-per-epoch schedules stagnated under the common preconditioner and step-size protocol. Within the folded schedule, modality-separated subsets converged faster than paired subsets under matched data-projection work, although they also performed twice as many parameter updates and prior-gradient evaluations per pass.
+This chapter introduced a smoothed, weighted, and directional Total Nuclear Variation ($\wdtnv$) prior for synergistic reconstruction. Charbonnier smoothing of the singular values yields a differentiable spectral functional whose Jacobian-space gradient can be written in Gram-matrix form. For two coupled emission modalities this reduces the key spectral operation to a $2\times2$ inverse square-root, allowing the prior and its gradient to be evaluated robustly without a general per-voxel \glsentryshort{svd}.
 
-Prior-aware preconditioning was required for stable convergence of the count-limited \gls{pet} reconstruction under the tested shared step schedule. \gls{spect} was more robust, and data-only \gls{bsrem} was sometimes competitive, suggesting that the prior-aware methods can be conservative for that modality. The four prior-curvature models behaved similarly overall, with no universal winner. Increasing the common initial step improved \gls{spect} but destabilised \gls{pet}, motivating modality-dependent relaxation as future work.
-
-The Lewis--Sendov Lehmer experiment found only a small advantage for $p=0.01$ over the parallel sum. Chapter~\ref{chapter:paper} retains the previously frozen Lewis--Sendov block-diagonal/$p=0.01$ configuration for protocol continuity. Its use in that chapter should not be interpreted as selection of the best method after the wider comparison reported here.
+The chapter also separated two roles that are easily confounded in multimodality reconstruction. Anatomical information is used directionally through $\Pi_{m,n}$, steering the penalty without adding \gls{ct} as another coupled intensity channel. Modality scaling is handled separately through the diagonal weight matrix $B_n$, allowing \gls{pet} and \gls{spect} gradients to enter the nuclear-norm coupling on comparable scales. Chapter~\ref{chapter:optimisation} uses these definitions to construct practical preconditioners and subset-selection strategies for large-scale $\wdtnv$ optimisation.
