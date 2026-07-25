@@ -1,5 +1,142 @@
 \chapter{Discussion, Conclusion \& Future Work}
 \label{discussion}
 
-% This just dumps some pseudolatin in so you can see some text in place.
-\blindtext
+\section{Future Work}
+\label{sec:future_work}
+
+\subsection{Relative Nuclear Variation}
+\label{subsec:future_rnv}
+
+The modality weights used by \wdtnv{} compensate for the markedly different
+global scales of the PET and SPECT images. However, a single global
+normalisation does not account for the large spatial variation in activity
+within either image. An extension inspired by the \acrfull{rdp}
+\cite{nuytsConcavePriorPenalizing2002} could introduce this local intensity
+dependence while retaining the edge-alignment mechanism of the nuclear norm.
+We refer to the proposed construction as \emph{relative nuclear variation}
+(RNV).
+
+Let $\mathcal{E}=\{e_\ell\}_{\ell=1}^{d}$ be the same stencil used by the
+finite-difference operator $D$ in Chapter~\ref{chapter:paper}. Alongside $D$,
+define a companion endpoint-sum operator $S$ by
+\begin{equation}
+    \bigl((S z_m)_n\bigr)^{(\ell)}
+    :=
+    \frac{z_{m,n+e_\ell}+z_{m,n}}{\|e_\ell\|_\Delta},
+    \qquad \ell=1,\ldots,d.
+    \label{eq:rnv_sum_operator}
+\end{equation}
+Thus, $S$ uses the same neighbourhood, boundary treatment and physical
+distance scaling as $D$, differing only in replacing subtraction by addition.
+Under the Neumann extension used in Chapter~\ref{chapter:paper}, an
+out-of-domain neighbour is replaced by the boundary voxel itself, so the
+corresponding endpoint sum is $2z_{m,n}$.
+The same fixed PET/SPECT weights that scale the columns of the weighted
+directional Jacobian should also scale their contributions to the local sum.
+Define
+\begin{equation}
+    s_n(\bm{z})
+    :=
+    \frac{1}{c_{\mathcal E}}
+    \sum_{m=1}^{M}\rho_{m,n}
+    \sum_{\ell=1}^{d}
+    \bigl((S z_m)_n\bigr)^{(\ell)},
+    \label{eq:rnv_local_sum}
+\end{equation}
+where $c_{\mathcal E}=d$ forms a directional average. This normalises the raw
+endpoint sum and reduces its dependence on stencil cardinality. The weights
+$\rho_{m,n}$ are fixed with respect to $\bm{z}$ but may be voxel-dependent;
+the application in Chapter~\ref{chapter:paper} would use the spatially uniform
+weights $\rho_m$. Thus, $s_n$ is the direct sum counterpart of the weighted
+finite-difference bank: it retains the PET/SPECT modality scaling but does not
+apply the CT-derived directional operators $\Pi_{m,n}$. Anatomical directionality
+continues to enter the numerator through the weighted directional Jacobian.
+
+Let
+\begin{equation}
+    r_n(\bm{z})
+    :=
+    \left\|\tilde{\mathcal{G}}_n(\bm{z})\right\|_*
+    =
+    \sum_{\ell=1}^{\min(d,M)}
+    \sigma_\ell\!\left(\tilde{\mathcal{G}}_n(\bm{z})\right)
+    \label{eq:rnv_nuclear_magnitude}
+\end{equation}
+be the nuclear magnitude of the same weighted directional Jacobian used by
+\wdtnv, including the modality weights $\rho_{m,n}$ and CT-derived
+operators $\Pi_{m,n}$. An RNV prior could then be defined as
+\begin{equation}
+    \mathcal{R}_{\mathrm{RNV}}(\bm{z})
+    :=
+    V_{\mathrm{vox}}
+    \sum_{n=1}^{N}
+    \frac{r_n(\bm{z})^2}
+    {s_n(\bm{z})+\gamma_{\mathrm{RNV}}r_n(\bm{z})
+        +\varepsilon_{\mathrm{RNV}}},
+    \qquad
+    \gamma_{\mathrm{RNV}}>0,\quad
+    \varepsilon_{\mathrm{RNV}}>0.
+    \label{eq:rnv_prior}
+\end{equation}
+This mirrors the scalar RDP construction, replacing the magnitude of a
+pairwise difference by the nuclear magnitude of the multimodality Jacobian.
+Because $D$ and $S$ use the same physical distance scaling and the same
+modality weights, $r_n$ and $s_n$ have the same units;
+$\gamma_{\mathrm{RNV}}$ is dimensionless and
+$\varepsilon_{\mathrm{RNV}}$ has the units of $r_n$. For $r_n\ll
+(s_n+\varepsilon_{\mathrm{RNV}})/\gamma_{\mathrm{RNV}}$, the local density
+would behave approximately as
+$r_n^2/(s_n+\varepsilon_{\mathrm{RNV}})$ and therefore provide locally
+intensity-scaled quadratic regularisation of the nuclear gradient. For
+$r_n\gg(s_n+\varepsilon_{\mathrm{RNV}})/\gamma_{\mathrm{RNV}}$, it approaches
+$r_n/\gamma_{\mathrm{RNV}}$ and hence recovers TNV-like linear edge
+penalisation.
+
+The proposed positive penalty would be convex under the definitions above. To see
+this, consider
+\begin{equation}
+    h(r,s)
+    :=
+    \frac{r^2}{s+\gamma_{\mathrm{RNV}}r+
+        \varepsilon_{\mathrm{RNV}}},
+    \qquad r\geq0,\quad s\geq0.
+\end{equation}
+Writing $q=s+\gamma_{\mathrm{RNV}}r+\varepsilon_{\mathrm{RNV}}$, its Hessian
+with respect to $(r,s)$ is
+\begin{equation}
+    \nabla^2 h(r,s)
+    =
+    \frac{2}{q^3}
+    \begin{bmatrix}
+        s+\varepsilon_{\mathrm{RNV}}\\
+        -r
+    \end{bmatrix}
+    \begin{bmatrix}
+        s+\varepsilon_{\mathrm{RNV}} & -r
+    \end{bmatrix}
+    \succeq 0.
+    \label{eq:rnv_hessian}
+\end{equation}
+Moreover, $h$ is non-decreasing in $r$. The mapping
+$\bm{z}\mapsto r_n(\bm{z})$ is convex because the nuclear norm is convex and
+$\tilde{\mathcal{G}}_n$ is linear in $\bm{z}$, while
+$\bm{z}\mapsto s_n(\bm{z})$ is non-negative and affine when the weights in
+Equation~\eqref{eq:rnv_local_sum} are fixed. Their composition in
+Equation~\eqref{eq:rnv_prior} is therefore convex on the non-negative image
+domain.
+
+Further work is required to determine whether the local adaptation improves
+the bias--noise trade-off in regions with heterogeneous uptake without
+allowing the activity scale of one modality to inappropriately weaken
+regularisation of the other. This should include derivation of the RNV
+gradient and prior-aware curvature models, and controlled simulations
+containing shared and modality-unique edges. The spatially adaptive RNV
+formulation should also be compared with a simpler baseline in which $s_n$ is
+estimated from initial PET and SPECT reconstructions and then frozen. Finally, the
+unsmoothed nuclear norm in Equation~\eqref{eq:rnv_nuclear_magnitude} makes the
+relationship to the classical RDP explicit but is not differentiable at all
+rank-deficient Jacobians. A differentiable convex approximation suitable for
+the optimisation framework of Chapter~\ref{chapter:optimisation} would
+therefore need to be derived. Directly substituting the Charbonnier-smoothed
+spectral magnitude used by \wdtnv{} would alter the limiting behaviour at very
+small gradients and should be evaluated rather than assumed equivalent.
