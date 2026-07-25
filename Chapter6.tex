@@ -136,7 +136,7 @@ for the 20-pass comparisons described below.
 \subsection{Common Evaluation Protocol}
 \label{subsec:optimisation_evaluation_protocol}
 
-The convergence experiments used an anthropomorphic phantom scanned on the Mediso AnyScan at the National Physical Laboratory. PET and SPECT were each partitioned into 18 subsets. Each plotted comparison curve comprises five stochastic realisations and covers the first 20 complete data passes. A single 1000-epoch reconstruction of the same objective, run with more conservative optimisation settings, provided the reference image $x^\star$; it is a final long-run iterate rather than a proven global minimiser. Appendix~\ref{app:baseline_convergence} reports the objective and iterate diagnostics supporting its effective stationarity relative to the best observed iterate.
+The convergence experiments used an anthropomorphic phantom scanned on the Mediso AnyScan at the National Physical Laboratory. PET and SPECT were each partitioned into 18 subsets. Each plotted comparison curve comprises five stochastic realisations and covers the first 20 complete data passes, extended to 25 for the preconditioner comparisons of Section~\ref{sec:optimisation_preconditioners}. A single 1000-epoch reconstruction of the same objective, run with more conservative optimisation settings, provided the reference image $x^\star$; it is a final long-run iterate rather than a proven global minimiser. Appendix~\ref{app:baseline_convergence} reports the objective and iterate diagnostics supporting its effective stationarity relative to the best observed iterate.
 
 For each stochastic run and each saved iteration, the \acrfull{nrmse} in region $R$ is
 \begin{equation}
@@ -393,7 +393,7 @@ Lewis--Sendov block-diagonal & Voxel-block diagonal of the exact smoothed spectr
 
 Five settings are compared: data-only BSREM, MM local diagonal, MM Gershgorin-inflated diagonal, MM local voxel-block, and Lewis--Sendov block-diagonal preconditioning. These settings are summarised in Table~\ref{tab:preconditioner_settings}. The four prior-aware settings use the inverse-sum combination.
 
-The comparison uses the one-bed anthropomorphic phantom, modality-separated subsets, and the folded prior schedule, i.e.\ the complete prior gradient at every update. All methods use the same objective, initialisation, long-run reference, initial step $\varsigma^{(0)}=1$, and relaxation parameter $\eta_{\mathrm{relax}}=0.002$. Five stochastic realisations are evaluated for the first 20 matched data passes. Sensitivity-derived support masks are enabled with relative threshold $10^{-3}$, and the data component is smoothed with a $5\,\mathrm{mm}$ Gaussian FWHM.
+The comparison uses the one-bed anthropomorphic phantom, modality-separated subsets, and the folded prior schedule, i.e.\ the complete prior gradient at every update. All methods use the same objective, initialisation, long-run reference, initial step $\varsigma^{(0)}=1$, and relaxation parameter $\eta_{\mathrm{relax}}=0.002$. Five stochastic realisations are evaluated for the first 25 matched data passes. Sensitivity-derived support masks are enabled with relative threshold $10^{-3}$, and the data component is smoothed with a $5\,\mathrm{mm}$ Gaussian FWHM.
 
 The reference is separate from this five-method comparison: it is a single 1000-epoch run with the same objective, a Gershgorin-diagonal MM preconditioner, and more conservative optimisation settings, including $\eta_{\mathrm{relax}}=10^{-4}$. It provides $x^\star$ for the NRMSE calculation rather than an additional candidate method.
 
@@ -402,18 +402,18 @@ The reference is separate from this five-method comparison: it is a single 1000-
 \begin{figure}[htbp]
     \centering
     \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_limited.png}
+        \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos.png}
         \caption{PET.}
     \end{subfigure}
     \begin{subfigure}{0.99\linewidth}
         \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_SPECT.png}
         \caption{SPECT.}
     \end{subfigure}
-    \caption{Convergence of data-only BSREM and the four prior-aware preconditioners in Table~\ref{tab:preconditioner_settings}. All methods use the same objective and long-run reference within each modality. Lines show the mean per-run NRMSE over five stochastic realisations, and shading shows the pointwise minimum--maximum over the first 20 matched data passes.}
+    \caption{Convergence of data-only BSREM and the four prior-aware preconditioners in Table~\ref{tab:preconditioner_settings}. All methods use the same objective and long-run reference within each modality. Lines show the mean per-run NRMSE over five stochastic realisations, and shading shows the pointwise minimum--maximum over the first 25 matched data passes. The PET vertical axis spans the full range reached by the data-only trajectory.}
     \label{fig:optim_preconditioners}
 \end{figure}
 
-The four prior-aware constructions in Figure~\ref{fig:optim_preconditioners} behave broadly similarly. Their ordering varies between regions, and the differences are small compared with the distinction between prior-aware and data-only scaling; there is no universal winner. For count-limited PET, the whole-image data-only BSREM trajectory leaves the displayed range, indicating divergence under the tested schedule, whereas the prior-aware methods remain bounded and continue to reduce the hot- and cold-sphere errors. Prior curvature was therefore required for stable PET convergence under this common step-size schedule.
+The four prior-aware constructions in Figure~\ref{fig:optim_preconditioners} behave broadly similarly. Their ordering varies between regions, and the differences are small compared with the distinction between prior-aware and data-only scaling; there is no universal winner. For count-limited PET, the whole-image data-only BSREM error grows by more than eight orders of magnitude within the first few passes and never recovers, indicating divergence under the tested schedule, whereas the prior-aware methods remain bounded and continue to reduce the hot- and cold-sphere errors. Prior curvature was therefore required for stable PET convergence under this common step-size schedule.
 
 SPECT is more robust. All five methods remain stable, and data-only BSREM is competitive with, or slightly faster than, the prior-aware alternatives in the sphere regions. This contrast suggests that the tested prior-aware scalings can be conservative for SPECT even though they are needed to stabilise the limited-count PET case.
 
@@ -429,7 +429,7 @@ SPECT is more robust. All five methods remain stable, and data-only BSREM is com
         \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_step1_2_SPECT.png}
         \caption{SPECT.}
     \end{subfigure}
-    \caption{Sensitivity to the common initial step size for the displayed preconditioners. Solid curves use $\varsigma^{(0)}=1$ and dashed curves use $\varsigma^{(0)}=2$. Lines and envelopes again show the five-run mean and pointwise minimum--maximum over 20 matched data passes.}
+    \caption{Sensitivity to the common initial step size for the displayed preconditioners. Solid curves use $\varsigma^{(0)}=1$ and dashed curves use $\varsigma^{(0)}=2$. Lines and envelopes again show the five-run mean and pointwise minimum--maximum over 25 matched data passes.}
     \label{fig:optim_step_size}
 \end{figure}
 

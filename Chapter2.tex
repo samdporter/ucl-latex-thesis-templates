@@ -339,7 +339,7 @@ x^{(k+1)}
 \operatorname{diag}\!\left(\frac{x^{(k)}}{A_s^{\mathsf T}\mathbf{1}_I}\right)\,
 A_s^{\mathsf T}\!\left(\frac{y_s}{\bar{y}_s\!\left(x^{(k)}\right)}\right),
 \end{equation}
-where $A_s$ denotes the system matrix and data restricted to subset $s$. \gls{OSEM} cycles through subsets incrementally.
+where $A_s$ denotes the system matrix and data restricted to subset $s$. \gls{osem} cycles through subsets incrementally.
 
 \glsentryshort{osem} typically shows a marked improvement in early-stage convergence by providing a cheaper approximation of the full-data \glsentryshort{em} update. However, because the subset gradient is only an approximation to the full gradient, \glsentryshort{osem} is not, in general, a convergent algorithm for the maximum-likelihood problem: as the iterates approach a solution, incremental sub-gradient updates can lead to cyclical behaviour. An example illustrating this is shown in  Figure~\ref{fig:osem_limit_cycle}.
 

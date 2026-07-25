@@ -53,4 +53,11 @@ The objective contains stochastic excursions early in the run, but its gap relat
     \label{fig:app_baseline_velocity}
 \end{figure}
 
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.62\linewidth]{figures/preconditioning/baseline/reference_pair_alpha_0.01.png}
+    \caption{Final PET and SPECT iterates of the long-run reference reconstruction, shown on a matched slice with independent colour bars. This pair is the reference $x^\star$ against which the NRMSE curves of Chapter~\ref{chapter:optimisation} are measured; it is the long-run baseline rather than one of the candidate preconditioner settings compared there.}
+    \label{fig:app_baseline_reference_pair}
+\end{figure}
+
 Together, the vanishing objective gap, relative objective change, and iterate velocity indicate that the reference was effectively stationary relative to the best observed iterate. The appreciable final step size makes step-size starvation an unlikely explanation for the plateau. These diagnostics support its use as a numerical reference for the short-run NRMSE comparisons, without asserting convergence to a global minimiser.
