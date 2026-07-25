@@ -1,7 +1,7 @@
 \chapter{Convergence Diagnostics for the Long-Run Reference Reconstruction}
 \label{app:baseline_convergence}
 
-The NRMSE comparisons in Chapter~\ref{chapter:optimisation} use the final iterate of one long-run reconstruction as their reference image. This one-bed phantom reconstruction used the same objective as the 20-pass comparisons, but was continued for 1000 epochs with 36 stochastic updates per epoch, a Gershgorin-diagonal MM preconditioner, and a more conservative relaxation rate of $\eta_{\mathrm{relax}}=10^{-4}$. Only one such reference run was performed.
+The \gls{nrmse} comparisons in Chapter~\ref{chapter:optimisation} use the final iterate of one long-run reconstruction as their reference image. This one-bed phantom reconstruction used the same objective as the 20-pass comparisons, but was continued for 1000 epochs with 36 stochastic updates per epoch, a Gershgorin-diagonal \gls{mm} preconditioner, and a more conservative relaxation rate of $\eta_{\mathrm{relax}}=10^{-4}$. Only one such reference run was performed.
 
 Let $\mathcal O_k=\mathcal O(\bm z^{(k)})$ be the recorded objective after epoch $k$, and define
 \begin{equation}
@@ -49,15 +49,15 @@ The objective contains stochastic excursions early in the run, but its gap relat
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.82\linewidth]{figures/preconditioning/baseline/baseline_convergence_final_panel.png}
-    \caption{Relative PET iterate velocity, $\lVert x^{(k)}-x^{(k-1)}\rVert/\lVert x^{(k)}\rVert$, and relaxed step size during the long-run reference reconstruction. The final velocity is $7.285\times10^{-8}$ per epoch while the step size remains $0.2174$.}
+    \caption{Relative \gls{pet} iterate velocity, $\lVert x^{(k)}-x^{(k-1)}\rVert/\lVert x^{(k)}\rVert$, and relaxed step size during the long-run reference reconstruction. The final velocity is $7.285\times10^{-8}$ per epoch while the step size remains $0.2174$.}
     \label{fig:app_baseline_velocity}
 \end{figure}
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.62\linewidth]{figures/preconditioning/baseline/reference_pair_alpha_0.01.png}
-    \caption{Final PET and SPECT iterates of the long-run reference reconstruction, shown on a matched slice with independent colour bars. This pair is the reference $x^\star$ against which the NRMSE curves of Chapter~\ref{chapter:optimisation} are measured; it is the long-run baseline rather than one of the candidate preconditioner settings compared there.}
+    \caption{Final \gls{pet} and \gls{spect} iterates of the long-run reference reconstruction, shown on a matched slice with independent colour bars. This pair is the reference $x^\star$ against which the \gls{nrmse} curves of Chapter~\ref{chapter:optimisation} are measured; it is the long-run baseline rather than one of the candidate preconditioner settings compared there.}
     \label{fig:app_baseline_reference_pair}
 \end{figure}
 
-Together, the vanishing objective gap, relative objective change, and iterate velocity indicate that the reference was effectively stationary relative to the best observed iterate. The appreciable final step size makes step-size starvation an unlikely explanation for the plateau. These diagnostics support its use as a numerical reference for the short-run NRMSE comparisons, without asserting convergence to a global minimiser.
+Together, the vanishing objective gap, relative objective change, and iterate velocity indicate that the reference was effectively stationary relative to the best observed iterate. The appreciable final step size makes step-size starvation an unlikely explanation for the plateau. These diagnostics support its use as a numerical reference for the short-run \gls{nrmse} comparisons, without asserting convergence to a global minimiser.

@@ -3,7 +3,7 @@
 %\SA{Check comment}
 In this chapter, we introduce a smoothed \acrfull{wdtnv} prior for synergistic emission tomography. The chapter focuses on the regulariser itself: its relationship to total nuclear variation, its differentiability after singular-value smoothing, the use of anatomical information through directional operators, and the modality-wise weighting needed when coupling heterogeneous emission images.
 
-The optimisation machinery used to apply this prior in large-scale PET/SPECT reconstruction, including prior-aware preconditioning, subset selection, and multi-bed PET handling, is developed separately in Chapter~\ref{chapter:optimisation}.
+The optimisation machinery used to apply this prior in large-scale \gls{pet}/\gls{spect} reconstruction, including prior-aware preconditioning, subset selection, and multi-bed \gls{pet} handling, is developed separately in Chapter~\ref{chapter:optimisation}.
 
 \section{Total Nuclear Variation Revisited}
 \label{sec:tv_to_tnv}
@@ -225,13 +225,13 @@ Here $D$ denotes the chosen discrete directional-difference operator and each $\
 \end{equation}
 When $\eta$ is not specified explicitly it is set from a robust scale estimate of $\|(Du)_n\|_2$, namely $0.01$ times the difference between its $99$th and $1$st percentiles. In homogeneous regions of the guidance image, $\xi_n$ is small and $\Pi_{m,n}$ is close to the identity, so the regulariser reduces to an approximately isotropic TNV-type coupling.
 
-Using CT only to construct the directional operators decouples anatomical steering from emission-to-emission weighting. Modality weights determine how strongly emission gradients are coupled to one another through the nuclear norm, while $\Pi_{m,n}$ determines how strongly the penalty prefers guidance-consistent edge directions. Retaining a two-modality Jacobian also preserves the efficient $2\times2$ Gram-matrix structure derived in Section~\ref{sec:tv_to_tnv}.
+Using \gls{ct} only to construct the directional operators decouples anatomical steering from emission-to-emission weighting. Modality weights determine how strongly emission gradients are coupled to one another through the nuclear norm, while $\Pi_{m,n}$ determines how strongly the penalty prefers guidance-consistent edge directions. Retaining a two-modality Jacobian also preserves the efficient $2\times2$ Gram-matrix structure derived in Section~\ref{sec:tv_to_tnv}.
 
 \subsection{Modality-wise weighting and the full \texorpdfstring{$\wdtnv$}{w-dTNV} prior}
 \label{subsec:modality_weighting}
 \label{subsec:voxelwise_weighting}
 
-PET and SPECT images of the same administered Y-90 activity differ substantially in dynamic range: the effective count level, sensitivity, and noise characteristics vary by orders of magnitude between the two modalities, and in clinical imaging the two reconstructions may also operate at different spatial resolutions. If the directional emission gradients $\Pi_{m,n}(D z_m)_n$ are used directly without normalisation, the nuclear-norm coupling is dominated by the modality with the larger gradient magnitudes.
+\gls{pet} and \gls{spect} images of the same administered \gls{y90} activity differ substantially in dynamic range: the effective count level, sensitivity, and noise characteristics vary by orders of magnitude between the two modalities, and in clinical imaging the two reconstructions may also operate at different spatial resolutions. If the directional emission gradients $\Pi_{m,n}(D z_m)_n$ are used directly without normalisation, the nuclear-norm coupling is dominated by the modality with the larger gradient magnitudes.
 
 To compensate, we introduce a voxel-wise, modality-wise diagonal weight matrix
 \begin{equation}
@@ -258,7 +258,7 @@ The weighted directional Total Nuclear Variation ($\wdtnv$) prior is then
     \phi(Y) := \sum_{\ell=1}^{\min(d,M)} g(\sigma_\ell(Y)),
     \label{eq:wdtnv_prior}
 \end{equation}
-where $V_{\mathrm{vox}}$ is the voxel volume and $g$ is the Charbonnier smoothing from~\eqref{eq:charbonnier_g}. Choosing equal weights $\rho_{m,n}\equiv 1$ recovers unweighted $d$TNV. Choosing $\rho_{m,n}$ proportional to the inverse of a characteristic modality scale brings both channels to a comparable range before the nuclear-norm coupling is evaluated. The PET/SPECT normalisation used in the application study is specified in Chapter~\ref{chapter:paper}.
+where $V_{\mathrm{vox}}$ is the voxel volume and $g$ is the Charbonnier smoothing from~\eqref{eq:charbonnier_g}. Choosing equal weights $\rho_{m,n}\equiv 1$ recovers unweighted $d$TNV. Choosing $\rho_{m,n}$ proportional to the inverse of a characteristic modality scale brings both channels to a comparable range before the nuclear-norm coupling is evaluated. The \gls{pet}/\gls{spect} normalisation used in the application study is specified in Chapter~\ref{chapter:paper}.
 
 \paragraph{Effect on the singular spectrum.}
 Right-multiplying by $B_n$ scales the $m$-th column of $\tilde{\mathcal{G}}_n$ by $\rho_{m,n}$. This scales the singular values of $\tilde{\mathcal{G}}_n$ in a non-trivial way, since the singular values of $YB$ are not simply $\sigma_\ell(Y)\rho_m$. The intended effect is instead on the Gram matrix: $\tilde{\mathcal{G}}_n^\top \tilde{\mathcal{G}}_n$ contains modality self-terms and cross-terms after scaling, so suitable $\rho_{m,n}$ values allow both modalities to contribute comparably to the coupled singular spectrum. The $2\times2$ Gram-matrix algebra in Section~\ref{sec:tv_to_tnv} applies directly to this weighted case.
@@ -267,4 +267,4 @@ Right-multiplying by $B_n$ scales the $m$-th column of $\tilde{\mathcal{G}}_n$ b
 
 This chapter introduced a smoothed, weighted, and directional Total Nuclear Variation ($\wdtnv$) prior for synergistic reconstruction. Charbonnier smoothing of the singular values yields a differentiable spectral functional whose Jacobian-space gradient can be written in Gram-matrix form. For two coupled emission modalities this reduces the key spectral operation to a $2\times2$ inverse square-root, allowing the prior and its gradient to be evaluated robustly without a general per-voxel \glsentryshort{svd}.
 
-The chapter also separated two roles that are easily confounded in multimodality reconstruction. Anatomical information is used directionally through $\Pi_{m,n}$, steering the penalty without adding CT as another coupled intensity channel. Modality scaling is handled separately through the diagonal weight matrix $B_n$, allowing PET and SPECT gradients to enter the nuclear-norm coupling on comparable scales. Chapter~\ref{chapter:optimisation} uses these definitions to construct practical preconditioners and subset-selection strategies for large-scale $\wdtnv$ optimisation.
+The chapter also separated two roles that are easily confounded in multimodality reconstruction. Anatomical information is used directionally through $\Pi_{m,n}$, steering the penalty without adding \gls{ct} as another coupled intensity channel. Modality scaling is handled separately through the diagonal weight matrix $B_n$, allowing \gls{pet} and \gls{spect} gradients to enter the nuclear-norm coupling on comparable scales. Chapter~\ref{chapter:optimisation} uses these definitions to construct practical preconditioners and subset-selection strategies for large-scale $\wdtnv$ optimisation.

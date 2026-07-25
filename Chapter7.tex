@@ -160,7 +160,7 @@ To separate the contributions of PET/SPECT coupling and CTAC-derived directional
 \end{equation}
 This tests PET/SPECT coupling without anatomical anisotropy.
 
-The second is directional TV (\dtv), which keeps CTAC-derived directional guidance but removes PET/SPECT coupling. It is obtained by applying the same directional operator only to the PET gradient,
+The second is \gls{dtv} (\dtv), which keeps CTAC-derived directional guidance but removes PET/SPECT coupling. It is obtained by applying the same directional operator only to the PET gradient,
 \begin{equation}
 \tilde{\mathcal{R}}_{\mathrm{dTV}}(z_1)
 =
@@ -253,10 +253,10 @@ After applying an eigenvalue floor $\lambda_{\min}=10^{-6}$ to both operands, th
 \end{equation}
 with $p=0.01$. At $p=0$ this expression is the parallel sum. The Lewis--Sendov/$p=0.01$ setting was frozen for this application before the broader optimisation benchmark in Chapter~\ref{chapter:optimisation}; its use here reflects protocol continuity rather than selection as the universally best preconditioner.
 
-\subsection{Comparator: sequential hybrid kernel EM}
+\subsection{Comparator: \acrfull{shkem}}
 \label{subsec:90y_shkem}
 
-We compare against the sequential hybrid kernel expectation--maximisation (SHKEM) method of Deidda \textit{et al.} \cite{deiddaTripleModalityImage2023}, using the reconstruction order and hyperparameter settings reported as optimal in that work. The sequential order is CT-guided SPECT followed by CT/SPECT-guided PET: SPECT is reconstructed first using CT-derived anatomical features and hybrid kernel updates, and the resulting SPECT reconstruction is then used together with CT-derived features and the current PET iterate to construct the PET hybrid kernel \cite{deiddaHybridKernelisedExpectation2022}. To reduce noise amplification we use frozen kernels, halting kernel updates after 27 PET subiterations and 72 SPECT subiterations, matching the comparator configuration in \cite{deiddaTripleModalityImage2023}. All kernel parameters followed the original implementation from Deidda \textit{et al.} For clinical PET data, the SHKEM implementation is applied in the same joint multi-bed setting as the variational methods.
+We compare against the \gls{shkem} method of Deidda \textit{et al.} \cite{deiddaTripleModalityImage2023}, using the reconstruction order and hyperparameter settings reported as optimal in that work. The sequential order is CT-guided SPECT followed by CT/SPECT-guided PET: SPECT is reconstructed first using CT-derived anatomical features and hybrid kernel updates, and the resulting SPECT reconstruction is then used together with CT-derived features and the current PET iterate to construct the PET hybrid kernel \cite{deiddaHybridKernelisedExpectation2022}. To reduce noise amplification we use frozen kernels, halting kernel updates after 27 PET subiterations and 72 SPECT subiterations, matching the comparator configuration in \cite{deiddaTripleModalityImage2023}. All kernel parameters followed the original implementation from Deidda \textit{et al.} For clinical PET data, the SHKEM implementation is applied in the same joint multi-bed setting as the variational methods.
 
 \subsection{Software implementation}
 \label{subsec:90y_software}
