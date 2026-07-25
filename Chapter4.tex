@@ -41,7 +41,7 @@ Within this approximation, assuming independence across voxels in the image-doma
 \end{equation}
 dropping constants independent of $x$ as in Chapter~\ref{chapter:reconstruction}.
 
-A MAP (penalised-likelihood) deconvolution estimate is then
+A \acrfull{map} deconvolution estimate is then
 \begin{equation}
     \hat x
     \in
@@ -68,7 +68,6 @@ The RL algorithm is the EM algorithm for the Poisson model \eqref{eq:deconv_forw
         C^{\mathsf T}\!\left( y \oslash (C x^{(k)}) \right).
     \label{eq:rl_update}
 \end{equation}
-More generally, the right-hand side of \eqref{eq:rl_update} contains an elementwise division by $C^{\mathsf T}\mathbf{1}$; in this chapter this denominator is neglected because the \glsentryshort{psf} kernels are normalised and boundary effects are small.
 As with \glsentryshort{mlem}/\glsentryshort{osem} under the full forward model, RL iterations tend to sharpen edges rapidly but amplify high-frequency noise as iterations increase. Consequently, unregularised RL is typically used with early stopping, which acts as an implicit regulariser but yields iteration-dependent bias.
 
 \subsection{Scaled-gradient interpretation and EM-type preconditioning}
@@ -138,7 +137,7 @@ Maximising the Poisson likelihood with respect to $\alpha$ under \eqref{eq:decon
     x^{(k+1)} = K\alpha^{(k+1)}.
     \label{eq:krl_update}
 \end{equation}
-As in \gls{kem}, the denominator can be precomputed once, and the update preserves non-negativity given $\alpha^{(0)}\ge 0$. Under the same unit-sensitivity approximation used for vanilla \gls{rl}, $C^{\mathsf T}\mathbf{1}\approx\mathbf{1}$, the denominator reduces to $K^{\mathsf T}\mathbf{1}$; this term is generally not equal to $\mathbf{1}$ and cannot be ignored.
+As in \gls{kem}, the denominator can be precomputed once, and the update preserves non-negativity given $\alpha^{(0)}\ge 0$. Under the same unit-sensitivity approximation used for vanilla \gls{rl}, $C^{\mathsf T}\mathbf{1}\approx\mathbf{1}$, the denominator reduces to $K^{\mathsf T}\mathbf{1}$. This term is generally not equal to $\mathbf{1}$ and cannot be ignored.
 
 \subsection{Hybrid KRL (HKRL)}
 \label{sec:deconv_hkrl}
@@ -181,7 +180,7 @@ Here $R_{\mathrm{sDTV}}$ is a smoothed \gls{dtv} penalty. A natural baseline sol
     \right\}_{\geq 0},
     \label{eq:rldtv_update}
 \end{equation}
-where $\{\}_{\geq0}$ denotes projection onto non-negativity. Step sizes $\{\varsigma_k\}$ may be taken constant (with conservative tuning) or diminishing to improve stability. This update is the image-domain analogue of the scaled-gradient MAP schemes discussed in Chapter~\ref{chapter:reconstruction} (compare with BSREM-type forms), but without subsets.
+where $\{\}_{\geq0}$ denotes projection onto non-negativity. This update is the image-domain analogue of the scaled-gradient \gls{map} schemes discussed in Chapter~\ref{chapter:reconstruction}, but without subsets.
 
 In contrast to kernelised RL variants, RL--DTV is typically numerically stable once $\beta$ is chosen, and the objective in \eqref{eq:deconv_map_dtv} is smooth with simple bound constraints. This makes it well suited to a quasi-Newton solver: in the experiments of this chapter we therefore accelerate convergence by optimising \eqref{eq:deconv_map_dtv} with the L-BFGS-B algorithm reviewed in Section~\ref{sec:optimisation}, using bound constraints to enforce non-negativity. In this setting, L-BFGS-B replaces the hand-tuned step-size sequence $\{\varsigma_k\}$ by an automatic line search and curvature-informed scaling, often reaching a stationary point of \eqref{eq:deconv_map_dtv} in substantially fewer iterations than the scaled-gradient RL--DTV update \eqref{eq:rldtv_update}.
 
@@ -197,7 +196,7 @@ For RL and KRL/HKRL, early stopping is essential and is treated as part of the r
     \qquad
     \mathcal{O}(x)=\mathcal{L}(x)+\beta R_{\mathrm{sDTV}}(x;u).
 \end{equation}
-Here $f_{\mathrm{tol}}$ is chosen to be $10^{-6}$. In L-BFGS-B implementations that expose the historical \texttt{factr} parameter, the equivalent objective tolerance is $f_{\mathrm{tol}}=\texttt{factr}\,\epsilon_{\mathrm{mp}}$, where $\epsilon_{\mathrm{mp}}$ is machine precision.
+Here $f_{\mathrm{tol}}$ is chosen to be $10^{-6}$.
 
 \section{Data and experimental setup} \label{sec:deconv_data}
 Two datasets are used to characterise behaviour under controlled and realistic conditions.
@@ -247,7 +246,7 @@ Finally, overall fidelity to the truth is summarised by the normalised root mean
 {\sqrt{\frac{1}{|\Omega|}\sum_{i\in \Omega}\left(x^\star_i\right)^2}}.
 \end{equation}
 
-The in vivo dataset is a $\tau$-\gls{pet} scan acquired on a healthy volunteer using the tracer \textsuperscript{18}F-MK-6240, with a co-registered anatomical \glsentryshort{mri} serving as guidance. This dataset is used to qualitatively illustrate how the different priors behave in the presence of heterogeneous uptake patterns and fine anatomical structure, where over-regularisation can lead to anatomical ``imprinting''. The FWHM of the deconvolution operator was estimated from a Hoffman brain phantom scan acquired on the same Siemens Vision scanner. The phantom reconstruction used PSF modelling; after removing extra-cerebral activity, the reconstructed image was co-registered to a Hoffman template, and the template was smoothed over a grid of Gaussian FWHM values, independently in the in-plane and axial directions. The smoothing that minimised the sum-of-squared differences to the reconstructed phantom image was selected, giving $\mathrm{FWHM}=(\SI{4.6}{\milli\metre},\SI{4.6}{\milli\metre},\SI{6.4}{\milli\metre})$.
+The in vivo dataset is a $\tau$-\gls{pet} scan acquired on a healthy volunteer using the tracer \textsuperscript{18}F-MK-6240, with a co-registered anatomical \glsentryshort{mri} serving as guidance. This dataset is used to qualitatively illustrate how the different priors behave in the presence of heterogeneous uptake patterns and fine anatomical structure, where over-regularisation can lead to anatomical ``imprinting''. The FWHM of the deconvolution operator was estimated from a Hoffman brain phantom scan acquired on the same Siemens Vision scanner, giving $\mathrm{FWHM}=(\SI{4.6}{\milli\metre},\SI{4.6}{\milli\metre},\SI{6.4}{\milli\metre})$.
 
 \subsection{Hyperparameter tuning}
 \label{subsec:hyperparameter_tuning}
@@ -365,7 +364,7 @@ The effect of initialisation on the quality of reconstructions can be seen in Fi
         \centering
         \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_unif_init/fig4eii_spheres_recovery_vs_cov_all_params_curves_fixed_axes.png}
     \end{subfigure}
-    \caption{Figures showing RC versus CoV for all reconstructions. Top, initialised by the blurred \gls{pet} image and bottom, initialised by a uniform image. KRL and HKRL are visually indistinguishable in these plots.}
+    \caption{Figures showing RC versus CoV for all reconstructions. Top, initialised by the blurred \gls{pet} image and bottom, initialised by a uniform image. KRL and HKRL are visually indistinguishable in these plots. Comparing the two plots highlights the effect of initialisation on kernelised and RL methods, whereas \gls{rldtv} has optimal solutions independent of initialisation.
     \label{fig:rc_cov_krl}
 \end{figure}
 
@@ -389,7 +388,6 @@ $\tau$-\gls{pet} brain data were only qualitatively analysed. Optimal images wer
 \end{figure}
 
 In the brain example, RL produced sharp but visibly noisy cortical structure, while KRL and HKRL suppressed noise but showed stronger dependence on the anatomical guidance image. RL--DTV gave the best qualitative compromise in this dataset: cortical definition was improved relative to the blurred image and the kernel methods, while noise amplification was lower than for unregularised RL\@. This visual assessment supports the quantitative sphere result, but should be interpreted cautiously because it is based on a single healthy volunteer scan and does not include a reference truth.
-
 
 
 \section{Discussion}
