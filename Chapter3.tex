@@ -3,16 +3,13 @@
 
 Chapter~\ref{chap:intro_material} described the principal limitations of \isotope[90]{Y} Bremsstrahlung \gls{spect}: the continuous photon spectrum makes conventional energy-window scatter correction unsuitable, high-energy photons undergo septal penetration and collimator scatter, and external Bremsstrahlung photons may be emitted away from the original decay site as the $\beta^-$ particle traverses tissue. This chapter develops the practical \glsentryshort{spect} model used later for joint \glsentryshort{pet}/\glsentryshort{spect} reconstruction. It addresses two specific components: a \glsentryshort{simind}-derived estimate of non-primary counts and an image-space approximation to Bremsstrahlung range blur.
 
-The resulting mean projection model is
-\begin{equation}
-    \bar y(x) = A_{\mathrm{prim}}K_{\mathrm{brem}}x+b_{\mathrm{MC}},
-    \qquad
-    y_i\sim\operatorname{Poisson}\!\left(\bar y_i(x)\right),
-    \label{eq:brems_forward_model}
+The resulting model is
+\begin{equation} \label{eq:brems_forward_model}
+    \bar y(x) = A_{\mathrm{prim}}K_{\mathrm{brem}}x+b_{\mathrm{MC}}
 \end{equation}
 where $A_{\mathrm{prim}}$ contains attenuation, geometric projection, the intrinsic detector response and the geometric collimator response; $K_{\mathrm{brem}}$ is the image-space range-blur operator and $b_{\mathrm{MC}}$ represents detected counts not described by this primary-event model. The latter includes patient scatter, collimator scatter and septal penetration, so these effects are not also included in $A_{\mathrm{prim}}$. It is therefore referred to throughout as a non-primary additive term, rather than as patient scatter alone.
 
-The two components in Equation~\ref{eq:brems_forward_model} are estimated in a preparatory stage. Once estimated, both the acquisition model and $b_{\mathrm{MC}}$ are fixed during the target reconstruction. This separation is important: the purpose of the reconstruct--simulate loop below is to prepare an object- and acquisition-specific additive estimate, not to alter the likelihood model while the subsequent penalised reconstruction is running.
+The two components in Equation~\ref{eq:brems_forward_model} are estimated in a preparatory stage. Once estimated, both the acquisition model and $b_{\mathrm{MC}}$ are fixed during the target reconstruction. The purpose of the reconstruct--simulate loop below is to prepare an object- and acquisition-specific additive estimate, which avoids altering the objective function, and therefore the solution, during reconstruction.
 
 
 \section{Pre-Reconstruction Estimation of Non-Primary Counts}
@@ -29,19 +26,14 @@ The scatter-derived initial estimate $b^{(0)}$ is produced by the convolutional 
 
 Starting from $b^{(0)}$, an outer iteration consists of the following operations:
 \begin{enumerate}
-    \item reconstruct an activity estimate $x^{(k)}$ using the current additive
-    term $b^{(k)}$;
-    \item smooth the intermediate image with an isotropic
-    $5\,\mathrm{mm}$-\gls{fwhm} Gaussian and restrict it to the body mask, giving
-    $\widetilde x^{(k)}$;
-    \item use the smoothed image as the source distribution for a
-    \glsentryshort{simind} simulation; and
-    \item extract a newly simulated non-primary estimate
-    $\widehat b^{(k+1)}$ and update the running estimate.
+    \item reconstruct an activity estimate $x^{(k)}$ using the current additive term $b^{(k)}$;
+    \item smooth the intermediate image with an isotropic $5\,\mathrm{mm}$-\gls{fwhm} Gaussian and restrict it to the body mask, giving $\widetilde x^{(k)}$;
+    \item use the smoothed image as the source distribution for a  \glsentryshort{simind} simulation; and
+    \item extract a newly simulated non-primary estimate $\widehat b^{(k+1)}$ and update the running estimate.
 \end{enumerate}
 Each intermediate reconstruction used 12 staggered subsets and 10 epochs (120 subset updates), warm-started from the preceding outer iterate. Ten outer iterations were used as a pre-specified computational budget. This endpoint is not presented as evidence of asymptotic convergence. The simulations were driven from Python using the interface described in Appendix~\ref{app:simind_python_connector}.
 
-At outer iteration $k$, one simulation produces the total simulated detected projection counts $p_{\mathrm{tot}}^{(k)}$ and the attenuated, geometrically collimated primary component $p_{\mathrm{geo}}^{(k)}$. The Monte Carlo projections are first placed on the scale of the analytic acquisition model $A_{\star}=A_{\mathrm{prim}}K_{\mathrm{brem}}$. Let $\mathcal I_k$ contain bins with non-zero $p_{\mathrm{geo},i}^{(k)}$ after the lowest and highest 5\% of the per-bin ratios $(A_{\star}\widetilde x^{(k)})_i/ p_{\mathrm{geo},i}^{(k)}$ have been excluded. The scalar calibration is
+At outer iteration $k$, one simulation produces the total simulated detected projection counts $p_{\mathrm{tot}}^{(k)}$ and the attenuated, geometrically collimated primary component $p_{\mathrm{geo}}^{(k)}$. Inspired by the work by Dewaraja et. al in \cite{dewarajaImprovedQuantitative90Y2017}, the Monte Carlo projections are first placed on the scale of the analytic acquisition model $A_{\star}=A_{\mathrm{prim}}K_{\mathrm{brem}}$. Let $\mathcal I_k$ contain bins with non-zero $p_{\mathrm{geo},i}^{(k)}$ after the lowest and highest 5\% of the per-bin ratios $(A_{\star}\widetilde x^{(k)})_i/ p_{\mathrm{geo},i}^{(k)}$ have been excluded. The scalar calibration is
 \begin{equation}
     s^{(k)} =
     \frac{\sum_{i\in\mathcal I_k}(A_{\star}\widetilde x^{(k)})_i}
@@ -72,7 +64,7 @@ Using this methods, we observed some divergence in non-primary additive term whe
 \end{equation}
 The value $\alpha=0.2$ was selected heuristically rather than through an optimisation study.
 
-Figure~\ref{fig:nema_scatter_est} shows the diagnostic that motivated this choice. With full replacement, the scale of successive projection profiles oscillates and grows rapidly. By the fourth outer iteration, the estimated additive profile exceeds the measured total-emission profile. Under-relaxation keeps the profiles bounded over the ten-step refinement budget and suppresses the large iteration-to-iteration swings.
+Figure~\ref{fig:nema_scatter_est} shows the diagnostic that motivated this choice. With full replacement, the scale of successive projection profiles oscillates and grows rapidly. By the fourth outer iteration, the estimated additive profile well exceeds the measured total-emission profile. Under-relaxation keeps the profiles bounded over the ten-step refinement budget and suppresses the large iteration-to-iteration swings.
 
 \begin{figure}[H]
     \centering
@@ -87,7 +79,7 @@ Figure~\ref{fig:nema_scatter_est} shows the diagnostic that motivated this choic
         \includegraphics[width=\linewidth]{figures/Chapter3/offline_scatter_damped.png}
         \caption{Under-relaxed update, $\alpha=0.2$.}
     \end{subfigure}
-    \caption{Projection-domain behaviour of the preparatory additive-term refinement for a measured NEMA phantom. Coloured curves are profiles of the estimated non-primary term $b^{(k)}$; every displayed iteration belongs to the preparatory reconstruct--simulate loop. Profiles are summed over views at an axial position through the spheres; the horizontal coordinate is the tangential detector bin and the vertical coordinate is counts. The measured total-emission profile and learned scatter initialisation are scale and shape references, not ground truth for $b^{(k)}$. Full replacement
+    \caption{Projection-domain behaviour of the preparatory additive-term refinement for a measured NEMA phantom. Coloured curves are profiles of the estimated non-primary term $b^{(k)}$; every displayed iteration is one outer step of the preparatory reconstruct--simulate loop. Profiles are summed over views at an axial position through the spheres; the horizontal coordinate is the tangential detector bin and the vertical coordinate is counts. Full replacement
     produces large alternating changes within four outer iterations, whereas the under-relaxed profiles remain bounded through the tenth outer iteration.}
     \label{fig:nema_scatter_est}
 \end{figure}

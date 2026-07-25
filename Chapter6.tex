@@ -212,7 +212,7 @@ This accounting matches data-projection work and average prior weight, but it do
     \end{subfigure}
     \begin{subfigure}{0.99\linewidth}
         \includegraphics[width=\linewidth]{figures/preconditioning/subsets/full/exp_subset_selection_1bpos_mm_diag_tight_combine_majoriser_alpha_1_SPECT.png}
-        \caption{SPECT represented on the PET grid.}
+        \caption{SPECT.}
     \end{subfigure}
     \caption{Convergence for the six combinations of subset organisation (paired, separate) and prior-application schedule (folded, sampled, once per epoch) using the MM local-diagonal curvature preconditioner. Lines show the mean per-run NRMSE over five stochastic realisations and shading shows the pointwise minimum--maximum over the first 20 matched data passes. In the legend, prior folded, prior/half, and prior once/epoch denote the folded, sampled, and once-per-epoch schedules; every schedule applies on average one complete prior contribution per matched data pass.}
     \label{fig:optim_subset_organisation}
@@ -403,11 +403,11 @@ The reference is separate from this five-method comparison: it is a single 1000-
     \centering
     \begin{subfigure}{0.99\linewidth}
         \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_limited.png}
-        \caption{Count-limited PET.}
+        \caption{PET.}
     \end{subfigure}
     \begin{subfigure}{0.99\linewidth}
         \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_SPECT.png}
-        \caption{SPECT represented on the PET grid.}
+        \caption{SPECT.}
     \end{subfigure}
     \caption{Convergence of data-only BSREM and the four prior-aware preconditioners in Table~\ref{tab:preconditioner_settings}. All methods use the same objective and long-run reference within each modality. Lines show the mean per-run NRMSE over five stochastic realisations, and shading shows the pointwise minimum--maximum over the first 20 matched data passes.}
     \label{fig:optim_preconditioners}
@@ -423,11 +423,11 @@ SPECT is more robust. All five methods remain stable, and data-only BSREM is com
     \centering
     \begin{subfigure}{0.99\linewidth}
         \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_step1_2_limited.png}
-        \caption{Count-limited PET.}
+        \caption{PET.}
     \end{subfigure}
     \begin{subfigure}{0.99\linewidth}
         \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_step1_2_SPECT.png}
-        \caption{SPECT represented on the PET grid.}
+        \caption{SPECT.}
     \end{subfigure}
     \caption{Sensitivity to the common initial step size for the displayed preconditioners. Solid curves use $\varsigma^{(0)}=1$ and dashed curves use $\varsigma^{(0)}=2$. Lines and envelopes again show the five-run mean and pointwise minimum--maximum over 20 matched data passes.}
     \label{fig:optim_step_size}

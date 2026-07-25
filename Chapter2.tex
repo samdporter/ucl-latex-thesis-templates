@@ -178,7 +178,8 @@ Regularisation strategies also exist outside the standard Bayesian (penalised-li
 \end{equation}
 where $\alpha \in \mathbb{R}^J$ is a coefficient image and $K\in\mathbb{R}^{J\times J}$ is a (typically sparse) kernel matrix whose entries encode similarity between voxels based on features extracted from a guidance image \cite{hutchcroftAnatomicallyaidedPETReconstruction2016}. Each voxel $j$ is assigned a feature vector $f_j$ (commonly a patch of intensities in the high-resolution guidance image), and a radial Gaussian kernel is often used,
 \begin{equation} \label{eq:gaussian_kernel}
-    \kappa(f_j,f_k)=\exp\!\left(-\frac{\|f_j-f_k\|_2^2}{2\sigma^2}\right),
+    \kappa(f_j,f_k)=\
+    \!\left(-\frac{\|f_j-f_k\|_2^2}{2\sigma^2}\right),
 \end{equation}
 with $\sigma$ controlling edge sensitivity. The kernel matrix is then defined entrywise by $K_{jk}=\kappa(f_j,f_k)$, with additional sparsification for tractability: for each voxel $j$, only a small set of the most similar neighbours (e.g.\ via a local $k$-nearest-neighbour search within a window) are allowed to contribute, yielding a sparse $K$. To preserve overall intensity scaling (counts), $K$ is typically row-normalised.
 
