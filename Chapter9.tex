@@ -37,19 +37,20 @@ Define
 \begin{equation}
     s_n(\bm{z})
     :=
-    \frac{1}{c_{\mathcal E}}
     \sum_{m=1}^{M}\rho_{m,n}
     \sum_{\ell=1}^{d}
     \bigl((S z_m)_n\bigr)^{(\ell)},
     \label{eq:rnv_local_sum}
 \end{equation}
-where $c_{\mathcal E}=d$ forms a directional average. This normalises the raw
-endpoint sum and reduces its dependence on stencil cardinality. The weights
-$\rho_{m,n}$ are fixed with respect to $\bm{z}$ but may be voxel-dependent;
-the application in Chapter~\ref{chapter:paper} would use the spatially uniform
-weights $\rho_m$. Thus, $s_n$ is the direct sum counterpart of the weighted
-finite-difference bank: it retains the PET/SPECT modality scaling but does not
-apply the CT-derived directional operators $\Pi_{m,n}$. Anatomical directionality
+The full directional sum is retained so that its stencil scaling matches that
+of the locally quadratic numerator. In particular, duplicating every stencil
+direction $q$ times scales $r_n^2$ and $s_n$ by the same factor $q$, leaving
+$r_n^2/s_n$ unchanged. The weights $\rho_{m,n}$ are fixed with respect to
+$\bm{z}$ but may be voxel-dependent; the application in
+Chapter~\ref{chapter:paper} would use the spatially uniform weights $\rho_m$.
+Thus, $s_n$ is the direct sum counterpart of the weighted finite-difference
+bank: it retains the PET/SPECT modality scaling but does not apply the
+CT-derived directional operators $\Pi_{m,n}$. Anatomical directionality
 continues to enter the numerator through the weighted directional Jacobian.
 
 Let
@@ -78,8 +79,9 @@ operators $\Pi_{m,n}$. An RNV prior could then be defined as
     \varepsilon_{\mathrm{RNV}}>0.
     \label{eq:rnv_prior}
 \end{equation}
-This mirrors the scalar RDP construction, replacing the magnitude of a
-pairwise difference by the nuclear magnitude of the multimodality Jacobian.
+This is inspired by the scalar RDP construction, but aggregates the
+multimodality directional information into a single nuclear magnitude rather
+than summing pairwise RDP terms.
 Because $D$ and $S$ use the same physical distance scaling and the same
 modality weights, $r_n$ and $s_n$ have the same units;
 $\gamma_{\mathrm{RNV}}$ is dimensionless and
@@ -92,8 +94,8 @@ $r_n\gg(s_n+\varepsilon_{\mathrm{RNV}})/\gamma_{\mathrm{RNV}}$, it approaches
 $r_n/\gamma_{\mathrm{RNV}}$ and hence recovers TNV-like linear edge
 penalisation.
 
-The proposed positive penalty would be convex under the definitions above. To see
-this, consider
+The proposed non-negative penalty would be convex under the definitions above.
+To see this, consider
 \begin{equation}
     h(r,s)
     :=
