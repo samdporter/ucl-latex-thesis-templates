@@ -9,9 +9,9 @@
 \subsection{Relative Nuclear Variation}
 \label{subsec:future_rnv}
 
-The modality weights used by \wdtnv{} compensate for the markedly different global scales of the PET and SPECT images. However, a single global normalisation does not account for the large spatial variation in activity within either image. An extension inspired by the \acrfull{rdp} \cite{nuytsConcavePriorPenalizing2002} could introduce this local intensity dependence while retaining the edge-alignment mechanism of the nuclear norm. We refer to the proposed construction as \emph{relative nuclear variation} (\acrfull{rnv}).
+The modality weights used by \wdtnv{} compensate for the markedly different global scales of the PET and SPECT images. However, a single global normalisation does not account for the large spatial variation in activity within either image. An extension inspired by the \acrfull{rdp} \cite{nuytsConcavePriorPenalizing2002} could introduce this local intensity dependence while retaining the edge-alignment mechanism of the nuclear norm. We refer to the proposed construction as relative nuclear variation (\acrfull{rnv}).
 
-Let $\mathcal{E}=\{e_\ell\}_{\ell=1}^{d}$ be the same stencil used by the finite-difference operator $D$ in Chapter~\ref{chapter:paper}. Alongside $D$, define a companion endpoint-sum operator $Z$ by
+Let $\mathcal{E}=\{e_\ell\}_{\ell=1}^{d}$ be the same stencil used by the finite-difference operator $D$ in Chapter~\ref{chapter:paper}. Alongside $D$, define a Euclidean-distance weighted sum operator $Z$ by
 \begin{equation}
     \bigl((Z z_m)_n\bigr)^{(\ell)}
     :=
@@ -19,7 +19,7 @@ Let $\mathcal{E}=\{e_\ell\}_{\ell=1}^{d}$ be the same stencil used by the finite
     \qquad \ell=1,\ldots,d.
     \label{eq:rnv_sum_operator}
 \end{equation}
-Thus, $Z$ uses the same neighbourhood, boundary treatment and physical distance scaling as $D$, differing only in replacing subtraction by addition. Under the Neumann extension used in Chapter~\ref{chapter:paper}, an out-of-domain neighbour is replaced by the boundary voxel itself, so the corresponding endpoint sum is $2z_{m,n}$. The same fixed PET/SPECT weights that scale the columns of the weighted directional Jacobian should also scale their contributions to the local sum.
+$Z$ uses the same neighbourhood, boundary treatment and physical distance scaling as $D$, differing only in replacing subtraction by addition. Under the Neumann extension used in Chapter~\ref{chapter:paper}, an out-of-domain neighbour is replaced by the boundary voxel itself, so the corresponding endpoint sum is $2z_{m,n}$. The same fixed PET/SPECT weights that scale the columns of the weighted directional Jacobian should also scale their contributions to the local sum.
 Define
 \begin{equation}
     s_n(\bm{z})
