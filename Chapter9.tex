@@ -11,7 +11,21 @@
 
 The modality weights used by \wdtnv{} compensate for the markedly different global scales of the PET and SPECT images. However, a single global normalisation does not account for the large spatial variation in activity within either image. An extension inspired by the \acrfull{rdp} \cite{nuytsConcavePriorPenalizing2002} could introduce this local intensity dependence while retaining the edge-alignment mechanism of the nuclear norm. We refer to the proposed construction as relative nuclear variation (\acrfull{rnv}).
 
-Let $\mathcal{E}=\{e_\ell\}_{\ell=1}^{d}$ be the same stencil used by the finite-difference operator $D$ in Chapter~\ref{chapter:paper}. Alongside $D$, define a Euclidean-distance weighted sum operator $Z$ by
+The \gls{rdp} of Equation~\eqref{eq:rdp} divides the squared difference across a neighbouring voxel pair by the local sum of the two intensities, together with a $\gamma$-weighted difference term that restores \gls{tv}-like behaviour at strong edges. Transferring this structure to \wdtnv{} requires two voxel-wise ingredients: a numerator measuring the coupled multimodality edge strength at voxel $n$, and a local intensity sum over the same neighbourhood by which to divide it. These are defined in turn below and then combined.
+
+The numerator is the edge magnitude that \wdtnv{} already penalises. Let
+\begin{equation}
+    r_n(\bm{z})
+    :=
+    \left\|\tilde{\mathcal{G}}_n(\bm{z})\right\|_*
+    =
+    \sum_{\ell=1}^{\min(d,M)}
+    \sigma_\ell\!\left(\tilde{\mathcal{G}}_n(\bm{z})\right)
+    \label{eq:rnv_nuclear_magnitude}
+\end{equation}
+be the nuclear magnitude of the same weighted directional Jacobian used by \wdtnv, including the modality weights $\rho_{m,n}$ and CT-derived operators $\Pi_{m,n}$. This plays the role of $|x_j-x_k|$ in the \gls{rdp}, with the scalar pairwise difference replaced by a single quantity that aggregates the directional information of all modalities at the voxel and, through the nuclear norm, favours edges that are shared between them.
+
+The denominator requires a counterpart to the endpoint sum $x_j+x_k$ acting on the same neighbourhood as the finite-difference operator. Let $\mathcal{E}=\{e_\ell\}_{\ell=1}^{d}$ be the same stencil used by $D$ in Chapter~\ref{chapter:paper}. Alongside $D$, define a Euclidean-distance weighted sum operator $Z$ by
 \begin{equation}
     \bigl((Z z_m)_n\bigr)^{(\ell)}
     :=
@@ -29,19 +43,9 @@ Define
     \bigl((Z z_m)_n\bigr)^{(\ell)},
     \label{eq:rnv_local_sum}
 \end{equation}
-The full directional sum is retained so that its stencil scaling matches that of the locally quadratic numerator. In particular, duplicating every stencil direction $q$ times scales $r_n^2$ and $s_n$ by the same factor $q$, leaving $r_n^2/s_n$ unchanged. The weights $\rho_{m,n}$ are fixed with respect to $\bm{z}$ but may be voxel-dependent; the application in Chapter~\ref{chapter:paper} would use the spatially uniform weights $\rho_m$. Thus, $s_n$ is the direct sum counterpart of the weighted finite-difference bank: it retains the PET/SPECT modality scaling but does not apply the CT-derived directional operators $\Pi_{m,n}$. Anatomical directionality continues to enter the numerator through the weighted directional Jacobian.
+where the weights $\rho_{m,n}$ are fixed with respect to $\bm{z}$ but may be voxel-dependent; the application in Chapter~\ref{chapter:paper} would use the spatially uniform weights $\rho_m$. Thus, $s_n$ is the direct sum counterpart of the weighted finite-difference bank: it retains the PET/SPECT modality scaling but does not apply the CT-derived directional operators $\Pi_{m,n}$, so anatomical directionality enters only through the numerator.
 
-Let
-\begin{equation}
-    r_n(\bm{z})
-    :=
-    \left\|\tilde{\mathcal{G}}_n(\bm{z})\right\|_*
-    =
-    \sum_{\ell=1}^{\min(d,M)}
-    \sigma_\ell\!\left(\tilde{\mathcal{G}}_n(\bm{z})\right)
-    \label{eq:rnv_nuclear_magnitude}
-\end{equation}
-be the nuclear magnitude of the same weighted directional Jacobian used by \wdtnv, including the modality weights $\rho_{m,n}$ and CT-derived operators $\Pi_{m,n}$. An \gls{rnv} prior could then be defined as
+Combining the two, an \gls{rnv} prior could then be defined as
 \begin{equation}
     \mathcal{R}_{\mathrm{RNV}}(\bm{z})
     :=
@@ -55,7 +59,7 @@ be the nuclear magnitude of the same weighted directional Jacobian used by \wdtn
     \varepsilon_{\mathrm{RNV}}>0.
     \label{eq:rnv_prior}
 \end{equation}
-This is inspired by the scalar RDP construction, but aggregates the multimodality directional information into a single nuclear magnitude rather than summing pairwise RDP terms. Because $D$ and $Z$ use the same physical distance scaling and the same modality weights, $r_n$ and $s_n$ have the same units; $\gamma_{\mathrm{RNV}}$ is dimensionless and $\varepsilon_{\mathrm{RNV}}$ has the units of $r_n$. For $r_n\ll(s_n+\varepsilon_{\mathrm{RNV}})/\gamma_{\mathrm{RNV}}$, the local density would behave approximately as $r_n^2/(s_n+\varepsilon_{\mathrm{RNV}})$ and therefore provide locally intensity-scaled quadratic regularisation of the nuclear gradient. For $r_n\gg(s_n+\varepsilon_{\mathrm{RNV}})/\gamma_{\mathrm{RNV}}$, it approaches $r_n/\gamma_{\mathrm{RNV}}$ and hence recovers TNV-like linear edge penalisation.
+This is inspired by the scalar RDP construction, but aggregates the multimodality directional information into a single nuclear magnitude rather than summing pairwise RDP terms. Because $D$ and $Z$ use the same physical distance scaling and the same modality weights, $r_n$ and $s_n$ have the same units; $\gamma_{\mathrm{RNV}}$ is dimensionless and $\varepsilon_{\mathrm{RNV}}$ has the units of $r_n$. Retaining the full directional sum in Equation~\eqref{eq:rnv_local_sum}, rather than a subset of directions, makes the stencil scaling of the denominator match that of the locally quadratic numerator: duplicating every stencil direction $\kappa$ times scales the singular values of $\tilde{\mathcal{G}}_n$ by $\sqrt{\kappa}$, so $r_n^2$ and $s_n$ are scaled by the same factor $\kappa$ and $r_n^2/s_n$ is unchanged. For $r_n\ll(s_n+\varepsilon_{\mathrm{RNV}})/\gamma_{\mathrm{RNV}}$, the local density would behave approximately as $r_n^2/(s_n+\varepsilon_{\mathrm{RNV}})$ and therefore provide locally intensity-scaled quadratic regularisation of the nuclear gradient. For $r_n\gg(s_n+\varepsilon_{\mathrm{RNV}})/\gamma_{\mathrm{RNV}}$, it approaches $r_n/\gamma_{\mathrm{RNV}}$ and hence recovers TNV-like linear edge penalisation.
 
 The proposed non-negative penalty would be convex under the definitions above. To see this, consider
 \begin{equation}

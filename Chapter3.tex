@@ -131,6 +131,7 @@ In clinical practice, adaptable edge-preserving priors are often preferred. The 
     \mathcal{R}_{\mathrm{RDP}}(x)
     = \frac{1}{2}\sum_{j=1}^J \sum_{k \in \mathcal{N}_j} w_{jk}
     \frac{(x_j-x_k)^2}{x_j+x_k + \gamma|x_j-x_k| + \epsilon},
+    \label{eq:rdp}
 \end{equation}
 with $\gamma$ controlling the amount of edge preservation and $\epsilon\geq0$ the STIR RDP stabiliser. Positive $\epsilon$ regularises zero-valued voxel pairs; when $\epsilon=0$, STIR assigns the zero--zero contribution its limiting value of zero. Note that if $(x_j+x_k+\epsilon)\gg \gamma|x_j-x_k|$ then $\mathcal R_{\mathrm{RDP}}$ behaves like a relative quadratic prior,
 whereas if $\gamma|x_j-x_k|\gg (x_j+x_k+\epsilon)$ it behaves like an anisotropic \gls{tv} penalty (up to a constant factor).
