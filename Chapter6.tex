@@ -79,7 +79,20 @@ f(s)=\sum_{\ell=1}^{r} g(s_\ell),
 r=\min\{d,M\},
 \end{equation}
 is orthogonally invariant and depends on $Y$ only through its singular values $\sigma(Y)=(\sigma_1(Y),\dots,\sigma_r(Y))$.
-Since $g\in C^\infty([0,\infty))$ for $\epsilon>0$, the symmetric function $f$ is smooth and hence $\phi$ is differentiable, with gradient given by the standard formula for orthogonally invariant matrix functions \cite{lewisConvexAnalysisUnitarily1995,lewisDerivativesSpectralFunctions1996}.
+
+Smoothness of $\phi$ does not follow from smoothness of $g$ on $[0,\infty)$ alone. The Lewis--Sendov theory of spectral functions requires $f$ to be \emph{absolutely symmetric}, that is invariant under both permutations and sign changes of its arguments, and requires differentiability of $f$ as a function on $\mathbb{R}^r$ rather than on the nonnegative orthant \cite{lewisConvexAnalysisUnitarily1995,lewisDerivativesSpectralFunctions1996}. The distinction is not cosmetic: the unsmoothed choice $g(s)=s$ is also $C^\infty$ on $[0,\infty)$, yet the nuclear norm is not differentiable at rank-deficient points. What licenses differentiability here is that for $\epsilon>0$ the Charbonnier function
+\begin{equation}
+    g(s)=\sqrt{s^2+\epsilon^2}-\epsilon
+\end{equation}
+extends to an \emph{even} function that is $C^\infty$ on all of $\mathbb{R}$, and in particular across $s=0$. Consequently $f(s)=\sum_{\ell}g(s_\ell)$ is absolutely symmetric and $C^\infty$ on $\mathbb{R}^r$, so $\phi=f\circ\sigma$ is differentiable everywhere, including at rank-deficient $Y$, with gradient given by the standard formula for orthogonally invariant matrix functions \cite{lewisConvexAnalysisUnitarily1995,lewisDerivativesSpectralFunctions1996}. Singular-value smoothing is therefore the spectral counterpart of the corner rounding used for \gls{tv}, where $|z|$ is replaced by $\sqrt{z^2+\epsilon^2}$ and the resulting penalty is recognised as ordinary edge-preserving regularisation with a hyperbola potential function. \TODO{Add the Zenodo-managed citations for Charbonnier et al.\ (1997) on deterministic edge-preserving regularisation and for Fessler, \emph{Image Reconstruction: Algorithms and Analysis}, Section 2.4.5, where corner-rounded TV is identified with the hyperbola potential.}
+
+\paragraph{Convexity.}
+The function $f(s)=\sum_{\ell=1}^{r}\sqrt{s_\ell^2+\epsilon^2}-r\epsilon$ is convex and absolutely symmetric on $\mathbb{R}^r$, so by \cite{lewisConvexAnalysisUnitarily1995} the spectral function $\phi=f\circ\sigma$ is convex on $\mathbb{R}^{d\times M}$. All of the operators applied to $\bm{z}$ in the remainder of this chapter, namely the finite-difference operator $D$, the directional projectors $\Pi_{m,n}$ of Section~\ref{subsec:directional_from_guidance} and the weight matrices $B_n$ of Section~\ref{subsec:modality_weighting}, are linear and independent of $\bm{z}$. The smoothed prior is therefore a convex function composed with a linear map, and hence
+\begin{equation}
+    \mathcal{R}_{\mathrm{w\text{-}dTNV}} \ \text{is convex on}\ \mathbb{R}^{N\times M}.
+    \label{eq:wdtnv_convex}
+\end{equation}
+Combined with the convexity of the Poisson negative log-likelihood and of the non-negativity indicator, this makes the \gls{map} objective of Chapter~\ref{chapter:optimisation} convex, which is what allows the long-run reference reconstruction used there to be interpreted as approaching a global minimiser rather than an arbitrary stationary point.
 
 \paragraph{Jacobian-space gradient.}
 Let $\phi(\mathcal{G})=\sum_{\ell=1}^{\min(d,M)} g(\sigma_\ell(\mathcal{G}))$, where $\sigma_\ell(\mathcal{G})$ are the singular values of the voxel-wise Jacobian matrix $\mathcal{G}\in\mathbb{R}^{d\times M}$. A thin \gls{svd}
@@ -202,6 +215,8 @@ This section extends TNV \cite{rigieJointReconstructionMultichannel2015, holtTot
 
 The starting point is the standard TNV construction: penalising the nuclear norm of a multi-modality Jacobian promotes joint sparsity and alignment of edges, since a low nuclear norm favours a locally low-rank Jacobian.
 
+It is useful to locate this construction within the established taxonomy of multiple-channel regularisation. Channel-separable penalties $\mathcal{R}(\bm{z})=\sum_m \mathcal{R}_0(z_m)$ ignore inter-channel edge correspondence entirely and provide the baseline. Convex multiple-channel penalties couple channels through a mixed norm of the stacked differences, so that an edge present in one channel relaxes the penalty in the others; these are effectively the joint-\gls{tv} family, and correspond to penalising the Frobenius norm of the voxel-wise Jacobian. Rank-based penalties, of which TNV is the canonical example, replace the Frobenius norm by the nuclear norm and so penalise the \emph{number} of distinct edge directions rather than their total magnitude. Line-site and common-sparsity formulations pursue the same goal through auxiliary boundary or support variables, usually at the cost of convexity. The prior developed here sits in the rank-based family and retains its convexity, while drawing anatomical guidance from the separate literature on regularisation with side information, where a co-registered image supplies boundary locations without itself being reconstructed. \TODO{Add the Zenodo-managed citation for Fessler, \emph{Image Reconstruction: Algorithms and Analysis}, Section 2.8 (multiple-channel regularisation taxonomy) and Section 2.10 (regularisation with side information).}
+
 \subsection{Directional operators from guidance}
 \label{subsec:directional_from_guidance}
 
@@ -249,6 +264,10 @@ The weighted directional Jacobian is
 \end{equation}
 The columns of $\tilde{\mathcal{G}}_n$ are $\tilde{g}_{m,n} := \rho_{m,n}\,\Pi_{m,n}(D z_m)_n \in \mathbb{R}^d$.
 
+Throughout, $B_n$ is treated as a fixed operator that does not depend on $\bm{z}$. This is required for the prior to be the convex functional stated in~\eqref{eq:wdtnv_convex} and for the chain rule of Section~\ref{subsec:tnv_differentiability} to give its gradient: if the weights were recomputed from the current iterate, the resulting update would no longer be the gradient of any fixed objective. In the application of Chapter~\ref{chapter:paper} the weights are accordingly computed once, from early-stopped unregularised reconstructions, and then held fixed. The weights also absorb the overall regularisation strength; there is no separate scalar $\beta$ multiplying~\eqref{eq:wdtnv_prior}, because the modality-specific regularisation weights $\beta_m$ enter through $\rho_{m,n}$ (Section~\ref{subsec:90y_global_weights}).
+
+It is worth being explicit that voxel-wise weighting is a genuine change of prior rather than a reparametrisation. Because the nuclear norm is positively homogeneous, a spatially constant weight $\rho_{m,n}\equiv\rho_m$ would make $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ identical to $d$TNV evaluated on the rescaled images $\rho_m z_m$. This equivalence fails as soon as the weights vary spatially, since $\rho_{m,n}(D z_m)_n \neq \bigl(D(\rho_m z_m)\bigr)_n$ in general. The weighting therefore alters the estimator and not merely the scaling of the variables, a point returned to below.
+
 The weighted directional Total Nuclear Variation ($\wdtnv$) prior is then
 \begin{equation}
     \mathcal{R}_{\mathrm{w\text{-}dTNV}}(\bm{z})
@@ -261,10 +280,25 @@ The weighted directional Total Nuclear Variation ($\wdtnv$) prior is then
 where $V_{\mathrm{vox}}$ is the voxel volume and $g$ is the Charbonnier smoothing from~\eqref{eq:charbonnier_g}. Choosing equal weights $\rho_{m,n}\equiv 1$ recovers unweighted $d$TNV. Choosing $\rho_{m,n}$ proportional to the inverse of a characteristic modality scale brings both channels to a comparable range before the nuclear-norm coupling is evaluated. The \gls{pet}/\gls{spect} normalisation used in the application study is specified in Chapter~\ref{chapter:paper}.
 
 \paragraph{Effect on the singular spectrum.}
-Right-multiplying by $B_n$ scales the $m$-th column of $\tilde{\mathcal{G}}_n$ by $\rho_{m,n}$. This scales the singular values of $\tilde{\mathcal{G}}_n$ in a non-trivial way, since the singular values of $YB$ are not simply $\sigma_\ell(Y)\rho_m$. The intended effect is instead on the Gram matrix: $\tilde{\mathcal{G}}_n^\top \tilde{\mathcal{G}}_n$ contains modality self-terms and cross-terms after scaling, so suitable $\rho_{m,n}$ values allow both modalities to contribute comparably to the coupled singular spectrum. The $2\times2$ Gram-matrix algebra in Section~\ref{sec:tv_to_tnv} applies directly to this weighted case.
+Right-multiplying by $B_n$ scales the $m$-th column of $\tilde{\mathcal{G}}_n$ by $\rho_{m,n}$. This scales the singular values of $\tilde{\mathcal{G}}_n$ in a non-trivial way, since the singular values of $YB$ are not simply $\sigma_\ell(Y)\rho_m$. What can be said in general is the two-sided bound
+\begin{equation}
+    \min_m \rho_{m,n}\;\sigma_\ell(Y)
+    \;\leq\;
+    \sigma_\ell(Y B_n)
+    \;\leq\;
+    \max_m \rho_{m,n}\;\sigma_\ell(Y),
+    \qquad \ell=1,\dots,\min(d,M),
+    \label{eq:weighted_sv_bounds}
+\end{equation}
+so the weights control the overall scale of the spectrum but not the distribution of energy across it. The intended effect is instead on the Gram matrix: $\tilde{\mathcal{G}}_n^\top \tilde{\mathcal{G}}_n$ contains modality self-terms $\rho_{m,n}^2\|\Pi_{m,n}(Dz_m)_n\|_2^2$ and cross-terms $\rho_{1,n}\rho_{2,n}\langle \Pi_{1,n}(Dz_1)_n,\Pi_{2,n}(Dz_2)_n\rangle$, so suitable $\rho_{m,n}$ values allow both modalities to contribute comparably to the coupled singular spectrum rather than one self-term dominating the trace. The $2\times2$ Gram-matrix algebra in Section~\ref{sec:tv_to_tnv} applies directly to this weighted case.
+
+\paragraph{Weighting is a modelling choice, not a conditioning choice.}
+The motivation given above, that the coupling should not be dominated by the modality with larger gradient magnitudes, is phrased in the language of conditioning, but $B_n$ changes the estimator and not only the geometry seen by the optimiser. This distinction matters because relative weighting between coupled channels controls the spatial resolution and noise properties of the individual reconstructions, and controlling those properties is known to be difficult for coupled multi-channel regularisers precisely when the channel data statistics differ. \gls{pet} and bremsstrahlung \gls{spect} of the same $^{90}$Y distribution differ in count level, sensitivity and intrinsic resolution simultaneously, which is the least favourable case for that concern. The weights are therefore best understood as encoding relative edge credibility between modalities, and the operating point selected in Chapter~\ref{chapter:paper} is chosen on a task-based trade-off rather than justified by convergence behaviour. A local impulse-response analysis of the resolution actually delivered to each modality at a given $B_n$ was not performed and remains a natural extension. \TODO{Add the Zenodo-managed citation for Fessler, \emph{Image Reconstruction: Algorithms and Analysis}, Section 2.8.2, where the difficulty of controlling per-channel spatial resolution under coupled multi-channel regularisation is raised.}
 
 \section{Conclusion}
 
-This chapter introduced a smoothed, weighted, and directional Total Nuclear Variation ($\wdtnv$) prior for synergistic reconstruction. Charbonnier smoothing of the singular values yields a differentiable spectral functional whose Jacobian-space gradient can be written in Gram-matrix form. For two coupled emission modalities this reduces the key spectral operation to a $2\times2$ inverse square-root, allowing the prior and its gradient to be evaluated robustly without a general per-voxel \glsentryshort{svd}.
+This chapter introduced a smoothed, weighted, and directional Total Nuclear Variation ($\wdtnv$) prior for synergistic reconstruction. Charbonnier smoothing of the singular values yields a differentiable and convex spectral functional whose Jacobian-space gradient can be written in Gram-matrix form. Differentiability rests specifically on the smoothing function being even and smooth across zero, which is what separates the smoothed penalty from the plain nuclear norm; convexity follows from absolute symmetry of the same function and is inherited by the full prior because $D$, $\Pi_{m,n}$ and $B_n$ are all fixed linear maps. For two coupled emission modalities the key spectral operation reduces to a $2\times2$ inverse square-root, allowing the prior and its gradient to be evaluated robustly without a general per-voxel \glsentryshort{svd}.
+
+The Gram-matrix object $(\tilde{\mathcal{G}}_n^\top\tilde{\mathcal{G}}_n+\epsilon^2\mathbb{I})^{-1/2}$ appearing in~\eqref{eq:2x2_gram} is not merely a computational convenience. Chapter~\ref{chapter:optimisation} shows that it is simultaneously the weight of a quadratic majoriser of the prior, making it the matrix-valued analogue of the optimal curvature of a scalar edge-preserving potential, and this is why the same quantity serves both the gradient and the preconditioner.
 
 The chapter also separated two roles that are easily confounded in multimodality reconstruction. Anatomical information is used directionally through $\Pi_{m,n}$, steering the penalty without adding \gls{ct} as another coupled intensity channel. Modality scaling is handled separately through the diagonal weight matrix $B_n$, allowing \gls{pet} and \gls{spect} gradients to enter the nuclear-norm coupling on comparable scales. Chapter~\ref{chapter:optimisation} uses these definitions to construct practical preconditioners and subset-selection strategies for large-scale $\wdtnv$ optimisation.

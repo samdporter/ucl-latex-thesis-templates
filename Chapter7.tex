@@ -220,7 +220,11 @@ This accounting matches data-projection work and average prior weight, but it do
 
 \subsection{Results}
 
-Figure~\ref{fig:optim_subset_organisation} separates the six configurations by prior schedule far more than by subset organisation. Only the folded schedule converged. Separate folded subsets reached the lowest \gls{nrmse} in every region for both modalities, with paired folded subsets close behind and the clearest gaps in the hot- and cold-sphere regions; the separate folded \gls{pet} whole-image mean shows one large transient excursion near pass six before recovering. Under the sampled and once-per-epoch schedules, neither organisation made net progress within the 20 passes: the curves stagnate near their starting values, with the once-per-epoch runs additionally showing large excursions and, for \gls{spect}, early transient progress that subsequently regressed. Because all six configurations deliver the same average prior weight per matched data pass, the failures are attributable to the granularity of prior application rather than to its total contribution. A plausible explanation is that stable progress at these step sizes requires the data and prior gradients to be combined within each preconditioned update: the sampled and once-per-epoch schedules concentrate the prior into intermittent prior-only corrections, which repeatedly disturb iterates that the intervening data-only updates have advanced without regularisation.
+Figure~\ref{fig:optim_subset_organisation} separates the six configurations by prior schedule far more than by subset organisation. Only the folded schedule converged. Separate folded subsets reached the lowest \gls{nrmse} in every region for both modalities, with paired folded subsets close behind and the clearest gaps in the hot- and cold-sphere regions; the separate folded \gls{pet} whole-image mean shows one large transient excursion near pass six before recovering. Under the sampled and once-per-epoch schedules, neither organisation made net progress within the 20 passes: the curves stagnate near their starting values, with the once-per-epoch runs additionally showing large excursions and, for \gls{spect}, early transient progress that subsequently regressed. Because all six configurations deliver the same average prior weight per matched data pass, the failures are attributable to the granularity of prior application rather than to its total contribution.
+
+Two established principles account for this. The first is the subset gradient balance condition underlying all incremental-gradient and ordered-subset methods: a subset step is useful only when the scaled subset gradient approximates the full gradient, $\nabla\mathcal{O}(\bm z)\approx N_{\mathrm d}\nabla\mathcal{O}_i(\bm z)$, and imbalanced partitions degrade or destroy convergence \cite{hudsonAcceleratedImageReconstruction1994}. In tomography this condition is normally discussed for projection-angle subsets, where balance means interleaving widely separated angles rather than grouping contiguous ones. A prior-only sampled function is the extreme violation of the same condition, because its gradient shares no structure with the data gradient by construction; the sampled and once-per-epoch schedules impose exactly that partition. This explains why matching the average prior weight does not rescue them: balance is a property of the individual draws, not of their mean. \TODO{Add the Zenodo-managed citation for Fessler, \emph{Image Reconstruction: Algorithms and Analysis}, Section 14.10, where the subset gradient balance condition and the consequences of imbalanced subsets are set out.}
+
+The second is that under \gls{svrg} all three schedules are unbiased, so the mechanism must be variance rather than bias. In the folded schedule the complete prior gradient is evaluated deterministically at every update and contributes no variance to $g^{(k)}$ at all; in the sampled and once-per-epoch schedules the prior contribution is itself a random variable whose realisations are inflated by the sampler scaling. The observed stagnation is therefore best characterised as excess estimator variance concentrated in a direction that the data term does not oppose, rather than as the prior-only updates disturbing the iterates in some unspecified way. A direct measurement of $\operatorname{Var}[g^{(k)}]$ under the three schedules would confirm this and was not attempted here.
 
 Within the folded schedule, the organisation effect is plausibly an update-frequency effect: the separate organisation performs 36 parameter updates per matched data pass, compared with 18 paired updates, and therefore makes more frequent progress for the same number of data-subset projections. The experiment does not isolate modality grouping from update frequency, and should be interpreted as a data-projection-matched comparison of the implemented configurations, not as a compute-matched speed benchmark or a causal test of modality splitting alone. All runs used the \gls{mm} local-diagonal curvature preconditioner with the common step-size schedule, so the schedule sensitivity reported here is an observation under that protocol rather than an established general property.
 
@@ -259,7 +263,45 @@ The implementation optionally smooths the numerator image used in the \gls{em} p
 \subsection{Prior Curvature Models}
 \label{subsec:optimisation_prior_preconditioning}
 
-Four prior-curvature constructions were considered: three based on a local \acrfull{mm}/\acrfull{irls} surrogate and one based on the Lewis--Sendov Hessian of the smoothed spectral penalty. The term \gls{mm} describes the derivation of the first family; none of the implemented preconditioners has been established as a majoriser of the complete objective, and no monotone-descent guarantee is claimed.
+Four prior-curvature constructions were considered: three based on a local \acrfull{mm}/\acrfull{irls} surrogate and one based on the Lewis--Sendov Hessian of the smoothed spectral penalty.
+
+\subsubsection{A quadratic majoriser in Jacobian space}
+\label{subsubsec:jacobian_majoriser}
+
+The \gls{mm} label applied to the first family is not merely descriptive of how the weights were derived. At the level of the voxel-wise Jacobian the majorisation can be established exactly, and doing so identifies what the implemented preconditioners approximate and where the approximation begins.
+
+\begin{proposition}
+\label{prop:jacobian_majoriser}
+Let $Y,Y_0\in\mathbb{R}^{d\times M}$ with $d\geq M$, let $g$ be the Charbonnier function of Chapter~\ref{chapter:wdtnv} and let $\phi(Y)=\sum_{\ell=1}^{M}g(\sigma_\ell(Y))$. Define
+\begin{equation}
+    C_0 := \left(Y_0^\top Y_0 + \epsilon^2\mathbb{I}_M\right)^{-1/2}.
+    \label{eq:majoriser_weight}
+\end{equation}
+Then, for all $Y$,
+\begin{equation}
+    \phi(Y)
+    \;\leq\;
+    \phi(Y_0)
+    +\tfrac12\operatorname{tr}\!\left[\left(Y^\top Y - Y_0^\top Y_0\right)C_0\right],
+    \label{eq:jacobian_majoriser}
+\end{equation}
+with equality at $Y=Y_0$.
+\end{proposition}
+
+\begin{proof}
+The eigenvalues of $Y^\top Y$ are $\sigma_\ell(Y)^2$ for $\ell=1,\dots,M$, so
+\begin{equation}
+    \phi(Y)
+    =\sum_{\ell=1}^{M}\left(\sqrt{\sigma_\ell(Y)^2+\epsilon^2}-\epsilon\right)
+    =\operatorname{tr}\!\left(\left(Y^\top Y+\epsilon^2\mathbb{I}_M\right)^{1/2}\right)-M\epsilon .
+    \label{eq:phi_as_trace}
+\end{equation}
+The map $t\mapsto t^{1/2}$ is operator concave on the positive semidefinite cone \cite{bhatiaMatrixAnalysis1997a}, and the trace is linear and monotone, so $A\mapsto\operatorname{tr}((A+\epsilon^2\mathbb{I})^{1/2})$ is concave in $A\succeq0$. A differentiable concave function lies below its first-order expansion, and its gradient is $\tfrac12(A+\epsilon^2\mathbb{I})^{-1/2}$. Setting $A=Y^\top Y$ and $A_0=Y_0^\top Y_0$ and adding the constant $-M\epsilon$ gives~\eqref{eq:jacobian_majoriser}; equality at $Y=Y_0$ is immediate.
+\end{proof}
+
+Three consequences matter here. First, the right-hand side of~\eqref{eq:jacobian_majoriser} is a convex quadratic in $Y$, because $Y^\top Y$ is a convex quadratic and $C_0\succ0$; it is therefore a surrogate in the standard sense of lying above $\phi$ and touching it at the current point. Second, its gradient at $Y=Y_0$ is $Y_0C_0$, which is exactly the gradient derived in Chapter~\ref{chapter:wdtnv} (Equation~\eqref{eq:2x2_gram}), so the surrogate satisfies the matched-tangent condition automatically. Third, and most usefully, the weight $C_0$ is the matrix-valued analogue of the optimal curvature of a scalar edge-preserving potential. For a symmetric potential $\psi$ whose curvature $\omega_\psi(s)=\dot\psi(s)/s$ is non-increasing on $(0,\infty)$, the parabola with curvature $\omega_\psi$ is the smallest-curvature quadratic surrogate \cite{huberRobustEstimationLocation1964a}; for the hyperbola potential $\psi(s)=\sqrt{s^2+\epsilon^2}$ this gives $\omega_\psi(s)=1/\sqrt{s^2+\epsilon^2}$, which is precisely the scalar $M=1$ case of~\eqref{eq:majoriser_weight}. The construction used here is thus the spectral generalisation of the multiplicative form of half-quadratic regularisation, which is itself a rediscovery of Huber's quadratic surrogates. That the same object serves as both gradient weight and curvature is a structural consequence of the majorisation, not a coincidence of implementation. \TODO{Add the Zenodo-managed citations for Fessler, \emph{Image Reconstruction: Algorithms and Analysis}, Theorem 14.4.5 (optimality of Huber's curvature $\omega_\psi$) and Section 14.4.4.5 (half-quadratic methods as Huber surrogates), together with Charbonnier et al.\ (1997) and Nikolova and Ng (2005) on the multiplicative and additive half-quadratic forms.}
+
+Summing~\eqref{eq:jacobian_majoriser} over voxels yields a quadratic majoriser of the complete prior whose Hessian has the form $\mathcal{D}^\ast(\cdot)\mathcal{D}$, where $\mathcal{D}$ collects the weighted directional finite-difference operators. This majoriser is not separable: it couples each voxel to its finite-difference neighbours. Every preconditioner implemented below reduces it further, and Section~\ref{subsubsec:depierro_gap} identifies exactly what that reduction costs.
 
 For the \gls{mm} family, at voxel $n$ let
 \begin{equation}
@@ -308,6 +350,28 @@ This is the diagonal extraction of the local \glsentryshort{mm} curvature surrog
     \label{eq:diag_gersh_preconditioner}
 \end{equation}
 
+\subsubsection{Diagonal extraction versus a majorising diagonal}
+\label{subsubsec:depierro_gap}
+
+Equations~\eqref{eq:diag_tight_preconditioner} and~\eqref{eq:diag_gersh_preconditioner} extract a diagonal from the non-separable surrogate Hessian implied by Proposition~\ref{prop:jacobian_majoriser}. Diagonal extraction does not preserve majorisation, and the classical route that does is De Pierro's convexity trick \cite{depierroModifiedExpectationMaximization1995a}. \TODO{Add the Zenodo-managed citation for Erdo\u{g}an and Fessler (1999) on ordered-subsets separable paraboloidal surrogates, where De Pierro's trick is applied to penalised-likelihood tomography.} For a quadratic surrogate with Hessian $\mathcal{B}^\top\mathrm{diag}\{\breve c_i\}\mathcal{B}$, writing $[\mathcal{B}v]_i=\sum_j b_{ij}v_j$ as a convex combination with weights $\pi_{ij}=|b_{ij}|/b_i$, where $b_i=\sum_j|b_{ij}|$ is the row $\ell_1$ norm, gives the separable majorising diagonal
+\begin{equation}
+    d_j^{\mathrm{DP}}
+    =
+    \sum_i \frac{|b_{ij}|^2}{\pi_{ij}}\,\breve c_i
+    =
+    \sum_i |b_{ij}|\,b_i\,\breve c_i ,
+    \qquad\text{compared with}\qquad
+    d_j^{\mathrm{diag}}
+    =
+    \sum_i b_{ij}^2\,\breve c_i .
+    \label{eq:depierro_vs_diag}
+\end{equation}
+The two differ by the replacement of $|b_{ij}|$ with the row $\ell_1$ norm $b_i$, so $d_j^{\mathrm{DP}}\geq d_j^{\mathrm{diag}}$ always, with the inflation factor equal to a $\breve c$-weighted average of $b_i/|b_{ij}|$. For an isotropic first-order difference, whose rows contain exactly the two entries $\pm1/\Delta_\ell$, this factor is exactly $2$. Once $\Pi_{m,n}$ mixes difference directions the rows acquire up to $2d$ non-zeros and the factor grows accordingly, so in three dimensions the gap lies between $2$ and $2d=6$ depending on the guidance strength $\gamma_m$.
+
+Two consequences follow. First, the Gershgorin construction~\eqref{eq:diag_gersh_preconditioner} inflates along the \emph{modality} index, adding $|c_{12,n}|$ to the diagonal of the $2\times2$ block $C_n$. The off-diagonal mass that actually obstructs diagonal dominance of the surrogate Hessian is \emph{spatial}, arising from the neighbour coupling in $\mathcal{D}^\ast(\cdot)\mathcal{D}$. The Gershgorin variant therefore reinforces the wrong axis, which offers a plausible explanation for why it tracks the tight diagonal so closely in Section~\ref{sec:optimisation_preconditioners}.
+
+Second, because the implemented diagonal is smaller than a majorising diagonal, the corresponding preconditioner is correspondingly larger, so the descent guarantee that \gls{mm} would otherwise supply is lost by a bounded and known factor. Substituting the right-hand form of~\eqref{eq:depierro_vs_diag} for the diagonal used in~\eqref{eq:diag_tight_preconditioner} would restore it, at the cost of a more conservative step. This substitution is a change to one diagonal and would be the first construction in this chapter with a majorisation argument running end to end; it was not implemented here.
+
 For block preconditioning, the \gls{pet} and \gls{spect} update components at each voxel are coupled by a $2\times2$ block. Let $\mathcal{N}(n)$ be the set of target voxels whose finite-difference stencil depends on source voxel $n$. For target voxel $r\in\mathcal{N}(n)$, let $c_{r\leftarrow n}\in\mathbb{R}^d$ be the finite-difference impulse vector produced in the directional channels when source voxel $n$ is perturbed. The local voxel-block curvature approximation uses
 \begin{equation}
     \alpha_{r\leftarrow n}^{mm'}
@@ -354,6 +418,15 @@ The fourth construction uses the exact Lewis--Sendov Hessian of the smoothed spe
 \end{equation}
 It therefore retains \gls{pet}/\gls{spect} cross-curvature within each voxel but discards spatial off-diagonal blocks. Evaluating the smoothed spectral Hessian requires the voxel-wise singular-value decompositions used by the Lewis--Sendov construction. Recomputing this block model once per epoch consequently has a non-negligible cost.
 
+This fourth construction differs from the other three in kind and not only in detail. The first three approximate a majoriser, whereas the Lewis--Sendov block model approximates the exact Hessian at the current iterate, and is therefore Newton-like rather than \gls{mm}-like. Because $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ is convex, $H_{\mathcal R}\succeq0$ and the resulting preconditioner is well defined, but the local Hessian of a non-quadratic function does not majorise it, so no descent property is available even in principle. The distinction is worth stating because Chapter~\ref{chapter:paper} has this construction frozen into its protocol.
+
+\subsubsection{Interaction with the non-negativity constraint}
+\label{subsubsec:precond_constraint}
+
+The block constructions~\eqref{eq:block_tight_preconditioner} and~\eqref{eq:ls_block_preconditioner} raise a convergence-theoretic issue that the diagonal constructions do not. The update~\eqref{eq:optimisation_projected_update} is a projected preconditioned gradient step, and it is a classical result that an arbitrary preconditioner cannot be inserted into a projected gradient method: for a general positive-definite $\mathcal{P}$ the iteration need not converge to a constrained minimiser, even for small step sizes, and counterexamples exist in which the ideal unconstrained choice $\mathcal{P}=H^{-1}$ fails completely by leaving the iterates stranded on the boundary. For the non-negative orthant, certain \emph{diagonal} scalings are admissible, which is what underwrites the convergence of \gls{bsrem}-type and separable-surrogate methods. \TODO{Add the Zenodo-managed citations for Bertsekas, \emph{Nonlinear Programming} (2nd ed.), and Fessler, \emph{Image Reconstruction: Algorithms and Analysis}, Section 12.2.2 and Examples 12.2.2 and 12.3.1, which give the counterexamples for preconditioned and Newton-type projected gradient under non-negativity.}
+
+The relevance here is direct. The non-negativity constraint is separable across voxels and modalities, whereas the voxel-block preconditioners couple the \gls{pet} and \gls{spect} components within each voxel. The projection in~\eqref{eq:optimisation_projected_update} therefore does not commute with the preconditioned step in the way that the diagonal theory requires, and the standard guarantee does not transfer. Three factors mitigate this in practice: the retained blocks are $2\times2$ rather than a full inverse Hessian, they are combined with the data curvature by the inverse sum of Section~\ref{subsec:optimisation_preconditioner_combination}, and the relaxed step size drives $\varsigma^{(k)}\to0$. None of these constitutes a proof. The constraint is also active most often in the count-limited \gls{pet} background, which is precisely where the empirical behaviour reported below is least stable, so this should be regarded as an open question about the block methods rather than a settled point.
+
 \subsection{Combining Data and Prior Curvature}
 \label{subsec:optimisation_preconditioner_combination}
 
@@ -366,7 +439,9 @@ Let $\mathcal{P}_{\mathrm D}=\widehat H_{\mathrm D}^{-1}$ denote the data precon
     \left(\widehat H_{\mathrm D}+\widehat H_{\mathcal R}\right)^{-1}.
     \label{eq:parallel_sum_combination}
 \end{equation}
-The same expression applies to diagonal and voxel-block operands, with numerical floors used before inversion. It is a combination of approximate curvature preconditioners, not a statement that either operand or their sum majorises the full objective.
+The same expression applies to diagonal and voxel-block operands, with numerical floors used before inversion.
+
+The inverse sum is not an arbitrary choice among plausible combination rules. Surrogate curvatures are additive: if $\phi_{\mathrm D}$ majorises the data term with Hessian $\widehat H_{\mathrm D}$ and $\phi_{\mathcal R}$ majorises the prior with Hessian $\widehat H_{\mathcal R}$, then $\phi_{\mathrm D}+\phi_{\mathcal R}$ majorises $\mathcal D+\mathcal R$ with Hessian $\widehat H_{\mathrm D}+\widehat H_{\mathcal R}$, and the corresponding \gls{mm} step preconditions by the inverse of that sum. This is the same assembly used when separable quadratic surrogates are built term by term for penalised-likelihood problems. \TODO{Add the Zenodo-managed citations for Erdo\u{g}an and Fessler (1999) and for Fessler, \emph{Image Reconstruction: Algorithms and Analysis}, Section 14.5.7, on term-by-term assembly of separable quadratic surrogates.} Equation~\eqref{eq:parallel_sum_combination} is therefore the combination that the surrogate framework prescribes, and any rule that is not an inverse sum of curvatures forfeits that interpretation. What is \emph{not} claimed is that either operand majorises its own term here, since Section~\ref{subsubsec:depierro_gap} showed the implemented diagonals fall short of a majorising diagonal; the combination inherits the approximation of its operands.
 
 The preconditioner is updated once per epoch and held fixed between updates. This limits curvature-computation cost, particularly for the Lewis--Sendov construction, but means the preconditioner becomes progressively stale within each epoch.
 
@@ -417,23 +492,31 @@ The four prior-aware constructions in Figure~\ref{fig:optim_preconditioners} beh
 
 \gls{spect} is more robust. All five methods remain stable, and data-only \gls{bsrem} is competitive with, or slightly faster than, the prior-aware alternatives in the sphere regions. This contrast suggests that the tested prior-aware scalings can be conservative for \gls{spect} even though they are needed to stabilise the limited-count \gls{pet} case.
 
-\subsection{Sensitivity to the Initial Step Size}
+\subsection{Modality Asymmetry in the Prior/Data Curvature Balance}
+\label{subsec:modality_curvature_balance}
 
-\begin{figure}[htbp]
-    \centering
-    \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_step1_2_limited.png}
-        \caption{\gls{pet}.}
-    \end{subfigure}
-    \begin{subfigure}{0.99\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_step1_2_SPECT.png}
-        \caption{\gls{spect}.}
-    \end{subfigure}
-    \caption{Sensitivity to the common initial step size for the displayed preconditioners. Solid curves use $\varsigma^{(0)}=1$ and dashed curves use $\varsigma^{(0)}=2$. Lines and envelopes again show the five-run mean and pointwise minimum--maximum over 25 matched data passes.}
-    \label{fig:optim_step_size}
-\end{figure}
+That the same preconditioner is necessary for \gls{pet} and over-damping for \gls{spect} is not surprising once the two operands of the inverse sum~\eqref{eq:parallel_sum_combination} are compared per modality. The influence of the prior on modality $m$'s step is governed by the ratio $\widehat H_{\mathcal R,m}/\widehat H_{\mathrm D,m}$, and nothing in the present construction controls that ratio.
 
-Doubling the common initial step improves \gls{spect} convergence across the three regions in Figure~\ref{fig:optim_step_size}, but destabilises the limited-count \gls{pet} reconstruction. A single shared relaxation schedule is therefore not equally well calibrated to both modalities. Modality-dependent initial steps or relaxation rates are a natural direction for future work, but were not tested here.
+The prior curvature~\eqref{eq:diag_tight_preconditioner} carries a factor $\rho_{m,n}^2$, whereas the data curvature~\eqref{eq:data_hessian_surrogate} does not involve $\rho$ at all:
+\begin{equation}
+    \frac{\widehat H_{\mathcal R,m,n}}{\widehat H_{\mathrm D,m,n}}
+    =
+    \frac{V_{\mathrm{vox}}\,\rho_{m,n}^{2}\,c_{mm,n}\,\tau_{m,n}\,(z_{m,n}+\epsilon_x)}{s_{m,n}} .
+    \label{eq:curvature_ratio}
+\end{equation}
+The explicit $\rho_{m,n}^2$ is partially offset by $c_{mm,n}$, which is itself $\rho$-dependent because the \gls{mm} weight~\eqref{eq:mm_weight_current_code} is formed from the \emph{weighted} Jacobian. Where directional gradients are large relative to $\epsilon$, $c_{mm,n}$ falls approximately as $1/\rho_{m,n}$ and the net dependence is close to linear; where they are small, $c_{mm,n}\to1/\epsilon$ and the dependence is close to quadratic. The net scaling therefore lies between linear and quadratic in $\rho_{m,n}$ and varies spatially with the local gradient regime.
+
+What matters for the comparison is that the data curvature carries \emph{no} $\rho$ dependence whatsoever. The modality weights were chosen in Chapter~\ref{chapter:wdtnv} to equalise the gradient magnitudes entering the nuclear norm, a prior-modelling criterion evaluated without reference to either modality's sensitivity image, so nothing in the present construction keeps~\eqref{eq:curvature_ratio} comparable between \gls{pet} and \gls{spect}. The observed asymmetry, prior curvature being necessary for \gls{pet} and mildly counterproductive for \gls{spect}, is consistent with \gls{spect} sitting at the over-damped end of this ratio, though the experiments reported here do not measure~\eqref{eq:curvature_ratio} directly and so do not establish that as the cause.
+
+This suggests a targeted remedy that is more specific than retuning the shared step schedule: decouple the preconditioner weighting from the prior weighting by introducing a modality-specific curvature scaling in the combination,
+\begin{equation}
+    \mathcal{P}_{\parallel,m}
+    =
+    \left(\widehat H_{\mathrm D,m}+\lambda_m \widehat H_{\mathcal R,m}\right)^{-1},
+    \qquad \lambda_m>0,
+    \label{eq:modality_precond_weight}
+\end{equation}
+with $\lambda_{\mathrm{PET}}=1$ recovering the present scheme and $\lambda_{\mathrm{SPECT}}<1$ relaxing the damping applied to the more robust modality. Because $\lambda_m$ enters only the preconditioner and not the objective, this changes the geometry seen by the optimiser without altering the estimator, and so is distinct from retuning $\rho_{m,n}$, which would change the prior itself. Selecting $\lambda_m$, for instance by matching~\eqref{eq:curvature_ratio} across modalities over the support mask, was not attempted here and is left as future work.
 
 \subsection{Lehmer Combination}
 
@@ -469,13 +552,34 @@ where $f_p(C)$ is evaluated spectrally. The implemented preconditioner is $\tfra
     \label{fig:optim_lehmer_parallel}
 \end{figure}
 
-For the Lewis--Sendov block model, $p=0.01$ is marginally better than the inverse-sum result in these curves, but the difference is small. This comparison does not establish that the same order is preferable for the \gls{mm}-derived preconditioners. Chapter~\ref{chapter:paper} had already frozen the Lewis--Sendov block-diagonal model with $p=0.01$ before the broader benchmark in this chapter. Retaining it therefore provides protocol continuity, not a post-hoc claim that Lewis--Sendov or $p=0.01$ is universally optimal.
+For the Lewis--Sendov block model, $p=0.01$ is marginally better than the inverse-sum result in these curves, but the difference is small. This comparison does not establish that the same order is preferable for the \gls{mm}-derived preconditioners.
+
+Two caveats limit what should be read into the $p$ sweep. First, only $p=0$ carries the surrogate interpretation of Section~\ref{subsec:optimisation_preconditioner_combination}, in which curvatures add; other orders are combination rules without a corresponding majorisation argument. Second, the factor $\tfrac12$ in $\tfrac12L_p$ is calibrated so that $p=0$ reproduces the parallel sum exactly, which means the overall scale of the combination drifts with $p$. Evaluating $\tfrac12 f_p$ against $f_0$ spectrally, the Lehmer combination at $p=0.01$ exceeds the parallel sum by roughly two per cent where the eigenvalues of $C$ are of order $10^2$, rising to a few per cent at $10^3$; that is, $p>0$ acts as a mild step-size inflation wherever prior curvature is small relative to data curvature. A sweep over $p$ at fixed $\varsigma^{(0)}$ therefore confounds the shape of the combination with a small change in effective step size, and the modest advantage observed here is consistent with either. Separating them would require re-tuning $\varsigma^{(0)}$ at each $p$. Chapter~\ref{chapter:paper} had already frozen the Lewis--Sendov block-diagonal model with $p=0.01$ before the broader benchmark in this chapter. Retaining it therefore provides protocol continuity, not a post-hoc claim that Lewis--Sendov or $p=0.01$ is universally optimal.
 
 \section{Conclusion}
 \label{sec:optimisation_conclusion}
 
 Joint reconstruction of the \gls{pet} bed positions is required for the edge-preserving prior to act consistently across their overlap; the qualitative example showed the noise and discontinuities that can remain after separate reconstruction and fusion. For the one-bed convergence study, the prior-application schedule mattered more than the subset organisation: with the average prior weight per data pass matched, only the folded schedule, mathematically identical to evaluating the complete prior at every update, converged, while the sampled and once-per-epoch schedules stagnated under the common preconditioner and step-size protocol. Within the folded schedule, modality-separated subsets converged faster than paired subsets under matched data-projection work, although they also performed twice as many parameter updates and prior-gradient evaluations per pass.
 
-Prior-aware preconditioning was required for stable convergence of the count-limited \gls{pet} reconstruction under the tested shared step schedule. \gls{spect} was more robust, and data-only \gls{bsrem} was sometimes competitive, suggesting that the prior-aware methods can be conservative for that modality. The four prior-curvature models behaved similarly overall, with no universal winner. Increasing the common initial step improved \gls{spect} but destabilised \gls{pet}, motivating modality-dependent relaxation as future work.
+Prior-aware preconditioning was required for stable convergence of the count-limited \gls{pet} reconstruction under the tested shared step schedule. \gls{spect} was more robust, and data-only \gls{bsrem} was sometimes competitive, suggesting that the prior-aware methods can be conservative for that modality. The four prior-curvature models behaved similarly overall, with no universal winner.
 
-The Lewis--Sendov Lehmer experiment found only a small advantage for $p=0.01$ over the parallel sum. Chapter~\ref{chapter:paper} retains the previously frozen Lewis--Sendov block-diagonal/$p=0.01$ configuration for protocol continuity. Its use in that chapter should not be interpreted as selection of the best method after the wider comparison reported here.
+This asymmetry is traceable to the prior/data curvature ratio~\eqref{eq:curvature_ratio}, which scales with $\rho_{m,n}^2$ while the data curvature does not depend on $\rho$ at all, so nothing in the present construction keeps that ratio comparable between modalities. A modality-specific curvature weight $\lambda_m$ in the combination~\eqref{eq:modality_precond_weight}, relaxing the prior damping applied to \gls{spect} while leaving the objective untouched, is the targeted remedy and is left as future work. A related methodological point is that the comparisons here use image-domain \gls{nrmse} only, whereas the classical rate results bound the decrease of the objective rather than of the iterate error; objective-gap curves $\mathcal{O}(\bm z^{(k)})-\mathcal{O}^\star$ would connect these experiments to that theory more directly, and would expose monotonicity, which is the observable that distinguishes a majoriser from an approximation.
+
+The Lewis--Sendov Lehmer experiment found only a small advantage for $p=0.01$ over the parallel sum, and that advantage is partly confounded with a small change in effective step size. Chapter~\ref{chapter:paper} retains the previously frozen Lewis--Sendov block-diagonal/$p=0.01$ configuration for protocol continuity. Its use in that chapter should not be interpreted as selection of the best method after the wider comparison reported here.
+
+\subsection*{Theoretical status of the implemented algorithm}
+\label{subsec:theoretical_status}
+
+It is useful to state precisely which guarantees apply and which do not, since the implemented method combines several ingredients whose theories were developed separately.
+
+What is established is the prior side. The objective~\eqref{eq:optimisation_objective} is convex, since the Poisson negative log-likelihood, the $\wdtnv$ prior (Chapter~\ref{chapter:wdtnv}) and the non-negativity indicator are all convex. Proposition~\ref{prop:jacobian_majoriser} gives an exact quadratic majoriser of the prior in Jacobian space, whose weight is the matrix analogue of the optimal curvature of a scalar edge-preserving potential, and whose gradient matches that of Chapter~\ref{chapter:wdtnv} at the current iterate.
+
+What is not established falls into four identifiable gaps, each attached to a specific ingredient.
+\begin{enumerate}
+    \item \textbf{Separability.} The majoriser of Proposition~\ref{prop:jacobian_majoriser} is non-separable. The implemented diagonals extract the diagonal rather than applying De Pierro's convexity trick, and so fall short of a majorising diagonal by the factor quantified in Section~\ref{subsubsec:depierro_gap}. Monotonicity is forfeited at this step.
+    \item \textbf{Preconditioner class under constraints.} Convergence results for projected gradient methods on the non-negative orthant admit certain diagonal scalings but not general positive-definite preconditioners. The voxel-block methods of Section~\ref{subsubsec:precond_constraint} fall outside that class.
+    \item \textbf{Stochasticity.} Classical monotonicity and ordered-subset convergence results assume deterministic gradients or a relaxed deterministic subset schedule. The variance-reduced stochastic estimator~\eqref{eq:svrg_estimator_general} is outside the scope of those results, although the relaxation~\eqref{eq:optimisation_step_size} is of the diminishing-step form that relaxed \gls{bsrem} requires \cite{ahnGloballyConvergentOrdered2002}.
+    \item \textbf{Preconditioner staleness.} Monotonicity conditions for preconditioned gradient descent assume a fixed preconditioner. Here $\mathcal{P}^{(k)}$ is refreshed once per epoch and held constant in between, so it is neither fixed nor continuously updated.
+\end{enumerate}
+
+No single result in the literature covers this combination, and no monotone-descent guarantee is claimed for the implemented algorithm. Closing gap~1 is the most tractable of the four: it requires only substituting the De Pierro diagonal of~\eqref{eq:depierro_vs_diag} for the diagonal extraction currently used, after which the prior side of the algorithm would carry a majorisation argument end to end.
