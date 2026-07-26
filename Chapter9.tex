@@ -3,6 +3,7 @@
 
 \section{Discussion}
 
+
 \section{Future Work}
 \label{sec:future_work}
 
@@ -114,7 +115,7 @@ Of the two inner derivatives, that of $s_n$ is immediate since $s_n$ is affine. 
     \in\mathbb{R}^{d\times M},
     \label{eq:rnv_sign_matrix}
 \end{equation}
-where $\tilde{\mathcal{G}}_n=U_n\Sigma_nV_n^\top$ is a thin \glsentryshort{svd}; at rank-deficient $\tilde{\mathcal{G}}_n$ this is a subgradient rather than a gradient. The right-hand form is the $\epsilon\to0$ limit of the Jacobian-space gradient in Equation~\eqref{eq:2x2_gram}, so for $M=2$ it needs no explicit \glsentryshort{svd} and can be evaluated with the same $2\times2$ inverse square-root, with $\epsilon>0$ supplying the smoothing discussed below.
+where $\tilde{\mathcal{G}}_n=U_n\Sigma_nV_n^\top$. The right-hand form is the $\epsilon\to0$ limit of the Jacobian-space gradient in Equation~\eqref{eq:2x2_gram}, so for $M=2$ it needs no explicit \glsentryshort{svd} and can be evaluated with the same $2\times2$ inverse square-root, with $\epsilon>0$ supplying the smoothing discussed below.
 
 Write $\psi_{m,n}\in\mathbb{R}^d$ for the $m$-th column of $\Psi_n$, and abbreviate the two partial derivatives in Equation~\eqref{eq:rnv_h_partials} evaluated at $(r_n,s_n)$ as $h_{r,n}\geq0$ and $h_{s,n}\leq0$. Applying the chain rule through the linear maps $\bm{z}\mapsto\tilde{\mathcal{G}}_n(\bm{z})$ and $\bm{z}\mapsto s_n(\bm{z})$ then gives, for each modality,
 \begin{equation}
