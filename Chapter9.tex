@@ -25,7 +25,7 @@ The numerator is the edge magnitude that \wdtnv{} already penalises. Let
 \end{equation}
 be the nuclear magnitude of the same weighted directional Jacobian used by \wdtnv, including the modality weights $\rho_{m,n}$ and CT-derived operators $\Pi_{m,n}$. This plays the role of $|x_j-x_k|$ in the \gls{rdp}, with the scalar pairwise difference replaced by a single quantity that aggregates the directional information of all modalities at the voxel and, through the nuclear norm, favours edges that are shared between them.
 
-The denominator requires a counterpart to the endpoint sum $x_j+x_k$ acting on the same neighbourhood as the finite-difference operator. Let $\mathcal{E}=\{e_\ell\}_{\ell=1}^{d}$ be the same stencil used by $D$ in Chapter~\ref{chapter:paper}. Alongside $D$, define a Euclidean-distance weighted sum operator $Z$ by
+The denominator requires a counterpart to the voxel-wise sum $x_j+x_k$ acting on the same neighbourhood as the finite-difference operator. Let $\mathcal{E}=\{e_\ell\}_{\ell=1}^{d}$ be the same stencil used by $D$ in Chapter~\ref{chapter:paper}. Alongside $D$, define a Euclidean-distance weighted sum operator $Z$ by
 \begin{equation}
     \bigl((Z z_m)_n\bigr)^{(\ell)}
     :=
@@ -43,7 +43,7 @@ Define
     \bigl((Z z_m)_n\bigr)^{(\ell)},
     \label{eq:rnv_local_sum}
 \end{equation}
-where the weights $\rho_{m,n}$ are fixed with respect to $\bm{z}$ but may be voxel-dependent; the application in Chapter~\ref{chapter:paper} would use the spatially uniform weights $\rho_m$. Thus, $s_n$ is the direct sum counterpart of the weighted finite-difference bank: it retains the PET/SPECT modality scaling but does not apply the CT-derived directional operators $\Pi_{m,n}$, so anatomical directionality enters only through the numerator.
+where the weights $\rho_{m,n}$ are fixed with respect to $\bm{z}$ but may be voxel-dependent; the application in Chapter~\ref{chapter:paper} would use the spatially uniform weights $\rho_m$ with $s_n$ the direct sum counterpart of the weighted finite-difference jacobian. Note that $s_n$ retains the PET/SPECT modality scaling but does not apply the CT-derived directional operators $\Pi_{m,n}$, so anatomical directionality enters only through the numerator.
 
 Combining the two, an \gls{rnv} prior could then be defined as
 \begin{equation}
