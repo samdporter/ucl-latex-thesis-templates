@@ -59,7 +59,7 @@ Combining the two, an \gls{rnv} prior could then be defined as
     \varepsilon_{\mathrm{RNV}}>0.
     \label{eq:rnv_prior}
 \end{equation}
-This is inspired by the scalar RDP construction, but aggregates the multimodality directional information into a single nuclear magnitude rather than summing pairwise RDP terms. Because $D$ and $Z$ use the same physical distance scaling and the same modality weights, $r_n$ and $s_n$ have the same units; $\gamma_{\mathrm{RNV}}$ is dimensionless and $\varepsilon_{\mathrm{RNV}}$ has the units of $r_n$. Retaining the full directional sum in Equation~\eqref{eq:rnv_local_sum}, rather than a subset of directions, makes the stencil scaling of the denominator match that of the locally quadratic numerator: duplicating every stencil direction $\kappa$ times scales the singular values of $\tilde{\mathcal{G}}_n$ by $\sqrt{\kappa}$, so $r_n^2$ and $s_n$ are scaled by the same factor $\kappa$ and $r_n^2/s_n$ is unchanged. For $r_n\ll(s_n+\varepsilon_{\mathrm{RNV}})/\gamma_{\mathrm{RNV}}$, the local density would behave approximately as $r_n^2/(s_n+\varepsilon_{\mathrm{RNV}})$ and therefore provide locally intensity-scaled quadratic regularisation of the nuclear gradient. For $r_n\gg(s_n+\varepsilon_{\mathrm{RNV}})/\gamma_{\mathrm{RNV}}$, it approaches $r_n/\gamma_{\mathrm{RNV}}$ and hence recovers TNV-like linear edge penalisation.
+This is inspired by the scalar RDP construction, but aggregates the multimodality directional information into a single nuclear magnitude rather than summing pairwise RDP terms. Because $D$ and $Z$ use the same physical distance scaling and the same modality weights, $r_n$ and $s_n$ have the same units; $\gamma_{\mathrm{RNV}}$ is dimensionless and $\varepsilon_{\mathrm{RNV}}$ has the units of $r_n$. Retaining the full directional sum in Equation~\eqref{eq:rnv_local_sum}, rather than a single voxel intensity or a per-direction average, keeps the numerator and denominator built from the same stencil. For $r_n\ll(s_n+\varepsilon_{\mathrm{RNV}})/\gamma_{\mathrm{RNV}}$, the local density would behave approximately as $r_n^2/(s_n+\varepsilon_{\mathrm{RNV}})$ and therefore provide locally intensity-scaled quadratic regularisation of the nuclear gradient. For $r_n\gg(s_n+\varepsilon_{\mathrm{RNV}})/\gamma_{\mathrm{RNV}}$, it approaches $r_n/\gamma_{\mathrm{RNV}}$ and hence recovers TNV-like linear edge penalisation.
 
 The proposed non-negative penalty would be convex under the definitions above. To see this, consider
 \begin{equation}
@@ -69,11 +69,11 @@ The proposed non-negative penalty would be convex under the definitions above. T
         \varepsilon_{\mathrm{RNV}}},
     \qquad r\geq0,\quad s\geq0.
 \end{equation}
-Writing $q=s+\gamma_{\mathrm{RNV}}r+\varepsilon_{\mathrm{RNV}}$, its Hessian with respect to $(r,s)$ is
+Its Hessian with respect to $(r,s)$ is
 \begin{equation}
     \nabla^2 h(r,s)
     =
-    \frac{2}{q^3}
+    \frac{2}{\left(s+\gamma_{\mathrm{RNV}}r+\varepsilon_{\mathrm{RNV}}\right)^3}
     \begin{bmatrix}
         s+\varepsilon_{\mathrm{RNV}}\\
         -r
@@ -86,4 +86,48 @@ Writing $q=s+\gamma_{\mathrm{RNV}}r+\varepsilon_{\mathrm{RNV}}$, its Hessian wit
 \end{equation}
 Moreover, $h$ is non-decreasing in $r$. The mapping $\bm{z}\mapsto r_n(\bm{z})$ is convex because the nuclear norm is convex and $\tilde{\mathcal{G}}_n$ is linear in $\bm{z}$, while $\bm{z}\mapsto s_n(\bm{z})$ is non-negative and affine when the weights in Equation~\eqref{eq:rnv_local_sum} are fixed. Their composition in Equation~\eqref{eq:rnv_prior} is therefore convex on the non-negative image domain.
 
-Further work is required to determine whether the local adaptation improves the bias--noise trade-off in regions with heterogeneous uptake without allowing the activity scale of one modality to inappropriately weaken regularisation of the other. This should include derivation of the \gls{rnv} gradient and prior-aware curvature models, and controlled simulations containing shared and modality-unique edges. The spatially adaptive \gls{rnv} formulation should also be compared with a simpler baseline in which $s_n$ is estimated from initial PET and SPECT reconstructions and then frozen. Finally, the unsmoothed nuclear norm in Equation~\eqref{eq:rnv_nuclear_magnitude} makes the relationship to the classical RDP explicit but is not differentiable at all rank-deficient Jacobians. A differentiable convex approximation suitable for the optimisation framework of Chapter~\ref{chapter:optimisation} would therefore need to be derived. Directly substituting the Charbonnier-smoothed spectral magnitude used by \wdtnv{} would alter the limiting behaviour at very small gradients and should be evaluated rather than assumed equivalent.
+The gradient follows from the same decomposition. Differentiating $h$ gives
+\begin{equation}
+    \frac{\partial h}{\partial r}
+    =
+    \frac{r\left(2s+\gamma_{\mathrm{RNV}}r+2\varepsilon_{\mathrm{RNV}}\right)}
+        {\left(s+\gamma_{\mathrm{RNV}}r+\varepsilon_{\mathrm{RNV}}\right)^2},
+    \qquad
+    \frac{\partial h}{\partial s}
+    =
+    -\frac{r^2}
+        {\left(s+\gamma_{\mathrm{RNV}}r+\varepsilon_{\mathrm{RNV}}\right)^2},
+    \label{eq:rnv_h_partials}
+\end{equation}
+the first of which is the monotonicity in $r$ asserted above, and the second of which shows the local activity level entering with the opposite sign, exactly as in the \gls{rdp}: raising $s_n$ weakens the penalty applied to a given edge magnitude.
+
+Of the two inner derivatives, that of $s_n$ is immediate since $s_n$ is affine. Where $\tilde{\mathcal{G}}_n$ has full column rank, the nuclear magnitude is differentiable in Jacobian space with
+\begin{equation}
+    \Psi_n
+    :=
+    \nabla_{\mathcal{G}}\,r_n
+    =
+    U_nV_n^\top
+    =
+    \tilde{\mathcal{G}}_n
+    \left(\tilde{\mathcal{G}}_n^\top\tilde{\mathcal{G}}_n\right)^{-1/2}
+    \in\mathbb{R}^{d\times M},
+    \label{eq:rnv_sign_matrix}
+\end{equation}
+where $\tilde{\mathcal{G}}_n=U_n\Sigma_nV_n^\top$ is a thin \glsentryshort{svd}; at rank-deficient $\tilde{\mathcal{G}}_n$ this is a subgradient rather than a gradient. The right-hand form is the $\epsilon\to0$ limit of the Jacobian-space gradient in Equation~\eqref{eq:2x2_gram}, so for $M=2$ it needs no explicit \glsentryshort{svd} and can be evaluated with the same $2\times2$ inverse square-root, with $\epsilon>0$ supplying the smoothing discussed below.
+
+Write $\psi_{m,n}\in\mathbb{R}^d$ for the $m$-th column of $\Psi_n$, and abbreviate the two partial derivatives in Equation~\eqref{eq:rnv_h_partials} evaluated at $(r_n,s_n)$ as $h_{r,n}\geq0$ and $h_{s,n}\leq0$. Applying the chain rule through the linear maps $\bm{z}\mapsto\tilde{\mathcal{G}}_n(\bm{z})$ and $\bm{z}\mapsto s_n(\bm{z})$ then gives, for each modality,
+\begin{equation}
+    \nabla_{z_m}\mathcal{R}_{\mathrm{RNV}}(\bm{z})
+    =
+    V_{\mathrm{vox}}
+    \left[
+        D^\ast\left\{h_{r,n}\,\rho_{m,n}\,\Pi_{m,n}^\top\psi_{m,n}\right\}_{n=1}^{N}
+        +
+        Z^\ast\left\{h_{s,n}\,\rho_{m,n}\,\bm{1}_d\right\}_{n=1}^{N}
+    \right],
+    \label{eq:rnv_gradient}
+\end{equation}
+where $\bm{1}_d\in\mathbb{R}^d$ arises because $s_n$ sums over all $d$ stencil directions, and $Z^\ast$ shares the sparsity pattern of $D^\ast$ but with both neighbour contributions entering positively. The first term has the structure of the \wdtnv{} gradient, with $h_{r,n}$ reweighting each voxel by its local relative edge magnitude. The second has no \wdtnv{} counterpart: it is the analogue of the \gls{rdp} denominator gradient, acting to raise the local activity where the relative edge magnitude is large, and vanishing quadratically as $r_n\to0$.
+
+Further work is required to determine whether the local adaptation improves the bias--noise trade-off in regions with heterogeneous uptake without allowing the activity scale of one modality to inappropriately weaken regularisation of the other. This should include derivation of prior-aware curvature models and controlled simulations containing shared and modality-unique edges. The spatially adaptive \gls{rnv} formulation should also be compared with a simpler baseline in which $s_n$ is estimated from initial PET and SPECT reconstructions and then frozen. Finally, the unsmoothed nuclear norm in Equation~\eqref{eq:rnv_nuclear_magnitude} makes the relationship to the classical RDP explicit but is not differentiable at all rank-deficient Jacobians. A differentiable convex approximation suitable for the optimisation framework of Chapter~\ref{chapter:optimisation} would therefore need to be derived. Directly substituting the Charbonnier-smoothed spectral magnitude used by \wdtnv{} would alter the limiting behaviour at very small gradients and should be evaluated rather than assumed equivalent.
