@@ -46,7 +46,7 @@ If we define
 \;:=\;
 \sum_{j=1}^{J_m} \|(D x_m)_j\|_{2,\epsilon},
 \qquad
-\|v\|_{2,\epsilon}:=\sqrt{\|v\|_2^2+\epsilon^2},
+\|v\|_{2,\epsilon}:=\sqrt{\|v\|_2^2+\epsilon^2}-\epsilon,
 \end{equation}
 then the image-space gradient is
 \begin{equation}
@@ -56,7 +56,7 @@ then the image-space gradient is
 \end{equation}
 where the division is understood pointwise over voxels.
 
-For nuclear-norm vectorial total variation, the unsmoothed singular-value map is not differentiable at zero singular values, and hence the corresponding nuclear norm is not $C^1$ at rank-deficient points. We therefore apply the Charbonnier function to the singular values:
+For nuclear-norm vectorial total variation, the unsmoothed singular-value map is not differentiable at zero singular values. We therefore apply the Charbonnier function to the singular values:
 \begin{equation}\label{eq:charbonnier_g}
 g(s)=\sqrt{s^2+\epsilon^2}-\epsilon,
 \qquad
@@ -64,9 +64,8 @@ g'(s) = \frac{s}{\sqrt{s^2+\epsilon^2}},
 \qquad
 g''(s)=\frac{\epsilon^2}{(s^2+\epsilon^2)^{3/2}}.
 \end{equation}
-The constant $-\epsilon$ matches the implemented objective value and does not affect gradients or optimisation.
 
-The nuclear norm is orthogonally invariant: for any orthogonal $U\in\mathbb{R}^{d\times d}$ and $V\in\mathbb{R}^{M\times M}$,
+The nuclear norm is orthogonally invariant. That is, for any orthogonal $U\in\mathbb{R}^{d\times d}$ and $V\in\mathbb{R}^{M\times M}$,
 \begin{equation}
 \|Y\|_* \;=\; \|U Y V^\top\|_*.
 \end{equation}
@@ -139,43 +138,43 @@ hence
 \end{equation}
 Equation~\eqref{eq:phi_grad_inv_sqrt} shows that the Jacobian-space gradient is obtained by applying the inverse square-root of the $M\times M$ \gls{spd} matrix $G+\epsilon^2 \mathbb{I}$ to the columns of $\mathcal{G}$.
 
-For $M=2$ modalities, even an eigendecomposition of $G$ can be avoided. Writing
-\begin{equation}
-G=
-\begin{pmatrix}
-a & c\\
-c & b
-\end{pmatrix},
-\qquad
-a=\|\mathcal{G}_{:,1}\|_2^2,\ \ b=\|\mathcal{G}_{:,2}\|_2^2,\ \ c=\langle \mathcal{G}_{:,1},\mathcal{G}_{:,2}\rangle,
-\end{equation}
-define $S:=G+\epsilon^2 \mathbb{I}=\begin{psmallmatrix}s_{11} & s_{12}\\ s_{12} & s_{22}\end{psmallmatrix}$ with $s_{11}=a+\epsilon^2$, $s_{22}=b+\epsilon^2$, $s_{12}=c$, and the invariants
-\begin{equation}
-t:=\mathrm{tr}(S)=s_{11}+s_{22},
-\qquad
-s:=\sqrt{\det(S)}=\sqrt{s_{11}s_{22}-s_{12}^2}.
-\end{equation}
-Since $\epsilon>0$ implies $S\succ 0$, the following identity holds for $2\times2$ \glsentryshort{spd} matrices:
-\begin{equation}\label{eq:inv_sqrt_2x2}
-S^{-1/2}
-=
-\sqrt{t+2s}\,(S+s\mathbb{I})^{-1}
-=
-\frac{\sqrt{t+2s}}{2\det(S)+s\,t}
-\begin{pmatrix}
-s_{22}+s & -s_{12}\\
--s_{12} & s_{11}+s
-\end{pmatrix}.
-\end{equation}
-Therefore, for two modalities the Jacobian-space gradient can be evaluated via
-\begin{equation}\label{eq:2x2_gram}
-\nabla_{\mathcal{G}} \phi(\mathcal{G})
-=
-\mathcal{G}\,S^{-1/2},
-\qquad S=G+\epsilon^2 \mathbb{I},
-\end{equation}
-using only dot products and scalar square-roots per voxel.
-
+        For $M=2$ modalities, even an eigendecomposition of $G$ can be avoided. Writing
+        \begin{equation}
+        G=
+        \begin{pmatrix}
+        a & c\\
+        c & b
+        \end{pmatrix},
+        \qquad
+        a=\|\mathcal{G}_{:,1}\|_2^2,\ \ b=\|\mathcal{G}_{:,2}\|_2^2,\ \ c=\langle \mathcal{G}_{:,1},\mathcal{G}_{:,2}\rangle,
+        \end{equation}
+        define $S:=G+\epsilon^2 \mathbb{I}=\begin{psmallmatrix}s_{11} & s_{12}\\ s_{12} & s_{22}\end{psmallmatrix}$ with $s_{11}=a+\epsilon^2$, $s_{22}=b+\epsilon^2$, $s_{12}=c$, and the invariants
+        \begin{equation}
+        t:=\mathrm{tr}(S)=s_{11}+s_{22},
+        \qquad
+        s:=\sqrt{\det(S)}=\sqrt{s_{11}s_{22}-s_{12}^2}.
+        \end{equation}
+        Since $\epsilon>0$ implies $S\succ 0$, the following identity holds for $2\times2$ \glsentryshort{spd} matrices:
+        \begin{equation}\label{eq:inv_sqrt_2x2}
+        S^{-1/2}
+        =
+        \sqrt{t+2s}\,(S+s\mathbb{I})^{-1}
+        =
+        \frac{\sqrt{t+2s}}{2\det(S)+s\,t}
+        \begin{pmatrix}
+        s_{22}+s & -s_{12}\\
+        -s_{12} & s_{11}+s
+        \end{pmatrix}.
+        \end{equation}
+        Therefore, for two modalities the Jacobian-space gradient can be evaluated via
+        \begin{equation}\label{eq:2x2_gram}
+        \nabla_{\mathcal{G}} \phi(\mathcal{G})
+        =
+        \mathcal{G}\,S^{-1/2},
+        \qquad S=G+\epsilon^2 \mathbb{I},
+        \end{equation}
+        using only dot products and scalar square-roots per voxel.
+        
 \paragraph{Image-space gradient.}
 Define voxel-wise
 \begin{equation}

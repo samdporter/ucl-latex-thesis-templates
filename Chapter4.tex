@@ -150,12 +150,12 @@ Figure~\ref{fig:gaussian_bremss_range} reports the fitted detector-plane standar
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{figures/Chapter3/Gaussian_bremss_range.png}
-    \caption{Detector-plane response standard deviation $\sigma$ (cm) against
+    \caption{Projection space Gaussian \gls{psf} standard deviation, $\sigma$ (cm), against
     source--collimator distance for (a) $[39.8,126.6]$, (b) $[50,150]$ and
     (c) $[75,225]\,\mathrm{keV}$. Markers show GATE MC, SIMIND MC, STIR with the
     geometric response, and STIR with the geometric response plus the image-space
     effective kernel. The geometric-only STIR projector
-    underestimates the response width; composing it with the image-space
+    underestimates the width; composing it with the image-space
     Bremsstrahlung kernel substantially reduces the net width discrepancy across the
     evaluated distances and windows.}
     \label{fig:gaussian_bremss_range}
@@ -165,11 +165,11 @@ Figure~\ref{fig:gaussian_bremss_range} reports the fitted detector-plane standar
 \section{Scope, Limitations and Deployment}
 \label{sec:brems_deployment}
 
-The work in this chapter is deliberately a component-level commissioning study. Iterative Monte Carlo estimation of scatter is established methodology, and under-relaxation is a standard numerical device. The contribution here is the integration of a domain-shifted learned initial estimate with a calibrated SIMIND refinement, and the empirical identification and suppression of unstable full replacement. Likewise, the physical existence of Bremsstrahlung range broadening is established; the contribution is an inexpensive fixed-width effective Gaussian surrogate that can be composed with a standard matched projector, calibrated against GATE and cross-checked against SIMIND.
+The work in this chapter is only a component-level commissioning study. Iterative Monte Carlo estimation of scatter is established methodology, and under-relaxation is a standard numerical device. The contribution here is the integration of a learned initial estimate with a calibrated SIMIND refinement, and the empirical identification and suppression of unstable full replacement. Likewise, the physical existence of Bremsstrahlung range broadening is established. The contribution is an inexpensive fixed-width effective Gaussian surrogate that can be composed with a standard matched projector, calibrated against GATE and cross-checked against SIMIND.
 
-Several limitations follow from these choices. The network output is used outside its training protocol and is only a scatter-derived initialisation; because the update is damped, it could continue to influence the finite-budget estimate to some extend, however we posit that this would be minimal after simulate--reconstruct 10 iterations. The scalar calibration in Equation~\ref{eq:simind_scale} cannot correct spatially varying differences between SIMIND and the analytic projector which may exist. The relaxation factor and ten-iteration budget were fixed heuristically, and Figure~\ref{fig:nema_scatter_est} is a stability diagnostic rather than a convergence proof. The range kernel is isotropic and water-equivalent, so it does not model material-dependent transport in lung or bone, nor the detailed angular and spectral structure represented by a full Monte Carlo projector. Future work could include the addition of anisotropic bremsstrahlung simulation methods such as that by Lim et al. \cite{lim_y-90_2018}. Finally, the analysis isolates selected model components and does not by itself establish improved clinical quantification.
+Several limitations follow from these choices. The network output is used outside its training protocol and is only a scatter-derived initialisation. Because the update is damped, it could continue to influence the finite-budget estimate to some extent, however we posit that this would be minimal after simulate--reconstruct 10 iterations. The scalar calibration in Equation~\ref{eq:simind_scale} cannot correct spatially varying differences between SIMIND and the analytic projector which may exist. The relaxation factor and ten-iteration budget were fixed heuristically, and Figure~\ref{fig:nema_scatter_est} is a stability diagnostic rather than a convergence proof. The range kernel is isotropic and water-equivalent, so it does not model material-dependent transport in lung or bone, nor the detailed angular and spectral structure represented by a full Monte Carlo projector. Future work could include the addition of anisotropic bremsstrahlung simulation methods such as that by Lim et al. \cite{lim_y-90_2018}. Finally, the analysis isolates selected model components and does not by itself establish improved clinical quantification.
 
-The configuration carried forward is consequently explicit. A learned additive estimate is refined for ten outer iterations using SIMIND and Equation~\ref{eq:additive_damped_update}; the final non-primary term is frozen; and the effective range kernel is added to the SPECT acquisition model. Chapter~\ref{chapter:paper} uses this fixed model for the joint \isotope[90]{Y} \glsentryshort{pet}/\glsentryshort{spect} experiments.
+The configuration carried forward is as follows: a learned additive estimate is refined for ten outer iterations using SIMIND and Equation~\ref{eq:additive_damped_update}; the final non-primary term is frozen; and the effective range kernel is added to the SPECT acquisition model. Chapter~\ref{chapter:paper} uses this fixed model for the joint \isotope[90]{Y} \glsentryshort{pet}/\glsentryshort{spect} experiments.
 
 
 \section{Summary}
