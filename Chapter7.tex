@@ -274,7 +274,7 @@ The \gls{mm} label applied to the first family is not merely descriptive of how 
 \label{prop:jacobian_majoriser}
 Let $Y,Y_0\in\mathbb{R}^{d\times M}$ with $d\geq M$, let $g$ be the Charbonnier function of Chapter~\ref{chapter:wdtnv} and let $\phi(Y)=\sum_{\ell=1}^{M}g(\sigma_\ell(Y))$. Define
 \begin{equation}
-    C_0 := \left(Y_0^\top Y_0 + \epsilon^2\mathbb{I}_M\right)^{-1/2}.
+    C_0 := \Omegaeps{Y_0} = \left(Y_0^\top Y_0 + \epsilon^2\mathbb{I}_M\right)^{-1/2}.
     \label{eq:majoriser_weight}
 \end{equation}
 Then, for all $Y$,
@@ -301,32 +301,34 @@ The map $t\mapsto t^{1/2}$ is operator concave on the positive semidefinite cone
 
 Three consequences matter here. First, the right-hand side of~\eqref{eq:jacobian_majoriser} is a convex quadratic in $Y$, because $Y^\top Y$ is a convex quadratic and $C_0\succ0$; it is therefore a surrogate in the standard sense of lying above $\phi$ and touching it at the current point. Second, its gradient at $Y=Y_0$ is $Y_0C_0$, which is exactly the gradient derived in Chapter~\ref{chapter:wdtnv} (Equation~\eqref{eq:2x2_gram}), so the surrogate satisfies the matched-tangent condition automatically. Third, and most usefully, the weight $C_0$ is the matrix-valued analogue of the optimal curvature of a scalar edge-preserving potential. For a symmetric potential $\psi$ whose curvature $\omega_\psi(s)=\dot\psi(s)/s$ is non-increasing on $(0,\infty)$, the parabola with curvature $\omega_\psi$ is the smallest-curvature quadratic surrogate \cite{huberRobustEstimationLocation1964a}; for the hyperbola potential $\psi(s)=\sqrt{s^2+\epsilon^2}$ this gives $\omega_\psi(s)=1/\sqrt{s^2+\epsilon^2}$, which is precisely the scalar $M=1$ case of~\eqref{eq:majoriser_weight}. The construction used here is thus the spectral generalisation of the multiplicative form of half-quadratic regularisation, which is itself a rediscovery of Huber's quadratic surrogates. That the same object serves as both gradient weight and curvature is a structural consequence of the majorisation, not a coincidence of implementation. \TODO{Add the Zenodo-managed citations for Fessler, \emph{Image Reconstruction: Algorithms and Analysis}, Theorem 14.4.5 (optimality of Huber's curvature $\omega_\psi$) and Section 14.4.4.5 (half-quadratic methods as Huber surrogates), together with Charbonnier et al.\ (1997) and Nikolova and Ng (2005) on the multiplicative and additive half-quadratic forms.}
 
-Summing~\eqref{eq:jacobian_majoriser} over voxels yields a quadratic majoriser of the complete prior whose Hessian has the form $\mathcal{D}^\ast(\cdot)\mathcal{D}$, where $\mathcal{D}$ collects the weighted directional finite-difference operators. This majoriser is not separable: it couples each voxel to its finite-difference neighbours. Every preconditioner implemented below reduces it further, and Section~\ref{subsubsec:depierro_gap} identifies exactly what that reduction costs.
+Summing~\eqref{eq:jacobian_majoriser} over voxels yields a quadratic majoriser of the complete prior whose Hessian has the form $\bm{D}^\ast(\cdot)\bm{D}$, where $\bm{D}$ collects the weighted directional finite-difference operators $\rho_{m,n}\Pi_{m,n}D$ over all modalities and voxels. It is distinct from the data-fidelity term $\mathcal{D}$ of~\eqref{eq:optimisation_objective}. This majoriser is not separable: it couples each voxel to its finite-difference neighbours. Every preconditioner implemented below reduces it further, and Section~\ref{subsubsec:depierro_gap} identifies exactly what that reduction costs.
 
-For the \gls{mm} family, at voxel $n$ let
+For the \gls{mm} family, let $k_0$ denote a preconditioner-refresh iteration and, at voxel $n$, define the anchored weighted directional Jacobian
 \begin{equation}
-    \tilde{\mathcal{G}}_n
+    \tilde{\mathcal{G}}_n^{(k_0)}
+    :=
+    \tilde{\mathcal{G}}_n\!\left(\bm z^{(k_0)}\right)
     =
     \left[
-        \rho_{1,n}\Pi_{1,n}(Dz_1)_n
+        \rho_{1,n}\Pi_{1,n}(Dz_1^{(k_0)})_n
         \;\middle|\;
-        \rho_{2,n}\Pi_{2,n}(Dz_2)_n
+        \rho_{2,n}\Pi_{2,n}(Dz_2^{(k_0)})_n
     \right]\in\mathbb{R}^{d\times2}
     \label{eq:optimisation_weighted_jacobian}
 \end{equation}
 be the weighted directional Jacobian from Chapter~\ref{chapter:wdtnv} (Equation~\eqref{eq:Yn_weighted}). The active code forms the modality-space \glsentryshort{mm} weight
 \begin{equation}
-    C_n
+    C_n^{(k_0)}
     =
-    \left(\tilde{\mathcal{G}}_n^\top \tilde{\mathcal{G}}_n + \epsilon^2 \mathbb{I}_2\right)^{-1/2}
+    \Omegaeps{\tilde{\mathcal{G}}_n^{(k_0)}}
     =
     \begin{pmatrix}
-        c_{11,n} & c_{12,n}\\
-        c_{12,n} & c_{22,n}
+        c_{11,n}^{(k_0)} & c_{12,n}^{(k_0)}\\
+        c_{12,n}^{(k_0)} & c_{22,n}^{(k_0)}
     \end{pmatrix}.
     \label{eq:mm_weight_current_code}
 \end{equation}
-This matrix is the same $2\times2$ inverse square-root used in the gradient calculation in Chapter~\ref{chapter:wdtnv} (Equation~\eqref{eq:2x2_gram}), now interpreted as the local quadratic-surrogate weight.
+This is the same smoothed spectral weight~\eqref{eq:spectral_weight} that supplies the gradient in Chapter~\ref{chapter:wdtnv} (Equation~\eqref{eq:2x2_gram}), now evaluated at the refresh anchor and read as the local quadratic-surrogate weight. The three uses differ only in where the map is evaluated: at a generic $Y$ for the gradient, at the frozen anchor $Y_0$ for the majoriser, and at $\tilde{\mathcal{G}}_n^{(k_0)}$ per voxel in the implementation. The weight is held fixed while the trial variable changes and until the next preconditioner refresh. To keep the formulas below readable, the refresh superscript is suppressed there, so $C_n$ and $c_{mm',n}$ denote the anchored quantities $C_n^{(k_0)}$ and $c_{mm',n}^{(k_0)}$.
 
 For diagonal preconditioning, the finite-difference stencil and directional projectors are collapsed to a per-voxel participation factor $\tau_{m,n}$. This factor includes the number of valid forward/backward stencil incidences at voxel $n$, the squared finite-difference scale factors, and the diagonal entries of $\Pi_{m,n}^\top\Pi_{m,n}$. The local diagonal \wdtnv{} curvature approximation is
 \begin{equation}
@@ -368,7 +370,7 @@ Equations~\eqref{eq:diag_tight_preconditioner} and~\eqref{eq:diag_gersh_precondi
 \end{equation}
 The two differ by the replacement of $|b_{ij}|$ with the row $\ell_1$ norm $b_i$, so $d_j^{\mathrm{DP}}\geq d_j^{\mathrm{diag}}$ always, with the inflation factor equal to a $\breve c$-weighted average of $b_i/|b_{ij}|$. For an isotropic first-order difference, whose rows contain exactly the two entries $\pm1/\Delta_\ell$, this factor is exactly $2$. Once $\Pi_{m,n}$ mixes difference directions the rows acquire up to $2d$ non-zeros and the factor grows accordingly, so in three dimensions the gap lies between $2$ and $2d=6$ depending on the guidance strength $\gamma_m$.
 
-Two consequences follow. First, the Gershgorin construction~\eqref{eq:diag_gersh_preconditioner} inflates along the \emph{modality} index, adding $|c_{12,n}|$ to the diagonal of the $2\times2$ block $C_n$. The off-diagonal mass that actually obstructs diagonal dominance of the surrogate Hessian is \emph{spatial}, arising from the neighbour coupling in $\mathcal{D}^\ast(\cdot)\mathcal{D}$. The Gershgorin variant therefore reinforces the wrong axis, which offers a plausible explanation for why it tracks the tight diagonal so closely in Section~\ref{sec:optimisation_preconditioners}.
+Two consequences follow. First, the Gershgorin construction~\eqref{eq:diag_gersh_preconditioner} inflates along the \emph{modality} index, adding $|c_{12,n}|$ to the diagonal of the $2\times2$ block $C_n$. The off-diagonal mass that actually obstructs diagonal dominance of the surrogate Hessian is \emph{spatial}, arising from the neighbour coupling in $\bm{D}^\ast(\cdot)\bm{D}$. The Gershgorin variant therefore reinforces the wrong axis, which offers a plausible explanation for why it tracks the tight diagonal so closely in Section~\ref{sec:optimisation_preconditioners}.
 
 Second, because the implemented diagonal is smaller than a majorising diagonal, the corresponding preconditioner is correspondingly larger, so the descent guarantee that \gls{mm} would otherwise supply is lost by a bounded and known factor. Substituting the right-hand form of~\eqref{eq:depierro_vs_diag} for the diagonal used in~\eqref{eq:diag_tight_preconditioner} would restore it, at the cost of a more conservative step. This substitution is a change to one diagonal and would be the first construction in this chapter with a majorisation argument running end to end; it was not implemented here.
 
@@ -522,15 +524,15 @@ with $\lambda_{\mathrm{PET}}=1$ recovering the present scheme and $\lambda_{\mat
 
 The inverse sum is one member of a broader matrix Lehmer family. For the voxel-wise symmetric positive-definite preconditioners $\mathcal{P}_{\mathcal R}$ and $\mathcal{P}_{\mathrm D}$, define
 \begin{equation}
-    C=\mathcal{P}_{\mathrm D}^{-1/2}\mathcal{P}_{\mathcal R}\mathcal{P}_{\mathrm D}^{-1/2},
+    T=\mathcal{P}_{\mathrm D}^{-1/2}\mathcal{P}_{\mathcal R}\mathcal{P}_{\mathrm D}^{-1/2},
     \qquad
     L_p(\mathcal{P}_{\mathcal R},\mathcal{P}_{\mathrm D})
-    =\mathcal{P}_{\mathrm D}^{1/2}f_p(C)\mathcal{P}_{\mathrm D}^{1/2},
+    =\mathcal{P}_{\mathrm D}^{1/2}f_p(T)\mathcal{P}_{\mathrm D}^{1/2},
     \qquad
     f_p(t)=\frac{t^p+1}{t^{p-1}+1},
     \label{eq:matrix_lehmer_combination}
 \end{equation}
-where $f_p(C)$ is evaluated spectrally. The implemented preconditioner is $\tfrac12L_p(\mathcal{P}_{\mathcal R},\mathcal{P}_{\mathrm D})$. At $p=0$ this reduces exactly to the parallel sum,
+where $T$ is the congruence transform of $\mathcal{P}_{\mathcal R}$ by $\mathcal{P}_{\mathrm D}^{-1/2}$, unrelated to the \gls{mm} weight $C_n$ of~\eqref{eq:mm_weight_current_code}, and $f_p(T)$ is evaluated spectrally. The implemented preconditioner is $\tfrac12L_p(\mathcal{P}_{\mathcal R},\mathcal{P}_{\mathrm D})$. At $p=0$ this reduces exactly to the parallel sum,
 \begin{equation}
     \tfrac12L_0(\mathcal{P}_{\mathcal R},\mathcal{P}_{\mathrm D})
     =
@@ -554,7 +556,7 @@ where $f_p(C)$ is evaluated spectrally. The implemented preconditioner is $\tfra
 
 For the Lewis--Sendov block model, $p=0.01$ is marginally better than the inverse-sum result in these curves, but the difference is small. This comparison does not establish that the same order is preferable for the \gls{mm}-derived preconditioners.
 
-Two caveats limit what should be read into the $p$ sweep. First, only $p=0$ carries the surrogate interpretation of Section~\ref{subsec:optimisation_preconditioner_combination}, in which curvatures add; other orders are combination rules without a corresponding majorisation argument. Second, the factor $\tfrac12$ in $\tfrac12L_p$ is calibrated so that $p=0$ reproduces the parallel sum exactly, which means the overall scale of the combination drifts with $p$. Evaluating $\tfrac12 f_p$ against $f_0$ spectrally, the Lehmer combination at $p=0.01$ exceeds the parallel sum by roughly two per cent where the eigenvalues of $C$ are of order $10^2$, rising to a few per cent at $10^3$; that is, $p>0$ acts as a mild step-size inflation wherever prior curvature is small relative to data curvature. A sweep over $p$ at fixed $\varsigma^{(0)}$ therefore confounds the shape of the combination with a small change in effective step size, and the modest advantage observed here is consistent with either. Separating them would require re-tuning $\varsigma^{(0)}$ at each $p$. Chapter~\ref{chapter:paper} had already frozen the Lewis--Sendov block-diagonal model with $p=0.01$ before the broader benchmark in this chapter. Retaining it therefore provides protocol continuity, not a post-hoc claim that Lewis--Sendov or $p=0.01$ is universally optimal.
+Two caveats limit what should be read into the $p$ sweep. First, only $p=0$ carries the surrogate interpretation of Section~\ref{subsec:optimisation_preconditioner_combination}, in which curvatures add; other orders are combination rules without a corresponding majorisation argument. Second, the factor $\tfrac12$ in $\tfrac12L_p$ is calibrated so that $p=0$ reproduces the parallel sum exactly, which means the overall scale of the combination drifts with $p$. Evaluating $\tfrac12 f_p$ against $f_0$ spectrally, the Lehmer combination at $p=0.01$ exceeds the parallel sum by roughly two per cent where the eigenvalues of $T$ are of order $10^2$, rising to a few per cent at $10^3$; that is, $p>0$ acts as a mild step-size inflation wherever prior curvature is small relative to data curvature. A sweep over $p$ at fixed $\varsigma^{(0)}$ therefore confounds the shape of the combination with a small change in effective step size, and the modest advantage observed here is consistent with either. Separating them would require re-tuning $\varsigma^{(0)}$ at each $p$. Chapter~\ref{chapter:paper} had already frozen the Lewis--Sendov block-diagonal model with $p=0.01$ before the broader benchmark in this chapter. Retaining it therefore provides protocol continuity, not a post-hoc claim that Lewis--Sendov or $p=0.01$ is universally optimal.
 
 \section{Conclusion}
 \label{sec:optimisation_conclusion}

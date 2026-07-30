@@ -188,7 +188,7 @@
 \newglossaryentry{sym:u}{type=symbols, sort=d13, name={$u$},
   description={Anatomical guidance image (for the $^{90}$Y study, $u=\mu$)}}
 \newglossaryentry{sym:z}{type=symbols, sort=d14, name={$z_m$, $\bm{z}$},
-  description={Modality-$m$ image on the shared grid; $\bm{z}=(z_1,\dots,z_M)$ the stacked images}}
+  description={Modality-$m$ image on the shared grid; $\bm{z}=(z_1,\dots,z_M)\in(\mathbb{R}_+^N)^M\simeq\mathbb{R}_+^{N\times M}$ is the ordered tuple, identified with the column-stacked image matrix}}
 \newglossaryentry{sym:G}{type=symbols, sort=d15, name={$\mathcal{G}_n$},
   description={Voxel-wise multi-modality Jacobian (columns are modality gradients)}}
 \newglossaryentry{sym:Gtilde}{type=symbols, sort=d16, name={$\tilde{\mathcal{G}}_n$},
@@ -201,6 +201,8 @@
   description={$\ell$-th singular value}}
 \newglossaryentry{sym:nucnorm}{type=symbols, sort=d20, name={$\|\cdot\|_*$},
   description={Nuclear norm (sum of singular values)}}
+\newglossaryentry{sym:Omegaeps}{type=symbols, sort=d20a, name={$\bm{\Omega}_\epsilon$},
+  description={Smoothed spectral weight, $\bm{\Omega}_\epsilon(Y)=(Y^\top Y+\epsilon^2\mathbb{I})^{-1/2}$ for $\epsilon>0$; serves as both the Jacobian-space gradient weight and the majoriser curvature. For full-column-rank $Y$, $\bm{\Omega}_0(Y)=(Y^\top Y)^{-1/2}$ denotes the unsmoothed specialization; at rank deficiency only $Y\bm{\Omega}_\epsilon(Y)$ has a finite $\epsilon\downarrow0$ limit}}
 \newglossaryentry{sym:Vvox}{type=symbols, sort=d21, name={$V_{\mathrm{vox}}$},
   description={Voxel volume}}
 \newglossaryentry{sym:RRNV}{type=symbols, sort=d22, name={$\mathcal{R}_{\mathrm{RNV}}$},

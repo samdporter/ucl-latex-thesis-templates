@@ -136,12 +136,11 @@ Of the two inner derivatives, that of $s_n$ is immediate since $s_n$ is affine. 
     =
     U_nV_n^\top
     =
-    \tilde{\mathcal{G}}_n
-    \left(\tilde{\mathcal{G}}_n^\top\tilde{\mathcal{G}}_n\right)^{-1/2}
+    \tilde{\mathcal{G}}_n\,\Omegazero{\tilde{\mathcal{G}}_n}
     \in\mathbb{R}^{d\times M},
     \label{eq:rnv_sign_matrix}
 \end{equation}
-where $\tilde{\mathcal{G}}_n=U_n\Sigma_nV_n^\top$. The right-hand form is the $\epsilon\to0$ limit of the Jacobian-space gradient in Equation~\eqref{eq:2x2_gram}, so for $M=2$ it needs no explicit \glsentryshort{svd} and can be evaluated with the same $2\times2$ inverse square-root, with $\epsilon>0$ supplying the smoothing discussed below.
+where $\tilde{\mathcal{G}}_n=U_n\Sigma_nV_n^\top$ and, under the stated full-column-rank assumption, $\bm{\Omega}_0(Y):=(Y^\top Y)^{-1/2}$ is the unsmoothed specialization of the spectral weight~\eqref{eq:spectral_weight}. The right-hand form is therefore the $\epsilon\to0$ limit of the Jacobian-space gradient in Equation~\eqref{eq:2x2_gram}, so for $M=2$ it needs no explicit \glsentryshort{svd} and can be evaluated with the same $2\times2$ inverse square-root. At rank-deficient $Y$, $\bm{\Omega}_\epsilon(Y)$ itself has no finite limit as $\epsilon\downarrow0$; only the product $Y\bm{\Omega}_\epsilon(Y)$ has a finite polar-factor limit, which is one nuclear-norm subgradient rather than a gradient. This distinction is why the differentiable formulation used in the preceding chapters retains $\epsilon>0$.
 
 Write $\psi_{m,n}\in\mathbb{R}^d$ for the $m$-th column of $\Psi_n$, and abbreviate the two partial derivatives in Equation~\eqref{eq:rnv_h_partials} evaluated at $(r_n,s_n)$ as $h_{r,n}\geq0$ and $h_{s,n}\leq0$. Applying the chain rule through the linear maps $\bm{z}\mapsto\tilde{\mathcal{G}}_n(\bm{z})$ and $\bm{z}\mapsto s_n(\bm{z})$ then gives, for each modality,
 \begin{equation}

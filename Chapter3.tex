@@ -213,10 +213,13 @@ When the native modalities, indexed using $m$, are acquired on different grids o
 \begin{equation}
     z_m \coloneqq W_m x_m \in \mathbb{R}_+^{N}, \qquad m=1,\dots,M,
 \end{equation}
-and collect them as the modality tuple
+and collect them as the ordered modality tuple
 \begin{equation}
-    \bm{z} \coloneqq (z_1,\dots,z_M).
+    \bm{z} \coloneqq (z_1,\dots,z_M)
+    \in (\mathbb{R}_+^N)^M
+    \simeq \mathbb{R}_+^{N\times M},
 \end{equation}
+where the matrix-space identification stacks the modality images as columns.
 Coupling priors are then naturally expressed in terms of $\bm{z}$, since neighbourhoods, gradients, and voxel-wise comparisons are only meaningful when images are spatially aligned.
 
 In the Bayesian  setting, a generic multi-modality reconstruction is given by

@@ -10,7 +10,7 @@ The optimisation machinery used to apply this prior in large-scale \gls{pet}/\gl
 
 This section builds on the definitions in Section~\ref{subsec:synergistic_recon}. For convenience, we restate the key definitions here:
 \begin{itemize}
-    \item Registered images: $\bm{z} \coloneqq \{ z_m \}_{m=1}^{M}$, where $z_m \coloneqq W_m x_m$ and
+    \item Registered images: $\bm{z} \coloneqq (z_1,\dots,z_M)\in(\mathbb{R}_+^N)^M\simeq\mathbb{R}_+^{N\times M}$, where the matrix-space identification stacks the images as columns, $z_m \coloneqq W_m x_m$, and
     $W_m : \mathbb{R}_+^{J_m} \to \mathbb{R}_+^{N}$.
     \item Finite-difference operator: for $\ell=1,\dots,d$,
     \[
@@ -136,7 +136,13 @@ hence
 \;=\;
 \mathcal{G}\,(G+\epsilon^2 \mathbb{I})^{-1/2}.
 \end{equation}
-Equation~\eqref{eq:phi_grad_inv_sqrt} shows that the Jacobian-space gradient is obtained by applying the inverse square-root of the $M\times M$ \gls{spd} matrix $G+\epsilon^2 \mathbb{I}$ to the columns of $\mathcal{G}$.
+Equation~\eqref{eq:phi_grad_inv_sqrt} shows that the Jacobian-space gradient is obtained by applying the inverse square-root of the $M\times M$ \gls{spd} matrix $G+\epsilon^2 \mathbb{I}$ to the columns of $\mathcal{G}$. This object recurs throughout the remainder of this chapter and in Chapters~\ref{chapter:optimisation} and~\ref{discussion}, so it is worth naming. For any $Y\in\mathbb{R}^{d\times M}$ define the \emph{smoothed spectral weight}
+\begin{equation}
+    \Omegaeps{Y} \coloneqq \left(Y^\top Y+\epsilon^2\mathbb{I}\right)^{-1/2}
+    \in\mathbb{R}^{M\times M},
+    \label{eq:spectral_weight}
+\end{equation}
+so that~\eqref{eq:phi_grad_inv_sqrt} reads $\nabla_{\mathcal{G}}\phi(\mathcal{G})=\mathcal{G}\,\Omegaeps{\mathcal{G}}$. Because $\epsilon>0$, $\Omegaeps{Y}$ is well defined and \gls{spd} for every $Y$, including rank-deficient ones. For $M=1$ it collapses to the scalar $(\|Y\|_2^2+\epsilon^2)^{-1/2}$, which is exactly the curvature of the hyperbola potential at the sole singular value $\sigma_1(Y)=\|Y\|_2$; Chapter~\ref{chapter:optimisation} shows that the matrix case inherits that role, so that the same weight governs both the gradient here and the quadratic surrogate there.
 
         For $M=2$ modalities, even an eigendecomposition of $G$ can be avoided. Writing
         \begin{equation}
@@ -166,12 +172,14 @@ Equation~\eqref{eq:phi_grad_inv_sqrt} shows that the Jacobian-space gradient is 
         -s_{12} & s_{11}+s
         \end{pmatrix}.
         \end{equation}
-        Therefore, for two modalities the Jacobian-space gradient can be evaluated via
+        Therefore, for two modalities the smoothed spectral weight is available in closed form, and the Jacobian-space gradient can be evaluated via
         \begin{equation}\label{eq:2x2_gram}
         \nabla_{\mathcal{G}} \phi(\mathcal{G})
         =
-        \mathcal{G}\,S^{-1/2},
-        \qquad S=G+\epsilon^2 \mathbb{I},
+        \mathcal{G}\,\Omegaeps{\mathcal{G}},
+        \qquad
+        \Omegaeps{\mathcal{G}}=S^{-1/2},
+        \quad S=G+\epsilon^2 \mathbb{I},
         \end{equation}
         using only dot products and scalar square-roots per voxel.
         
@@ -263,7 +271,7 @@ The weighted directional Jacobian is
 \end{equation}
 The columns of $\tilde{\mathcal{G}}_n$ are $\tilde{g}_{m,n} := \rho_{m,n}\,\Pi_{m,n}(D z_m)_n \in \mathbb{R}^d$.
 
-Throughout, $B_n$ is treated as a fixed operator that does not depend on $\bm{z}$. This is required for the prior to be the convex functional stated in~\eqref{eq:wdtnv_convex} and for the chain rule of Section~\ref{subsec:tnv_differentiability} to give its gradient: if the weights were recomputed from the current iterate, the resulting update would no longer be the gradient of any fixed objective. In the application of Chapter~\ref{chapter:paper} the weights are accordingly computed once, from early-stopped unregularised reconstructions, and then held fixed. The weights also absorb the overall regularisation strength; there is no separate scalar $\beta$ multiplying~\eqref{eq:wdtnv_prior}, because the modality-specific regularisation weights $\beta_m$ enter through $\rho_{m,n}$ (Section~\ref{subsec:90y_global_weights}).
+Throughout, $B_n$ is treated as a fixed operator that does not depend on $\bm{z}$. This is required for the prior to be the convex functional stated in~\eqref{eq:wdtnv_convex} and for the chain rule of Section~\ref{subsec:tnv_differentiability} to give its gradient: if the weights were recomputed from the current iterate, the resulting update would no longer be the gradient of any fixed objective. In the application of Chapter~\ref{chapter:paper} the weights are accordingly computed once, from early-stopped unregularised reconstructions, and then held fixed. The weights also absorb the overall regularisation strength; there is no separate global scalar prior multiplier in~\eqref{eq:wdtnv_prior}, because the modality-specific regularisation weights $\beta_m$ enter through $\rho_{m,n}$ (Section~\ref{subsec:90y_global_weights}).
 
 It is worth being explicit that voxel-wise weighting is a genuine change of prior rather than a reparametrisation. Because the nuclear norm is positively homogeneous, a spatially constant weight $\rho_{m,n}\equiv\rho_m$ would make $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ identical to $d$TNV evaluated on the rescaled images $\rho_m z_m$. This equivalence fails as soon as the weights vary spatially, since $\rho_{m,n}(D z_m)_n \neq \bigl(D(\rho_m z_m)\bigr)_n$ in general. The weighting therefore alters the estimator and not merely the scaling of the variables, a point returned to below.
 
@@ -279,7 +287,7 @@ The weighted directional Total Nuclear Variation ($\wdtnv$) prior is then
 where $V_{\mathrm{vox}}$ is the voxel volume and $g$ is the Charbonnier smoothing from~\eqref{eq:charbonnier_g}. Choosing equal weights $\rho_{m,n}\equiv 1$ recovers unweighted $d$TNV. Choosing $\rho_{m,n}$ proportional to the inverse of a characteristic modality scale brings both channels to a comparable range before the nuclear-norm coupling is evaluated. The \gls{pet}/\gls{spect} normalisation used in the application study is specified in Chapter~\ref{chapter:paper}.
 
 \paragraph{Effect on the singular spectrum.}
-Right-multiplying by $B_n$ scales the $m$-th column of $\tilde{\mathcal{G}}_n$ by $\rho_{m,n}$. This scales the singular values of $\tilde{\mathcal{G}}_n$ in a non-trivial way, since the singular values of $YB$ are not simply $\sigma_\ell(Y)\rho_m$. What can be said in general is the two-sided bound
+Write $Y\coloneqq\mathcal{G}^{\mathrm{dir}}_n(\bm{z})$ for the unweighted directional Jacobian, so that $\tilde{\mathcal{G}}_n = Y B_n$ by~\eqref{eq:Yn_weighted}. Right-multiplying by $B_n$ scales the $m$-th column of $Y$ by $\rho_{m,n}$ to produce the $m$-th column of $\tilde{\mathcal{G}}_n$. This changes the singular values in a non-trivial way, since those of $YB_n$ are not simply $\sigma_\ell(Y)\rho_{m,n}$. What can be said in general is the two-sided bound
 \begin{equation}
     \min_m \rho_{m,n}\;\sigma_\ell(Y)
     \;\leq\;
@@ -298,6 +306,6 @@ The motivation given above, that the coupling should not be dominated by the mod
 
 This chapter introduced a smoothed, weighted, and directional Total Nuclear Variation ($\wdtnv$) prior for synergistic reconstruction. Charbonnier smoothing of the singular values yields a differentiable and convex spectral functional whose Jacobian-space gradient can be written in Gram-matrix form. Differentiability rests specifically on the smoothing function being even and smooth across zero, which is what separates the smoothed penalty from the plain nuclear norm; convexity follows from absolute symmetry of the same function and is inherited by the full prior because $D$, $\Pi_{m,n}$ and $B_n$ are all fixed linear maps. For two coupled emission modalities the key spectral operation reduces to a $2\times2$ inverse square-root, allowing the prior and its gradient to be evaluated robustly without a general per-voxel \glsentryshort{svd}.
 
-The Gram-matrix object $(\tilde{\mathcal{G}}_n^\top\tilde{\mathcal{G}}_n+\epsilon^2\mathbb{I})^{-1/2}$ appearing in~\eqref{eq:2x2_gram} is not merely a computational convenience. Chapter~\ref{chapter:optimisation} shows that it is simultaneously the weight of a quadratic majoriser of the prior, making it the matrix-valued analogue of the optimal curvature of a scalar edge-preserving potential, and this is why the same quantity serves both the gradient and the preconditioner.
+The smoothed spectral weight $\Omegaeps{\tilde{\mathcal{G}}_n}$ of~\eqref{eq:spectral_weight}, appearing in~\eqref{eq:2x2_gram}, is not merely a computational convenience. Chapter~\ref{chapter:optimisation} shows that it is simultaneously the weight of a quadratic majoriser of the prior, making it the matrix-valued analogue of the optimal curvature of a scalar edge-preserving potential, and this is why the same quantity serves both the gradient and the preconditioner.
 
 The chapter also separated two roles that are easily confounded in multimodality reconstruction. Anatomical information is used directionally through $\Pi_{m,n}$, steering the penalty without adding \gls{ct} as another coupled intensity channel. Modality scaling is handled separately through the diagonal weight matrix $B_n$, allowing \gls{pet} and \gls{spect} gradients to enter the nuclear-norm coupling on comparable scales. Chapter~\ref{chapter:optimisation} uses these definitions to construct practical preconditioners and subset-selection strategies for large-scale $\wdtnv$ optimisation.

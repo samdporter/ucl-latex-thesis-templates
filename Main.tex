@@ -124,7 +124,13 @@
 \newcommand{\Charb}[1]{\sqrt{#1^2+\epsilon^2}}
 \newcommand{\bx}{\mathbf{x}}
 \newcommand{\bJ}{\mathbf{J}}
-\newcommand{\bD}{\mathcal{D}}
+
+% Smoothed spectral weight (inverse square-root of the shifted Gram matrix).
+% \Omegaeps{Y} = (Y^\top Y + \epsilon^2 I)^{-1/2}; the matrix analogue of
+% Huber's optimal curvature \omega_\psi. Serves as both the Jacobian-space
+% gradient weight (Ch.\ w-dTNV) and the MM curvature (Ch.\ optimisation).
+\newcommand{\Omegaeps}[1]{\bm{\Omega}_{\epsilon}\!\left(#1\right)}
+\newcommand{\Omegazero}[1]{\bm{\Omega}_{0}\!\left(#1\right)}
 
 % Commenting
 
