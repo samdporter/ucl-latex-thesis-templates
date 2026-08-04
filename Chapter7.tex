@@ -15,17 +15,17 @@ Let $x$ be the \gls{pet} activity image on the combined reconstruction grid. For
 \begin{equation}
     \bar y_{\mathrm{bed}}(x)
     =
-    A_{\mathrm{bed}} R_{\mathrm{bed}} x + r_{\mathrm{bed}},
+    A_{\mathrm{bed}} R_{\mathrm{bed}} x + b_{\mathrm{bed}},
     \label{eq:multibed_forward_model}
 \end{equation}
-where $A_{\mathrm{bed}}$ is the bed-specific \gls{pet} system matrix and $r_{\mathrm{bed}}$ collects additive corrections. The joint \gls{pet} data term is
+where $A_{\mathrm{bed}}$ is the bed-specific \gls{pet} system matrix and $b_{\mathrm{bed}}$ collects additive corrections. The joint \gls{pet} data term is
 \begin{equation}
     \mathcal{D}_{\mathrm{PET}}^{\mathrm{multi}}(x)
     =
     \sum_{\mathrm{bed}=1}^{N_{\mathrm{bed}}}
     \mathcal{D}_{\mathrm{bed}}
     \left(
-        y_{\mathrm{bed}} \mid A_{\mathrm{bed}} R_{\mathrm{bed}} x + r_{\mathrm{bed}}
+        y_{\mathrm{bed}} \mid A_{\mathrm{bed}} R_{\mathrm{bed}} x + b_{\mathrm{bed}}
     \right),
     \label{eq:multibed_data_term}
 \end{equation}
@@ -39,7 +39,7 @@ with gradient
     \nabla_{\bar y_{\mathrm{bed}}}
     \mathcal{D}_{\mathrm{bed}}
     \left(
-        y_{\mathrm{bed}} \mid A_{\mathrm{bed}} R_{\mathrm{bed}} x + r_{\mathrm{bed}}
+        y_{\mathrm{bed}} \mid A_{\mathrm{bed}} R_{\mathrm{bed}} x + b_{\mathrm{bed}}
     \right).
     \label{eq:multibed_gradient}
 \end{equation}
