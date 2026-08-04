@@ -56,7 +56,7 @@ This sensitivity is used in the \gls{em}/\gls{bsrem} data-curvature term in exac
 \subsection{Why Not Stitch Independent Reconstructions?}
 \label{subsec:stitching_failure}
 
-A common practical alternative is to reconstruct each \gls{pet} bed independently and fuse the images using sensitivity-weighted stitching in the overlap. With an edge-preserving prior, however, each reconstruction makes its own noise-suppression and edge decisions before fusion. The qualitative example in Figure~\ref{fig:optim_multibed_qualitative} shows overlap-region noise and discontinuities after separate reconstruction and fusion. It is included to motivate the joint formulation; no quantitative comparison was performed. \TODO{Add the Zenodo-managed citation for the multi-bed PET work.}
+A common practical alternative is to reconstruct each \gls{pet} bed independently and fuse the images using sensitivity-weighted stitching in the overlap. With an edge-preserving prior, however, each reconstruction makes its own noise-suppression and edge decisions before fusion. The qualitative example in Figure~\ref{fig:optim_multibed_qualitative} shows overlap-region noise and discontinuities after separate reconstruction and fusion. It is included to motivate the joint formulation; no quantitative comparison was performed \cite{porterSimultaneousMultiBedMAP2025}.
 
 \begin{figure}[htbp]
     \centering
@@ -68,7 +68,7 @@ A common practical alternative is to reconstruct each \gls{pet} bed independentl
 \subsection{Joint Reconstruction}
 \label{subsec:joint_multibed}
 
-The joint formulation in Equation~\eqref{eq:multibed_data_term} estimates a single combined \gls{pet} image. Each bed contributes its own data term and sensitivity, while the image-domain prior is evaluated over the complete combined field of view. The combined reconstruction therefore permits the edge-preserving prior to act consistently across the overlap, which is the behaviour required for the dual-bed application in Chapter~\ref{chapter:paper}. This construction does not itself guarantee an artefact-free reconstruction; the evidence here is qualitative.
+The joint formulation in Equation~\eqref{eq:multibed_data_term} estimates a single combined \gls{pet} image. Each bed contributes its own data term and sensitivity, while the image-domain prior is evaluated over the complete combined field of view. The combined reconstruction therefore permits the edge-preserving prior to act consistently across the overlap, which is the behaviour required for the dual-bed application in Chapter~\ref{chapter:paper}.
 
 \section{Stochastic \gls{map} Optimisation}
 \label{sec:optimisation_svrg}
@@ -120,7 +120,7 @@ The image update is a projected, preconditioned gradient step,
     \right\}_{\geq 0},
     \label{eq:optimisation_projected_update}
 \end{equation}
-where $\mathcal{P}^{(k)}$ is either a diagonal preconditioner or a voxel-wise $2\times2$ block preconditioner coupling the \gls{pet} and \gls{spect} update components. The step size follows the linear decay rule
+where $\mathcal{P}^{(k)}$ is either a diagonal preconditioner or a voxel-wise $2\times2$ block preconditioner coupling the \gls{pet} and \gls{spect} update components. The step size is iteration dependent and follows the linear decay rule
 \begin{equation}
     \varsigma^{(k)}
     =
@@ -136,7 +136,7 @@ for the 20-pass comparisons described below.
 \subsection{Common Evaluation Protocol}
 \label{subsec:optimisation_evaluation_protocol}
 
-The convergence experiments used an anthropomorphic phantom scanned on the Mediso AnyScan at the National Physical Laboratory. \gls{pet} and \gls{spect} were each partitioned into 18 subsets. Each plotted comparison curve comprises five stochastic realisations and covers the first 20 complete data passes, extended to 25 for the preconditioner comparisons of Section~\ref{sec:optimisation_preconditioners}. A single 1000-epoch reconstruction of the same objective, run with more conservative optimisation settings, provided the reference image $x^\star$; it is a final long-run iterate rather than a proven global minimiser. Appendix~\ref{app:baseline_convergence} reports the objective and iterate diagnostics supporting its effective stationarity relative to the best observed iterate.
+The convergence experiments used an anthropomorphic phantom scanned on the Mediso AnyScan at the National Physical Laboratory. \gls{pet} and \gls{spect} were each partitioned into 18 subsets. Each plotted comparison curve comprises five stochastic realisations and covers the first 20 complete data passes. A single 1000-epoch reconstruction of the same objective, run with more conservative optimisation settings, provided the reference image $x^\star$. Appendix~\ref{app:baseline_convergence} reports the objective and iterate diagnostics supporting its effective stationarity relative to the best observed iterate.
 
 For each stochastic run and each saved iteration, the \acrfull{nrmse} in region $R$ is
 \begin{equation}
