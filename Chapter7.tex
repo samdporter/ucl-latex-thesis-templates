@@ -283,14 +283,12 @@ Four prior-curvature constructions were considered: three based on a local \acrf
 \subsubsection{A quadratic majoriser in Jacobian space}
 \label{subsubsec:jacobian_majoriser}
 
-\begin{proposition}
-\label{prop:jacobian_majoriser}
-Let $Y,Y_0\in\mathbb{R}^{d\times M}$ with $d\geq M$, let $g$ be the Charbonnier function of Chapter~\ref{chapter:wdtnv} and let $\phi(Y)=\sum_{\ell=1}^{M}g(\sigma_\ell(Y))$. Define
+Let $Y,Y_0\in\mathbb{R}^{d\times M}$ with $d\geq M$, let $g$ be the Charbonnier function of Chapter~\ref{chapter:wdtnv}, let $\phi(Y)=\sum_{\ell=1}^{M}g(\sigma_\ell(Y))$ and write
 \begin{equation}
-    C_0 := \Omegaeps{Y_0} = \left(Y_0^\top Y_0 + \epsilon^2\mathbb{I}_M\right)^{-1/2}.
+    C_0 := \Omegaeps{Y_0} = \left(Y_0^\top Y_0 + \epsilon^2\mathbb{I}_M\right)^{-1/2}
     \label{eq:majoriser_weight}
 \end{equation}
-Then, for all $Y$,
+for the weight evaluated at the current point. Then, for all $Y$,
 \begin{equation}
     \phi(Y)
     \;\leq\;
@@ -299,20 +297,17 @@ Then, for all $Y$,
     \label{eq:jacobian_majoriser}
 \end{equation}
 with equality at $Y=Y_0$.
-\end{proposition}
 
-\begin{proof}
-The eigenvalues of $Y^\top Y$ are $\sigma_\ell(Y)^2$ for $\ell=1,\dots,M$, so
+The bound comes from concavity in the Gram matrix rather than convexity in $Y$. The eigenvalues of $Y^\top Y$ are $\sigma_\ell(Y)^2$ for $\ell=1,\dots,M$, so
 \begin{equation}
     \phi(Y)
     =\sum_{\ell=1}^{M}\left(\sqrt{\sigma_\ell(Y)^2+\epsilon^2}-\epsilon\right)
-    =\operatorname{tr}\!\left(\left(Y^\top Y+\epsilon^2\mathbb{I}_M\right)^{1/2}\right)-M\epsilon .
+    =\operatorname{tr}\!\left(\left(Y^\top Y+\epsilon^2\mathbb{I}_M\right)^{1/2}\right)-M\epsilon ,
     \label{eq:phi_as_trace}
 \end{equation}
-The map $t\mapsto t^{1/2}$ is operator concave on the positive semidefinite cone \cite{bhatiaMatrixAnalysis1997a}, and the trace is linear and monotone, so $A\mapsto\operatorname{tr}((A+\epsilon^2\mathbb{I})^{1/2})$ is concave in $A\succeq0$. A differentiable concave function lies below its first-order expansion, and its gradient is $\tfrac12(A+\epsilon^2\mathbb{I})^{-1/2}$. Setting $A=Y^\top Y$ and $A_0=Y_0^\top Y_0$ and adding the constant $-M\epsilon$ gives~\eqref{eq:jacobian_majoriser}; equality at $Y=Y_0$ is immediate.
-\end{proof}
+and $\phi$ depends on $Y$ only through $A=Y^\top Y$. The map $t\mapsto t^{1/2}$ is operator concave on the positive semidefinite cone \cite{bhatiaMatrixAnalysis1997a}, and the trace is linear and monotone, so $A\mapsto\operatorname{tr}((A+\epsilon^2\mathbb{I})^{1/2})$ is concave in $A\succeq0$ with gradient $\tfrac12(A+\epsilon^2\mathbb{I})^{-1/2}$. A differentiable concave function lies below its first-order expansion, so evaluating at $A_0=Y_0^\top Y_0$ and adding the constant $-M\epsilon$ gives~\eqref{eq:jacobian_majoriser}. Concavity is what supplies the inequality in the useful direction: $\phi$ is itself convex in $Y$, and a tangent to a convex function bounds it from below, whereas the tangent taken in $A$ bounds it from above.
 
-This has three important consequences. First, the right-hand side of~\eqref{eq:jacobian_majoriser} is a convex quadratic in $Y$, because $Y^\top Y$ is a convex quadratic and $C_0\succ0$; it is therefore a surrogate in the standard sense of lying above $\phi$ and touching it at the current point. Second, its gradient at $Y=Y_0$ is $Y_0C_0$, which is exactly the gradient derived in Chapter~\ref{chapter:wdtnv} (Equation~\eqref{eq:2x2_gram}), so the surrogate satisfies the matched-tangent condition. Third, and most usefully, the weight $C_0$ is the matrix-valued analogue of the optimal curvature of a scalar edge-preserving potential. For a symmetric potential $\psi$ whose curvature $\omega_\psi(s)=\dot\psi(s)/s$ is non-increasing on $(0,\infty)$, the parabola with curvature $\omega_\psi$ is the smallest-curvature quadratic surrogate \cite{huberRobustEstimationLocation1964a}; for the hyperbola potential $\psi(s)=\sqrt{s^2+\epsilon^2}$ this gives $\omega_\psi(s)=1/\sqrt{s^2+\epsilon^2}$, which is precisely the scalar $M=1$ case of~\eqref{eq:majoriser_weight}. The construction used here is thus the spectral generalisation of the multiplicative form of half-quadratic regularisation, which is itself a rediscovery of Huber's quadratic surrogates. That the same object serves as both gradient weight and curvature is a structural consequence of the majorisation, not a coincidence of implementation \cite{fessler_image_2017, charbonnier_deterministic_1997}.
+Three features of this bound matter for what follows. Its right-hand side is a convex quadratic in $Y$, because $Y^\top Y$ is a convex quadratic and $C_0\succ0$; it is therefore a surrogate in the standard sense of lying above $\phi$ and touching it at the current point. Its gradient at $Y=Y_0$ is $Y_0C_0$, which is exactly the gradient derived in Chapter~\ref{chapter:wdtnv} (Equation~\eqref{eq:2x2_gram}), so the surrogate satisfies the matched-tangent condition. And, most usefully, the weight $C_0$ is the matrix-valued analogue of the optimal curvature of a scalar edge-preserving potential. For a symmetric potential $\psi$ whose curvature $\omega_\psi(s)=\dot\psi(s)/s$ is non-increasing on $(0,\infty)$, the parabola with curvature $\omega_\psi$ is the smallest-curvature quadratic surrogate \cite{huberRobustEstimationLocation1964a}; for the hyperbola potential $\psi(s)=\sqrt{s^2+\epsilon^2}$ this gives $\omega_\psi(s)=1/\sqrt{s^2+\epsilon^2}$, which is precisely the scalar $M=1$ case of~\eqref{eq:majoriser_weight}. The construction used here is thus the spectral generalisation of the multiplicative form of half-quadratic regularisation, which is itself a rediscovery of Huber's quadratic surrogates. That the same object serves as both gradient weight and curvature is a structural consequence of the majorisation, not a coincidence of implementation \cite{fessler_image_2017, charbonnier_deterministic_1997}.
 
 \TODO{Add Zenodo-managed BibTeX entry for de Leeuw and Lange, ``Sharp quadratic majorization in one dimension'', \emph{Computational Statistics \& Data Analysis} 53(7):2471--2484, 2009, DOI 10.1016/j.csda.2009.01.002, and repoint the smallest-curvature claim above at it. The claim is currently cited to \texttt{huberRobustEstimationLocation1964a}, but Huber (1964) concerns asymptotic minimax M-estimation of a location parameter and contains neither the quadratic-surrogate construction nor its minimality. De Leeuw and Lange's Theorem 4.5 is the exact statement: for an even differentiable $f$ with $f'(x)/x$ decreasing on $(0,\infty)$, the quadratic $\tfrac{f'(y)}{2y}(x^2-y^2)+f(y)$ is the \emph{best} quadratic majoriser at $y$. Retain the Huber citation for the historical lineage in the following sentence, where it is accurate.}
 
@@ -370,7 +365,7 @@ This is the diagonal extraction of the local \glsentryshort{mm} curvature surrog
 \subsubsection{Diagonal extraction versus a majorising diagonal}
 \label{subsubsec:depierro_gap}
 
-Equations~\eqref{eq:diag_tight_preconditioner} and~\eqref{eq:diag_gersh_preconditioner} extract a diagonal from the non-separable surrogate Hessian implied by Proposition~\ref{prop:jacobian_majoriser}. Diagonal extraction does not preserve majorisation, and one classical route that does is De Pierro's convexity trick \cite{depierroModifiedExpectationMaximization1995a}. \TODO{Add the Zenodo-managed citation for Erdo\u{g}an and Fessler (1999) on ordered-subsets separable paraboloidal surrogates, where De Pierro's trick is applied to penalised-likelihood tomography.} For a chosen factorisation of a quadratic surrogate Hessian as $\mathcal{B}^\top\mathrm{diag}\{\breve c_i\}\mathcal{B}$ with $\breve c_i\geq0$, apply convexity to each non-zero row through $[\mathcal{B}v]_i=\sum_j\pi_{ij}\operatorname{sgn}(b_{ij})b_i v_j$, with weights $\pi_{ij}=|b_{ij}|/b_i$, where $b_i=\sum_j|b_{ij}|$ is the row $\ell_1$ norm. This gives the separable majorising diagonal
+Equations~\eqref{eq:diag_tight_preconditioner} and~\eqref{eq:diag_gersh_preconditioner} extract a diagonal from the non-separable surrogate Hessian implied by~\eqref{eq:jacobian_majoriser}. Diagonal extraction does not preserve majorisation, and one classical route that does is De Pierro's convexity trick \cite{depierroModifiedExpectationMaximization1995a}. \TODO{Add the Zenodo-managed citation for Erdo\u{g}an and Fessler (1999) on ordered-subsets separable paraboloidal surrogates, where De Pierro's trick is applied to penalised-likelihood tomography.} For a chosen factorisation of a quadratic surrogate Hessian as $\mathcal{B}^\top\mathrm{diag}\{\breve c_i\}\mathcal{B}$ with $\breve c_i\geq0$, apply convexity to each non-zero row through $[\mathcal{B}v]_i=\sum_j\pi_{ij}\operatorname{sgn}(b_{ij})b_i v_j$, with weights $\pi_{ij}=|b_{ij}|/b_i$, where $b_i=\sum_j|b_{ij}|$ is the row $\ell_1$ norm. This gives the separable majorising diagonal
 \begin{equation}
     d_j^{\mathrm{DP}}
     =
@@ -589,11 +584,11 @@ The Lewis--Sendov Lehmer experiment found only a small advantage for $p=0.01$ ov
 
 It is useful to state precisely which guarantees apply and which do not, since the implemented method combines several ingredients whose theories were developed separately.
 
-What is established is the prior side. The objective~\eqref{eq:optimisation_objective} is convex, since the Poisson negative log-likelihood, the $\wdtnv$ prior (Chapter~\ref{chapter:wdtnv}) and the non-negativity indicator are all convex. Proposition~\ref{prop:jacobian_majoriser} gives an exact quadratic majoriser of the prior in Jacobian space, whose weight is the matrix analogue of the optimal curvature of a scalar edge-preserving potential, and whose gradient matches that of Chapter~\ref{chapter:wdtnv} at the current iterate.
+What is established is the prior side. The objective~\eqref{eq:optimisation_objective} is convex, since the Poisson negative log-likelihood, the $\wdtnv$ prior (Chapter~\ref{chapter:wdtnv}) and the non-negativity indicator are all convex. The bound~\eqref{eq:jacobian_majoriser} gives an exact quadratic majoriser of the prior in Jacobian space, whose weight is the matrix analogue of the optimal curvature of a scalar edge-preserving potential, and whose gradient matches that of Chapter~\ref{chapter:wdtnv} at the current iterate.
 
 What is not established falls into four identifiable gaps, each attached to a specific ingredient.
 \begin{enumerate}
-    \item \textbf{Separability.} The majoriser of Proposition~\ref{prop:jacobian_majoriser} is non-separable. The implemented diagonals extract a diagonal rather than applying a separable majorising construction, so the prior-side \gls{mm} argument does not extend through this spatial-diagonalisation step. Section~\ref{subsubsec:depierro_gap} compares that extraction with a De Pierro-type construction for a chosen factorisation.
+    \item \textbf{Separability.} The majoriser~\eqref{eq:jacobian_majoriser} is non-separable. The implemented diagonals extract a diagonal rather than applying a separable majorising construction, so the prior-side \gls{mm} argument does not extend through this spatial-diagonalisation step. Section~\ref{subsubsec:depierro_gap} compares that extraction with a De Pierro-type construction for a chosen factorisation.
     \item \textbf{Preconditioner class under constraints.} For the component-wise Euclidean clipping used in~\eqref{eq:optimisation_projected_update}, the convergence results underlying \gls{bsrem}-type and separable-surrogate methods cover certain compatible diagonal scalings. They do not directly cover the voxel-block scaling followed by the same clipping operation in Section~\ref{subsubsec:precond_constraint}.
     \item \textbf{Stochasticity.} Classical monotonicity and ordered-subset convergence results assume deterministic gradients or a relaxed deterministic subset schedule. The variance-reduced stochastic estimator~\eqref{eq:svrg_estimator_general} is outside the scope of those results, although the relaxation~\eqref{eq:optimisation_step_size} is of the diminishing-step form that relaxed \gls{bsrem} requires \cite{ahnGloballyConvergentOrdered2002}. Conversely, standard \gls{svrg} results do not automatically cover the projected, preconditioned and periodically refreshed implementation used here.
     \item \textbf{Preconditioner staleness.} Standard fixed-metric monotonicity arguments do not directly cover a preconditioner refreshed once per epoch and held fixed while the iterate changes. Variable-metric results can permit changing preconditioners under additional boundedness and variation conditions, but those conditions are not established here.
