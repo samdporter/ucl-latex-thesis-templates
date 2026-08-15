@@ -603,18 +603,6 @@ The weights $\rho_{m,n}$ were selected in Chapter~\ref{chapter:wdtnv} to balance
 \end{equation}
 which reduces to modality-wise curvature scaling when the operands are diagonal. This changes the optimisation metric without changing the objective, unlike retuning $\rho_{m,n}$. The choice of $\Lambda$ was not investigated here.
 
-\subsubsection{Theoretical status of the implemented algorithm}
-\label{subsec:theoretical_status}
-
-The objective~\eqref{eq:optimisation_objective} is convex. The bound~\eqref{eq:jacobian_majoriser} is an exact quadratic majoriser of the prior in Jacobian space, with the spectral generalisation of the familiar scalar \gls{irls} weight, and matches the prior gradient at the anchor. Four steps between that result and the implemented algorithm remain outside the available guarantee:
-\begin{enumerate}
-    \item \textbf{Spatial separability.} The implemented diagonals extract local curvature from a spatially coupled majoriser. A De Pierro construction for a chosen factorisation is the most direct theoretical extension, but would close only this spatial-diagonalisation gap.
-    \item \textbf{Constraint metric.} Voxel-block scaling followed by component-wise clipping is not the metric projection associated with the block preconditioner; Section~\ref{subsubsec:precond_constraint} gives the precise distinction.
-    \item \textbf{Stochasticity.} Deterministic ordered-subset theory does not cover the variance-reduced estimator~\eqref{eq:svrg_estimator_general}, while standard \gls{svrg} theory does not directly cover this projected, preconditioned implementation \cite{ahnGloballyConvergentOrdered2002}.
-    \item \textbf{Metric refresh.} Refreshing the preconditioner once per epoch produces a variable, temporarily stale metric whose required boundedness and variation conditions have not been established.
-\end{enumerate}
-No monotone-descent or convergence guarantee is therefore claimed for the complete algorithm.
-
 \section{Conclusion}
 \label{sec:optimisation_conclusion}
 
@@ -622,4 +610,4 @@ Joint multi-bed reconstruction allowed the edge-preserving prior to act across t
 
 In the preconditioner experiment, prior-aware scaling kept count-limited \gls{pet} bounded over the same 20-pass interval, while data-only \gls{bsrem} gave comparable or slightly lower \gls{spect} \gls{nrmse}. No prior-curvature construction was uniformly best. The local curvature ratio offers a physical interpretation of this modality dependence, but was not measured; the block-valid scaling in~\eqref{eq:modality_precond_weight} remains an untested extension.
 
-The $p=0.01$ Lehmer result was only slightly below the parallel-sum \gls{nrmse} and also changes the effective step scale. Chapter~\ref{chapter:paper} retains the Lewis--Sendov block-diagonal/$p=0.01$ configuration because that protocol was frozen before this broader benchmark, not because the present results establish it as universally optimal.
+The $p=0.01$ Lehmer result was only slightly below the parallel-sum \gls{nrmse} and also changes the effective step scale. Chapter~\ref{chapter:paper} retains the Lewis--Sendov block-diagonal/$p=0.01$.
