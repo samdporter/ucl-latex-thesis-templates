@@ -353,7 +353,46 @@ This is the spectral weight~\eqref{eq:spectral_weight}, evaluated at the refresh
 
 \subsubsection{Diagonal curvature models}
 
-For diagonal preconditioning, the finite-difference stencil and directional projectors are collapsed to a per-voxel participation factor $\tau_{m,n}$. This factor includes the valid forward/backward stencil incidences, squared finite-difference scale factors and diagonal entries of $\Pi_{m,n}^\top\Pi_{m,n}$. The resulting local curvature approximation is
+For diagonal preconditioning, the finite-difference stencil and directional projectors are collapsed to a per-voxel participation factor $\tau_{m,n}$. Let $s_{m,n,\ell}$ be the scale of difference channel $\ell$ returned by the implemented discrete-Jacobian sensitivity; it includes the inverse physical step length and the normalisation of the chosen stencil bank. For a non-periodic boundary, define the number of valid incidences of voxel $n$ in channel $\ell$ by
+\begin{equation}
+    \nu_{n,\ell}
+    =
+    \mathbb{I}_{\Omega}(n+\delta_\ell)
+    +
+    \mathbb{I}_{\Omega}(n-\delta_\ell),
+    \label{eq:directional_participation_count}
+\end{equation}
+whereas $\nu_{n,\ell}=2$ for periodic boundaries. Thus an interior voxel participates once as the anchor of a forward difference and once as the shifted neighbour of another. The factor used in the implementation is
+\begin{equation}
+    \boxed{
+    \tau_{m,n}
+    =
+    \sum_{\ell=1}^{d}
+    \nu_{n,\ell}\,
+    s_{m,n,\ell}^{2}\,
+    \left[\Pi_{m,n}^{\top}\Pi_{m,n}\right]_{\ell\ell}
+    }.
+    \label{eq:directional_participation_factor}
+\end{equation}
+It therefore counts the valid forward and backward appearances of the voxel, weights each by the squared finite-difference coefficient, and attenuates it by the corresponding directional-projector energy.
+
+The relationship to the uncompressed frozen quadratic makes the approximation explicit. Let $\mathcal{N}(n)$ be the target voxels whose finite-difference stencil contains source voxel $n$, and let $c_{r\leftarrow n}\in\mathbb{R}^{d}$ be the resulting difference-channel impulse vector. The exact scalar diagonal of the frozen \glsentryshort{mm} surrogate is
+\begin{equation}
+    \left[H_{\mathcal R}^{\mathrm{frozen}}\right]_{(m,n),(m,n)}
+    =
+    V_{\mathrm{vox}}
+    \sum_{r\in\mathcal{N}(n)}
+    \rho_{m,r}^{2}\,c_{mm,r}\,
+    c_{r\leftarrow n}^{\top}
+    \Pi_{m,r}^{\top}\Pi_{m,r}
+    c_{r\leftarrow n}.
+    \label{eq:frozen_surrogate_exact_diagonal}
+\end{equation}
+Equation~\eqref{eq:directional_participation_factor} replaces the target-dependent coefficients in this sum by their values at $n$ and retains the diagonal directional energies of $\Pi_{m,n}^{\top}\Pi_{m,n}$. It is exact for the frozen quadratic when the combined target weight $\rho_{m,r}^{2}c_{mm,r}$, channel scales and projector Gram entries are constant over the incident stencil, the projector Gram matrix is diagonal in the difference-channel basis, and $\nu_{n,\ell}$ agrees with the actual boundary-adjusted operator. Otherwise it is a local Jacobi approximation. The incidence formula matches the implemented helper and the six-neighbour, unit-step Neumann stencil used in this study; it is not an exact description of every diagonal or multi-step Neumann stencil supported by the gradient API, for which the literal boundary-adjusted impulse coefficients are required. Extracting such a diagonal as a weighted sum of squared operator coefficients is the standard Jacobi construction for curvature of the form $\mathcal B^\top W\mathcal B$, while coupled-field Hessians contain the corresponding off-diagonal field blocks. \TODO{Import and cite Fessler--Booth (1999), Equations~(5) and (8), Sotthivirat--Fessler (2002), Equation~(18), and Crestel et al. (2019), Equation~(15), via the Zenodo-managed bibliography.}
+
+This compression has a computational, rather than asymptotic, advantage. Once the sensitivity and projector statistics have been formed, $\tau_{m,n}$ requires one point-wise reduction over the $d$ difference channels for each modality. Direct impulse-vector extraction instead evaluates the target-dependent quadratic form in Equation~\eqref{eq:frozen_surrogate_exact_diagonal} for every incident source--target pair and shift-accumulates those contributions; its voxel-block analogue also forms all $M^2$ modality entries. The compressed path therefore has a lower contraction and shift count in the present tensor implementation and is expected to reduce refresh cost. For fixed $d$ and $M$, however, both costs scale linearly with the number of voxels, so no asymptotic speed-up is claimed. No matched timing or peak-memory comparison was made, and the practical saving remains to be measured. In the present implementation the scalar diagonal follows the $\tau_{m,n}$ path, while the voxel-block model below already performs the target-dependent impulse-vector accumulation; a separate scalar impulse-vector option is not exposed.
+
+Using this compressed factor, the resulting local curvature approximation is
 \begin{equation}
     \widehat H_{\mathcal R,m,n}^{\mathrm{loc\text{-}diag}}
     =
@@ -361,7 +400,7 @@ For diagonal preconditioning, the finite-difference stencil and directional proj
     \rho_{m,n}^2\,c_{mm,n}\,\tau_{m,n}.
     \label{eq:diag_tight_preconditioner}
 \end{equation}
-Equation~\eqref{eq:diag_tight_preconditioner} is an implemented local approximation to the diagonal curvature; the compressed factor $\tau_{m,n}$ does not by itself identify it with the exact diagonal of a particular factorisation of the frozen quadratic. A more conservative Gershgorin-inflated model adds the magnitude of the cross-modal term,
+Equation~\eqref{eq:diag_tight_preconditioner} is therefore an implemented local approximation rather than, in general, the exact diagonal in~\eqref{eq:frozen_surrogate_exact_diagonal}. Although a literal scalar diagonal contains $c_{mm,n}$ rather than $c_{12,n}$, $c_{mm,n}$ is obtained from the full coupled matrix $C_n$ and consequently depends on both modalities. A more conservative Gershgorin-inflated model also adds the magnitude of the cross-modal term explicitly,
 \begin{equation}
     \widehat H_{\mathcal R,1,n}^{\mathrm{diag\text{-}G}}
     =
@@ -400,11 +439,11 @@ For this chosen factorisation, $d_j^{\mathrm{DP}}\geq d_j^{\mathrm{diag}}$. An u
 
 The Gershgorin construction~\eqref{eq:diag_gersh_preconditioner} inflates along the \emph{modality} index by adding $|c_{12,n}|$. It does not bound the spatial off-diagonal mass generated by the neighbour coupling in $\bm{D}^\ast(\cdot)\bm{D}$, and therefore does not close the spatial majorisation gap. This may explain why it tracks the local diagonal closely in Figure~\ref{fig:optim_preconditioners}.
 
-An explicit De Pierro construction for a fixed factorisation would majorise the frozen quadratic prior surrogate, at the cost of a more conservative step. The implemented local diagonal~\eqref{eq:diag_tight_preconditioner}, however, uses the compressed $\tau_{m,n}$ approximation and is not automatically the $d_j^{\mathrm{diag}}$ of~\eqref{eq:depierro_vs_diag}. The latter equation therefore illustrates the spatial-diagonalisation gap rather than proving a bound for the implemented formula. No De Pierro model was implemented here.
+An explicit De Pierro construction for a fixed factorisation would majorise the frozen quadratic prior surrogate, at the cost of a more conservative step. The implemented local diagonal~\eqref{eq:diag_tight_preconditioner}, however, uses the compressed $\tau_{m,n}$ approximation and is not automatically the $d_j^{\mathrm{diag}}$ of~\eqref{eq:depierro_vs_diag}. Thus $d_j^{\mathrm{DP}}\geq d_j^{\mathrm{diag}}$ does not establish a componentwise ordering between the De Pierro and implemented $\tau$ diagonals. Equation~\eqref{eq:depierro_vs_diag} illustrates the spatial-diagonalisation gap rather than proving a bound for the implemented formula. No De Pierro model was implemented here.
 
 \subsubsection{Voxel-block curvature models}
 
-For block preconditioning, the \gls{pet} and \gls{spect} update components at each voxel are coupled by a $2\times2$ block. Let $\mathcal{N}(n)$ be the set of target voxels whose finite-difference stencil depends on source voxel $n$. For target voxel $r\in\mathcal{N}(n)$, let $c_{r\leftarrow n}\in\mathbb{R}^d$ be the finite-difference impulse vector produced in the directional channels when source voxel $n$ is perturbed. The local voxel-block curvature approximation uses
+For block preconditioning, the \gls{pet} and \gls{spect} update components at each voxel are coupled by a $2\times2$ block. Using the neighbourhood and impulse-vector notation introduced above, the local voxel-block curvature approximation uses
 \begin{equation}
     \alpha_{r\leftarrow n}^{mm'}
     =
@@ -435,6 +474,20 @@ and
     \label{eq:block_tight_preconditioner}
 \end{equation}
 where $B_r=\mathrm{diag}(\rho_{1,r},\rho_{2,r})$ and $\circ$ denotes the Hadamard product.
+Equivalently, its individual modality entries are
+\begin{equation}
+    \left[\widehat H_{\mathcal R,n}^{\mathrm{loc\text{-}block}}\right]_{mm'}
+    =
+    V_{\mathrm{vox}}
+    \sum_{r\in\mathcal{N}(n)}
+    \rho_{m,r}\rho_{m',r}\,
+    c_{mm',r}\,
+    c_{r\leftarrow n}^{\top}
+    \Pi_{m,r}^{\top}\Pi_{m',r}
+    c_{r\leftarrow n}.
+    \label{eq:block_tight_preconditioner_entries}
+\end{equation}
+For $m\neq m'$, Equation~\eqref{eq:block_tight_preconditioner_entries} explicitly retains both the cross-modal spectral weight $c_{12,r}$ and the cross-projector product $\Pi_{1,r}^{\top}\Pi_{2,r}$. The voxel-block reduction therefore discards curvature between different source voxels, not the \gls{pet}/\gls{spect} curvature within a voxel. For the shared six-neighbour, unit-step study stencil, the target-dependent accumulation implemented by \texttt{mm\_diag\_block\_tight} gives this exact voxel-diagonal block of the frozen surrogate before symmetrisation and numerical positive-definite flooring.
 
 The fourth construction uses the exact Lewis--Sendov Hessian of the smoothed spectral penalty \cite{doi:10.1137/S089547980036838X}. If $H_{\mathcal R}=\nabla^2\mathcal R$ denotes the resulting image-space Hessian, the implemented approximation retains only its voxel-wise diagonal blocks,
 \begin{equation}
@@ -570,8 +623,15 @@ For \gls{spect}, all five trajectories remain bounded, and data-only \gls{bsrem}
 For the Lewis--Sendov block model, $p=0.01$ gives slightly lower \gls{nrmse} than $p=0$ over the plotted interval, but the difference is small and says nothing about the preferred order for the \gls{mm}-derived models. Equation~\eqref{eq:lehmer_parallel_equivalence} shows that $p=0$ reproduces the additive inverse-sum form.
 
 Changing $p$ also changes the effective step scale. The factor $\tfrac12$ is calibrated at $p=0$; for eigenvalues of $T$ of order $10^2$, $p=0.01$ increases the spectral factor by roughly two per cent relative to the parallel sum, rising to a few per cent at $10^3$. A fixed-$\varsigma^{(0)}$ sweep therefore mixes the effect of the Lehmer order with a modest step-size change. Retuning $\varsigma^{(0)}$ for each order would be needed to separate them, and no universal optimality is inferred here.
+\clearpage
 
 \subsection{Interpretation and Limitations}
+
+\subsubsection{Spatial diagonalisation as future work}
+
+A controlled study should compare three spatial constructions: (i) the current compressed $\tau_{m,n}$ scalar diagonal; (ii) the exact impulse-vector Jacobi diagonal of Equation~\eqref{eq:frozen_surrogate_exact_diagonal}, obtained before numerical block flooring by retaining the diagonal entries of the target-dependent accumulation already used by the voxel-block model; and (iii) a De Pierro separable diagonal constructed from an explicit factorisation as in Equation~\eqref{eq:depierro_vs_diag}. The impulse-vector construction matches the exact diagonal of the chosen frozen surrogate, but that extracted diagonal is not necessarily a majoriser of the spatially coupled quadratic. The De Pierro construction instead provides a genuine separable upper bound and is therefore the appropriate route to an \glsentryshort{mm}-valid diagonal, although the bound may be more conservative.
+
+For the coupled problem, the comparison should also include grouped voxel-block variants that retain the cross-modal entries in Equation~\eqref{eq:block_tight_preconditioner_entries}, together with a proof of the corresponding Loewner bound for the grouped De Pierro construction. The evaluation should report preconditioner refresh time, peak temporary memory, diagonal accuracy or majorisation slack relative to the frozen curvature, iteration and data-pass counts, and end-to-end reconstruction time under a common stopping criterion. This would determine whether the lower contraction and shift count of $\tau_{m,n}$ yields enough practical saving to offset its loss of local curvature information and show how the three constructions stack up; no such benchmark was performed here.
 
 \subsubsection{Modality-dependent prior/data curvature balance}
 \label{subsec:modality_curvature_balance}
