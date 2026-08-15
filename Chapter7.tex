@@ -106,7 +106,7 @@ The image update is a projected, preconditioned gradient step,
     \right\}_{\geq 0},
     \label{eq:optimisation_projected_update}
 \end{equation}
-where $\mathcal{P}^{(k)}$ is either a diagonal preconditioner or a voxel-wise $2\times2$ block preconditioner coupling the \gls{pet} and \gls{spect} update components. The step size is iteration dependent and follows the linear decay rule
+where $\mathcal{P}^{(k)}$ is either a diagonal preconditioner or a voxel-wise $2\times2$ block preconditioner coupling the \gls{pet} and \gls{spect} update components. The step size is iteration dependent and follows the decaying relaxation rule
 \begin{equation}
     \varsigma^{(k)}
     =
@@ -218,7 +218,7 @@ Let $L_q$ denote the number of stochastic updates per matched pass for configura
     \eta_{\mathrm{relax}}^{(q)}
     =0.002\,\frac{36}{L_q}.
 \]
-At pass $p$, $k_q=L_qp$ and hence $\eta_{\mathrm{relax}}^{(q)}k_q=0.002\times36p$; every curve therefore has the same step size at a given matched pass. The plotted axis is matched by projection work and relaxation history, but not by total update count or computation. All configurations used the same smooth objective and the \gls{mm} local-diagonal curvature preconditioner, and were assessed with the common 20-pass protocol in Section~\ref{subsec:optimisation_evaluation_protocol}.
+At pass $p$, $k_q=L_qp$ and hence $\eta_{\mathrm{relax}}^{(q)}k_q=0.002\times36p$; every curve therefore has the same step size at a given matched pass. The plotted axis is matched by projection work and relaxation history, but not by total update count or computation. All configurations used the same smooth objective and the \gls{mm} Jacobi-diagonal curvature preconditioner of Section~\ref{subsec:optimisation_prior_preconditioning}, and were assessed with the common 20-pass protocol in Section~\ref{subsec:optimisation_evaluation_protocol}.
 
 \begin{figure}[htbp]
     \centering
@@ -230,7 +230,7 @@ At pass $p$, $k_q=L_qp$ and hence $\eta_{\mathrm{relax}}^{(q)}k_q=0.002\times36p
         \includegraphics[width=\linewidth]{figures/preconditioning/subsets/full/exp_subset_selection_1bpos_mm_diag_tight_combine_majoriser_alpha_1_SPECT.png}
         \caption{\gls{spect}.}
     \end{subfigure}
-    \caption{\gls{nrmse} trajectories for the six combinations of subset organisation (paired, separate) and prior-application schedule (folded, sampled, once per epoch) using the \gls{mm} local-diagonal curvature preconditioner. Lines show the mean per-run \gls{nrmse} over five stochastic realisations and shading shows the pointwise minimum--maximum over the first 20 matched data passes, with relaxation normalised to give the same step size at each pass. In the legend, prior folded, prior/half, and prior once/epoch denote component lists that sum to the same smooth objective and give unbiased uniform-sampling \gls{svrg} estimators, but differ in prior-correction frequency and total update count.}
+    \caption{\gls{nrmse} trajectories for the six combinations of subset organisation (paired, separate) and prior-application schedule (folded, sampled, once per epoch) using the \gls{mm} Jacobi-diagonal curvature preconditioner. Lines show the mean per-run \gls{nrmse} over five stochastic realisations and shading shows the pointwise minimum--maximum over the first 20 matched data passes, with relaxation normalised to give the same step size at each pass. In the legend, prior folded, prior/half, and prior once/epoch denote component lists that sum to the same smooth objective and give unbiased uniform-sampling \gls{svrg} estimators, but differ in prior-correction frequency and total update count.}
     \label{fig:optim_subset_organisation}
 \end{figure}
 
@@ -277,7 +277,7 @@ The implementation optionally smooths the numerator image used in the \gls{em} p
 \subsection{Prior Curvature Models}
 \label{subsec:optimisation_prior_preconditioning}
 
-Four prior-curvature constructions were considered: three based on a local \acrfull{mm}/\acrfull{irls} surrogate and one based on the Lewis--Sendov Hessian of the smoothed spectral penalty.
+Four prior-curvature constructions were considered: three based on a local \acrfull{mm}/\acrfull{irls} surrogate and one based on the Lewis--Sendov Hessian of the smoothed spectral penalty. They differ along two axes: the curvature source (the frozen \glsentryshort{mm} surrogate or the exact smoothed spectral Hessian) and the treatment of within-voxel \gls{pet}/\gls{spect} coupling (dropped, bounded, or retained). All four discard curvature between different voxels.
 
 \subsubsection{A quadratic majoriser in Jacobian space}
 \label{subsubsec:jacobian_majoriser}
@@ -351,99 +351,10 @@ This is the weighted directional Jacobian from Chapter~\ref{chapter:wdtnv} (Equa
 \end{equation}
 This is the spectral weight~\eqref{eq:spectral_weight}, evaluated at the refresh anchor and then held fixed until the next refresh. Below, the superscript is suppressed: $C_n$ and $c_{mm',n}$ denote these anchored quantities.
 
-\subsubsection{Diagonal curvature models}
+\subsubsection{Voxel-block curvature model}
+\label{subsubsec:block_curvature_model}
 
-For diagonal preconditioning, the finite-difference stencil and directional projectors are collapsed to a per-voxel participation factor $\tau_{m,n}$. Let $s_{m,n,\ell}$ be the scale of difference channel $\ell$ returned by the implemented discrete-Jacobian sensitivity; it includes the inverse physical step length and the normalisation of the chosen stencil bank. For a non-periodic boundary, define the number of valid incidences of voxel $n$ in channel $\ell$ by
-\begin{equation}
-    \nu_{n,\ell}
-    =
-    \mathbb{I}_{\Omega}(n+\delta_\ell)
-    +
-    \mathbb{I}_{\Omega}(n-\delta_\ell),
-    \label{eq:directional_participation_count}
-\end{equation}
-whereas $\nu_{n,\ell}=2$ for periodic boundaries. Thus an interior voxel participates once as the anchor of a forward difference and once as the shifted neighbour of another. The factor used in the implementation is
-\begin{equation}
-    \boxed{
-    \tau_{m,n}
-    =
-    \sum_{\ell=1}^{d}
-    \nu_{n,\ell}\,
-    s_{m,n,\ell}^{2}\,
-    \left[\Pi_{m,n}^{\top}\Pi_{m,n}\right]_{\ell\ell}
-    }.
-    \label{eq:directional_participation_factor}
-\end{equation}
-It therefore counts the valid forward and backward appearances of the voxel, weights each by the squared finite-difference coefficient, and attenuates it by the corresponding directional-projector energy.
-
-The relationship to the uncompressed frozen quadratic makes the approximation explicit. Let $\mathcal{N}(n)$ be the target voxels whose finite-difference stencil contains source voxel $n$, and let $c_{r\leftarrow n}\in\mathbb{R}^{d}$ be the resulting difference-channel impulse vector. The exact scalar diagonal of the frozen \glsentryshort{mm} surrogate is
-\begin{equation}
-    \left[H_{\mathcal R}^{\mathrm{frozen}}\right]_{(m,n),(m,n)}
-    =
-    V_{\mathrm{vox}}
-    \sum_{r\in\mathcal{N}(n)}
-    \rho_{m,r}^{2}\,c_{mm,r}\,
-    c_{r\leftarrow n}^{\top}
-    \Pi_{m,r}^{\top}\Pi_{m,r}
-    c_{r\leftarrow n}.
-    \label{eq:frozen_surrogate_exact_diagonal}
-\end{equation}
-Equation~\eqref{eq:directional_participation_factor} replaces the target-dependent coefficients in this sum by their values at $n$ and retains the diagonal directional energies of $\Pi_{m,n}^{\top}\Pi_{m,n}$. It is exact for the frozen quadratic when the combined target weight $\rho_{m,r}^{2}c_{mm,r}$, channel scales and projector Gram entries are constant over the incident stencil, the projector Gram matrix is diagonal in the difference-channel basis, and $\nu_{n,\ell}$ agrees with the actual boundary-adjusted operator. Otherwise it is a local Jacobi approximation. The incidence formula matches the implemented helper and the six-neighbour, unit-step Neumann stencil used in this study; it is not an exact description of every diagonal or multi-step Neumann stencil supported by the gradient API, for which the literal boundary-adjusted impulse coefficients are required. Extracting such a diagonal as a weighted sum of squared operator coefficients is the standard Jacobi construction for curvature of the form $\mathcal B^\top W\mathcal B$, while coupled-field Hessians contain the corresponding off-diagonal field blocks. \TODO{Import and cite Fessler--Booth (1999), Equations~(5) and (8), Sotthivirat--Fessler (2002), Equation~(18), and Crestel et al. (2019), Equation~(15), via the Zenodo-managed bibliography.}
-
-This compression has a computational, rather than asymptotic, advantage. Once the sensitivity and projector statistics have been formed, $\tau_{m,n}$ requires one point-wise reduction over the $d$ difference channels for each modality. Direct impulse-vector extraction instead evaluates the target-dependent quadratic form in Equation~\eqref{eq:frozen_surrogate_exact_diagonal} for every incident source--target pair and shift-accumulates those contributions; its voxel-block analogue also forms all $M^2$ modality entries. The compressed path therefore has a lower contraction and shift count in the present tensor implementation and is expected to reduce refresh cost. For fixed $d$ and $M$, however, both costs scale linearly with the number of voxels, so no asymptotic speed-up is claimed. No matched timing or peak-memory comparison was made, and the practical saving remains to be measured. In the present implementation the scalar diagonal follows the $\tau_{m,n}$ path, while the voxel-block model below already performs the target-dependent impulse-vector accumulation; a separate scalar impulse-vector option is not exposed.
-
-Using this compressed factor, the resulting local curvature approximation is
-\begin{equation}
-    \widehat H_{\mathcal R,m,n}^{\mathrm{loc\text{-}diag}}
-    =
-    V_{\mathrm{vox}}\,
-    \rho_{m,n}^2\,c_{mm,n}\,\tau_{m,n}.
-    \label{eq:diag_tight_preconditioner}
-\end{equation}
-Equation~\eqref{eq:diag_tight_preconditioner} is therefore an implemented local approximation rather than, in general, the exact diagonal in~\eqref{eq:frozen_surrogate_exact_diagonal}. Although a literal scalar diagonal contains $c_{mm,n}$ rather than $c_{12,n}$, $c_{mm,n}$ is obtained from the full coupled matrix $C_n$ and consequently depends on both modalities. A more conservative Gershgorin-inflated model also adds the magnitude of the cross-modal term explicitly,
-\begin{equation}
-    \widehat H_{\mathcal R,1,n}^{\mathrm{diag\text{-}G}}
-    =
-    V_{\mathrm{vox}}\,
-    \rho_{1,n}^2\,(c_{11,n}+|c_{12,n}|)\,\tau_{1,n},
-    \qquad
-    \widehat H_{\mathcal R,2,n}^{\mathrm{diag\text{-}G}}
-    =
-    V_{\mathrm{vox}}\,
-    \rho_{2,n}^2\,(c_{22,n}+|c_{12,n}|)\,\tau_{2,n}.
-    \label{eq:diag_gersh_preconditioner}
-\end{equation}
-
-\subsubsection{Diagonal extraction versus a majorising diagonal}
-\label{subsubsec:depierro_gap}
-
-Simply extracting a diagonal from the non-separable Hessian does not preserve the bound~\eqref{eq:jacobian_majoriser}. De Pierro's convexity construction instead gives a separable upper bound \cite{depierroModifiedExpectationMaximization1995a}. For each row of a chosen factorisation $\mathcal{B}^\top\mathrm{diag}\{\breve c_i\}\mathcal{B}$, with $\breve c_i\geq0$, the direct row inequality is
-\begin{equation*}
-    \left(\sum_j b_{ij}v_j\right)^2
-    \leq
-    \left(\sum_j |b_{ij}|\right)
-    \sum_j |b_{ij}|v_j^2.
-\end{equation*}
-Writing $b_i=\sum_j|b_{ij}|$ gives the factorisation-specific comparison
-\begin{equation}
-    d_j^{\mathrm{DP}}
-    =
-    \sum_i |b_{ij}|\,b_i\,\breve c_i ,
-    \qquad\text{compared with}\qquad
-    d_j^{\mathrm{diag}}
-    =
-    \sum_i b_{ij}^2\,\breve c_i .
-    \label{eq:depierro_vs_diag}
-\end{equation}
-For this chosen factorisation, $d_j^{\mathrm{DP}}\geq d_j^{\mathrm{diag}}$. An unmixed first-order difference row with exactly the two entries $\pm1/\Delta_\ell$ contributes a factor of $2$ relative to its extracted diagonal. Once $\Pi_{m,n}$ mixes difference channels, the row support and coefficients depend on the stencil, projector and factorisation, so no universal factor is implied.
-
-The Gershgorin construction~\eqref{eq:diag_gersh_preconditioner} inflates along the \emph{modality} index by adding $|c_{12,n}|$. It does not bound the spatial off-diagonal mass generated by the neighbour coupling in $\bm{D}^\ast(\cdot)\bm{D}$, and therefore does not close the spatial majorisation gap. This may explain why it tracks the local diagonal closely in Figure~\ref{fig:optim_preconditioners}.
-
-An explicit De Pierro construction for a fixed factorisation would majorise the frozen quadratic prior surrogate, at the cost of a more conservative step. The implemented local diagonal~\eqref{eq:diag_tight_preconditioner}, however, uses the compressed $\tau_{m,n}$ approximation and is not automatically the $d_j^{\mathrm{diag}}$ of~\eqref{eq:depierro_vs_diag}. Thus $d_j^{\mathrm{DP}}\geq d_j^{\mathrm{diag}}$ does not establish a componentwise ordering between the De Pierro and implemented $\tau$ diagonals. Equation~\eqref{eq:depierro_vs_diag} illustrates the spatial-diagonalisation gap rather than proving a bound for the implemented formula. No De Pierro model was implemented here.
-
-\subsubsection{Voxel-block curvature models}
-
-For block preconditioning, the \gls{pet} and \gls{spect} update components at each voxel are coupled by a $2\times2$ block. Using the neighbourhood and impulse-vector notation introduced above, the local voxel-block curvature approximation uses
+The least severe reduction of the frozen curvature retains, at each voxel, the full $2\times2$ modality block coupling the \gls{pet} and \gls{spect} update components. Let $\mathcal{N}(n)$ be the target voxels whose finite-difference stencil contains source voxel $n$, and let $c_{r\leftarrow n}\in\mathbb{R}^{d}$ be the difference-channel impulse vector: the response at target $r$ of the boundary-adjusted discrete directional-difference operator to a unit impulse at source voxel $n$. Its entries carry the channel scales $s_{m,r,\ell}$ returned by the implemented discrete-Jacobian sensitivity, which include the inverse physical step length and the normalisation of the chosen stencil bank. For the shared six-neighbour, unit-step study stencil these scales are identical for the two modalities, so a single impulse vector serves both factors of the cross-modal term in Equation~\eqref{eq:block_alpha}; a stencil bank with modality-dependent coefficients would instead require modality-indexed vectors $c^{(m)}_{r\leftarrow n}$ in each factor. The voxel-block curvature uses
 \begin{equation}
     \alpha_{r\leftarrow n}^{mm'}
     =
@@ -487,9 +398,89 @@ Equivalently, its individual modality entries are
     c_{r\leftarrow n}.
     \label{eq:block_tight_preconditioner_entries}
 \end{equation}
-For $m\neq m'$, Equation~\eqref{eq:block_tight_preconditioner_entries} explicitly retains both the cross-modal spectral weight $c_{12,r}$ and the cross-projector product $\Pi_{1,r}^{\top}\Pi_{2,r}$. The voxel-block reduction therefore discards curvature between different source voxels, not the \gls{pet}/\gls{spect} curvature within a voxel. For the shared six-neighbour, unit-step study stencil, the target-dependent accumulation implemented by \texttt{mm\_diag\_block\_tight} gives this exact voxel-diagonal block of the frozen surrogate before symmetrisation and numerical positive-definite flooring.
+For $m\neq m'$, Equation~\eqref{eq:block_tight_preconditioner_entries} explicitly retains both the cross-modal spectral weight $c_{12,r}$ and the cross-projector product $\Pi_{1,r}^{\top}\Pi_{2,r}$. The voxel-block reduction therefore discards curvature between different source voxels while retaining the \gls{pet}/\gls{spect} curvature within each voxel. For the shared six-neighbour, unit-step study stencil, the target-dependent accumulation implemented by \texttt{mm\_diag\_block\_tight} gives this exact voxel-diagonal block of the frozen surrogate before symmetrisation and numerical positive-definite flooring.
 
-The fourth construction uses the exact Lewis--Sendov Hessian of the smoothed spectral penalty \cite{doi:10.1137/S089547980036838X}. If $H_{\mathcal R}=\nabla^2\mathcal R$ denotes the resulting image-space Hessian, the implemented approximation retains only its voxel-wise diagonal blocks,
+The accumulation is inexpensive for this stencil. The sum over $\mathcal{N}(n)$ contains at most $d+1$ non-zero terms: the anchor target $r=n$, whose impulse vector collects the coefficient of every forward difference based at $n$, and the $d$ backward neighbours $r=n-\delta_\ell\in\Omega$, whose impulse vectors are non-zero in channel $\ell$ alone. One refresh therefore evaluates one full projector-Gram quadratic form and $d$ shifted single-channel terms per voxel for each modality pair. Performed once per epoch, this cost is negligible relative to a single projection pass; for other stencils supported by the gradient API, the literal boundary-adjusted impulse coefficients remain the defining quantities.
+
+\subsubsection{Diagonal curvature models}
+
+A scalar metric removes the remaining within-voxel coupling by diagonalising each $2\times2$ block, and this can be done in two ways: by extraction or by bounding. The extracted diagonal is the exact scalar (Jacobi) diagonal of the frozen \glsentryshort{mm} surrogate, given by Equation~\eqref{eq:block_tight_preconditioner_entries} at $m=m'$,
+\begin{equation}
+    \left[H_{\mathcal R}^{\mathrm{frozen}}\right]_{(m,n),(m,n)}
+    =
+    V_{\mathrm{vox}}
+    \sum_{r\in\mathcal{N}(n)}
+    \rho_{m,r}^{2}\,c_{mm,r}\,
+    c_{r\leftarrow n}^{\top}
+    \Pi_{m,r}^{\top}\Pi_{m,r}
+    c_{r\leftarrow n}.
+    \label{eq:frozen_surrogate_exact_diagonal}
+\end{equation}
+Extracting a diagonal as a weighted sum of squared operator coefficients is the standard Jacobi construction for curvature of the form $\mathcal B^\top W\mathcal B$\TODO{cite here: Fessler and Booth 1999, \emph{IEEE Trans.\ Image Process.}\ 8(5):688--699, doi:10.1109/83.760336, Eqs.~(5) and~(8); Sotthivirat and Fessler 2002, \emph{IEEE Trans.\ Image Process.}\ 11(3):306--317, doi:10.1109/83.988963, Eq.~(18) --- import via the Zenodo-managed bibliography}, and Equation~\eqref{eq:frozen_surrogate_exact_diagonal} is independent of the factorisation used to evaluate it; coupled-field Hessians additionally contain the corresponding off-diagonal field blocks\TODO{cite here: Crestel, Stadler and Ghattas 2019, \emph{Inverse Problems} 35(2):024003, doi:10.1088/1361-6420/aaf129, Eq.~(15) --- import via the Zenodo-managed bibliography}.
+
+The \glsentryshort{mm} Jacobi-diagonal operand, the extraction strategy, uses Equation~\eqref{eq:frozen_surrogate_exact_diagonal} directly,
+\begin{equation}
+    \widehat H_{\mathcal R,m,n}^{\mathrm{diag\text{-}J}}
+    =
+    \left[H_{\mathcal R}^{\mathrm{frozen}}\right]_{(m,n),(m,n)}.
+    \label{eq:diag_tight_preconditioner}
+\end{equation}
+Its accumulation is the $m=m'$ restriction of the voxel-block accumulation above. Although a scalar diagonal contains $c_{mm,r}$ rather than $c_{12,r}$, $c_{mm,r}$ is obtained from the full coupled matrix $C_r$ and consequently depends on both modalities; the extraction nevertheless discards the off-diagonal block entries without bounding them.
+
+The bounding strategy replaces each anchored weight matrix by its Gershgorin-dominant diagonal, $\widehat C_r=\operatorname{diag}(c_{11,r}+|c_{12,r}|,\,c_{22,r}+|c_{12,r}|)$, which satisfies $\widehat C_r\succeq C_r$ since the difference has eigenvalues $0$ and $2|c_{12,r}|$. The frozen curvature depends on the target weights through a congruence, which preserves the semidefinite order, so this substitution produces a modality-decoupled majoriser of the frozen curvature; the Gershgorin operand is the exact diagonal of that majoriser, evaluated by the same impulse accumulation,
+\begin{equation}
+    \widehat H_{\mathcal R,m,n}^{\mathrm{diag\text{-}G}}
+    =
+    V_{\mathrm{vox}}
+    \sum_{r\in\mathcal{N}(n)}
+    \rho_{m,r}^{2}\,
+    \left(c_{mm,r}+|c_{12,r}|\right)
+    c_{r\leftarrow n}^{\top}
+    \Pi_{m,r}^{\top}\Pi_{m,r}
+    c_{r\leftarrow n}.
+    \label{eq:diag_gersh_preconditioner}
+\end{equation}
+This diagonal also dominates the voxel block it diagonalises. At each target, the difference $\bigl[B_r(\widehat C_r-C_r)B_r\bigr]\circ A_{r\leftarrow n}$ is the Hadamard product of a positive-semidefinite matrix with the Gram matrix $A_{r\leftarrow n}$, hence positive semidefinite by the Schur product theorem, so before numerical flooring
+\begin{equation*}
+    \operatorname{diag}\bigl(
+    \widehat H_{\mathcal R,1,n}^{\mathrm{diag\text{-}G}},\,
+    \widehat H_{\mathcal R,2,n}^{\mathrm{diag\text{-}G}}
+    \bigr)
+    \succeq
+    \widehat H_{\mathcal R,n}^{\mathrm{loc\text{-}block}}
+\end{equation*}
+at every voxel. The three \glsentryshort{mm}-derived operands therefore share one exact spatial reduction and differ only in the within-voxel treatment: the coupling is retained exactly by the voxel block, dropped by the Jacobi diagonal, and bounded by the Gershgorin inflation. All three coincide at voxels whose incident targets carry no cross-modal weight, $c_{12,r}=0$ for every $r\in\mathcal{N}(n)$. The same extraction-versus-bounding choice recurs at the spatial level, addressed next.
+
+\subsubsection{Diagonal extraction versus a majorising diagonal}
+\label{subsubsec:depierro_gap}
+
+Simply extracting a diagonal from the non-separable Hessian does not preserve the bound~\eqref{eq:jacobian_majoriser}. De Pierro's convexity construction instead gives a separable upper bound \cite{depierroModifiedExpectationMaximization1995a}. For each row of a chosen factorisation $\mathcal{B}^\top\mathrm{diag}\{\breve c_i\}\mathcal{B}$, with $\breve c_i\geq0$, the direct row inequality is
+\begin{equation*}
+    \left(\sum_j b_{ij}v_j\right)^2
+    \leq
+    \left(\sum_j |b_{ij}|\right)
+    \sum_j |b_{ij}|v_j^2.
+\end{equation*}
+Writing $b_i=\sum_j|b_{ij}|$ gives the factorisation-specific comparison
+\begin{equation}
+    d_j^{\mathrm{DP}}
+    =
+    \sum_i |b_{ij}|\,b_i\,\breve c_i ,
+    \qquad\text{compared with}\qquad
+    d_j^{\mathrm{diag}}
+    =
+    \sum_i b_{ij}^2\,\breve c_i .
+    \label{eq:depierro_vs_diag}
+\end{equation}
+For this chosen factorisation, $d_j^{\mathrm{DP}}\geq d_j^{\mathrm{diag}}$. An unmixed first-order difference row with exactly the two entries $\pm1/\Delta_\ell$ contributes a factor of $2$ relative to its extracted diagonal. Once $\Pi_{m,n}$ mixes difference channels, the row support and coefficients depend on the stencil, projector and factorisation, so no universal factor is implied.
+
+The Gershgorin construction~\eqref{eq:diag_gersh_preconditioner} inflates along the \emph{modality} index only. It does not bound the spatial off-diagonal mass generated by the neighbour coupling in $\bm{D}^\ast(\cdot)\bm{D}$, and therefore does not close the spatial majorisation gap. It is also one member of a family: for any $\pi>0$, the weighted arithmetic--geometric-mean bound gives $\operatorname{diag}(c_{11,r}+|c_{12,r}|/\pi,\;c_{22,r}+\pi|c_{12,r}|)\succeq C_r$, which is De Pierro's convexity device applied along the modality index rather than in space. The symmetric choice $\pi=1$ is used here; other choices redistribute the cross-term mass between \gls{pet} and \gls{spect}, and connect this construction to the modality-specific metric scaling in Equation~\eqref{eq:modality_precond_weight} below.
+
+An explicit De Pierro construction for a fixed factorisation would majorise the frozen quadratic prior surrogate, at the cost of a more conservative step. Because the implemented operand~\eqref{eq:diag_tight_preconditioner} is exactly $\operatorname{diag}(H_{\mathcal R}^{\mathrm{frozen}})$, the comparison in~\eqref{eq:depierro_vs_diag} applies to it directly: for the chosen factorisation, $d_j^{\mathrm{DP}}$ dominates the implemented Jacobi diagonal componentwise, and the difference is precisely the inflation that pays for dominating the discarded spatial couplings. No De Pierro model was implemented here.
+
+\subsubsection{Lewis--Sendov block curvature}
+
+The fourth construction uses the exact Lewis--Sendov Hessian of the smoothed spectral penalty \cite{doi:10.1137/S089547980036838X}. Equation~\eqref{eq:phi_as_trace} writes that penalty as $\phi(Y)=f(Y^\top Y)$, where $f$ is a twice-differentiable spectral function of the symmetric matrix $Y^\top Y$; the Lewis--Sendov calculus supplies the Hessian of $f$, and the chain rule through the smooth map $Y\mapsto Y^\top Y$ and the linear dependence of each voxel Jacobian on the images then yields the image-space Hessian used here. If $H_{\mathcal R}=\nabla^2\mathcal R$ denotes the resulting image-space Hessian, the implemented approximation retains only its voxel-wise diagonal blocks,
 \begin{equation}
     \widehat H_{\mathcal R}^{\mathrm{LS\text{-}block}}
     =
@@ -561,7 +552,7 @@ The comparison uses the one-bed anthropomorphic phantom, modality-separated subs
 
 The preconditioner is updated once per epoch and held fixed between updates. This limits curvature-computation cost, particularly for the Lewis--Sendov construction, but means the preconditioner becomes progressively stale within each epoch.
 
-The reference is separate from this five-method comparison: it is a single 1000-epoch run with the same objective, a Gershgorin-diagonal \gls{mm} preconditioner, and more conservative optimisation settings, including $\eta_{\mathrm{relax}}=10^{-4}$. It provides $x^\star$ for the \gls{nrmse} calculation rather than an additional candidate method.
+The reference is separate from this five-method comparison: it is a single 1000-epoch run with the same objective, a Gershgorin-diagonal \gls{mm} preconditioner, and more conservative optimisation settings, including $\eta_{\mathrm{relax}}=10^{-4}$. It provides $x^\star$ for the \gls{nrmse} calculation rather than an additional candidate method. Since every method addresses the same objective, the preconditioner changes the optimisation metric rather than the objective or its set of minimisers, so a reference generated under one metric is a common comparison target for all. For the block methods, whose clipped update lies outside variable-metric projected-gradient theory (Section~\ref{subsubsec:precond_constraint}), approach to $x^\star$ is an empirical observation rather than a guaranteed limit.
 
 \begin{table}[htbp]
 \centering
@@ -573,9 +564,9 @@ The reference is separate from this five-method comparison: it is a single 1000-
 Preconditioner & Prior-curvature construction & Combination\\
 \midrule
 Data-only BSREM & None; EM data scaling only & Not applicable\\
-MM local diagonal & Local diagonal approximation to the MM curvature & Inverse sum\\
-MM Gershgorin-inflated diagonal & Gershgorin inflation of the local diagonal approximation & Inverse sum\\
-MM local voxel-block & Voxel-block approximation to the MM curvature & Inverse sum\\
+MM local voxel-block & Exact $2\times2$ voxel-diagonal block of the frozen MM curvature & Inverse sum\\
+MM Jacobi diagonal & Exact scalar diagonal of the frozen MM curvature, by impulse accumulation & Inverse sum\\
+MM Gershgorin-inflated diagonal & Exact diagonal of the modality-Gershgorin majoriser of the frozen MM curvature & Inverse sum\\
 Lewis--Sendov block-diagonal & Voxel-block diagonal of the exact smoothed spectral Hessian & Inverse sum\\
 \bottomrule
 \end{tabular}
@@ -627,23 +618,28 @@ Changing $p$ also changes the effective step scale. The factor $\tfrac12$ is cal
 
 \subsection{Interpretation and Limitations}
 
-\subsubsection{Spatial diagonalisation as future work}
+\subsubsection{Similarity of the prior-aware models}
+\label{subsubsec:prior_model_similarity}
 
-A controlled study should compare three spatial constructions: (i) the current compressed $\tau_{m,n}$ scalar diagonal; (ii) the exact impulse-vector Jacobi diagonal of Equation~\eqref{eq:frozen_surrogate_exact_diagonal}, obtained before numerical block flooring by retaining the diagonal entries of the target-dependent accumulation already used by the voxel-block model; and (iii) a De Pierro separable diagonal constructed from an explicit factorisation as in Equation~\eqref{eq:depierro_vs_diag}. The impulse-vector construction matches the exact diagonal of the chosen frozen surrogate, but that extracted diagonal is not necessarily a majoriser of the spatially coupled quadratic. The De Pierro construction instead provides a genuine separable upper bound and is therefore the appropriate route to an \glsentryshort{mm}-valid diagonal, although the bound may be more conservative.
+The three \glsentryshort{mm}-derived operands originate from the same frozen curvature and share one exact spatial reduction; they differ only in how within-voxel \gls{pet}/\gls{spect} coupling is handled --- retained exactly by the voxel block, dropped by the Jacobi diagonal, upper-bounded before extraction by the Gershgorin inflation. Their near-coincidence in Figure~\ref{fig:optim_preconditioners} therefore measures the influence of that coupling on the optimisation metric, not differences in spatial approximation. Two mechanisms plausibly damp it. First, the cross-modal weight $c_{12,r}$ is appreciable only where both modalities carry local gradients that are neither negligible nor orthogonal; such modality-discordant edge voxels form a thin shell of a volumetric \gls{voi}, and the three operands coincide at voxels whose incident targets all have $c_{12,r}=0$. Second, every prior operand enters through the inverse sum~\eqref{eq:parallel_sum_combination}, so wherever the data curvature dominates the denominator, residual differences between prior operands are attenuated further. That the Lewis--Sendov block model also tracks the \glsentryshort{mm} family suggests the curvature source is likewise not the limiting factor over this interval. The voxel-wise distribution of $|c_{12,n}|/c_{mm,n}$ was not measured, so this reading remains an interpretation; recording it at a single preconditioner refresh would test it directly.
 
-For the coupled problem, the comparison should also include grouped voxel-block variants that retain the cross-modal entries in Equation~\eqref{eq:block_tight_preconditioner_entries}, together with a proof of the corresponding Loewner bound for the grouped De Pierro construction. The evaluation should report preconditioner refresh time, peak temporary memory, diagonal accuracy or majorisation slack relative to the frozen curvature, iteration and data-pass counts, and end-to-end reconstruction time under a common stopping criterion. This would determine whether the lower contraction and shift count of $\tau_{m,n}$ yields enough practical saving to offset its loss of local curvature information and show how the three constructions stack up; no such benchmark was performed here.
+\subsubsection{Separable majorisation as future work}
+
+The implemented Jacobi diagonal is the exact diagonal of the chosen frozen surrogate, so the scalar operand carries no approximation error relative to that quadratic's diagonal; the outstanding theoretical gap is majorisation. An extracted diagonal is not necessarily a majoriser of the spatially coupled quadratic, whereas a De Pierro separable diagonal constructed from an explicit factorisation as in Equation~\eqref{eq:depierro_vs_diag} provides a genuine separable upper bound and is therefore the appropriate route to an \glsentryshort{mm}-valid diagonal, although the bound may be more conservative.
+
+For the coupled problem, a controlled comparison between the implemented Jacobi diagonal and such a De Pierro construction should also include grouped voxel-block variants that retain the cross-modal entries in Equation~\eqref{eq:block_tight_preconditioner_entries}, together with a proof of the corresponding Loewner bound for the grouped De Pierro construction. The evaluation should report preconditioner refresh time, peak temporary memory, majorisation slack relative to the frozen curvature on small grids, iteration and data-pass counts, and end-to-end reconstruction time under a common stopping criterion; no such benchmark was performed here.
 
 \subsubsection{Modality-dependent prior/data curvature balance}
 \label{subsec:modality_curvature_balance}
 
-A plausible explanation for the modality dependence in Figure~\ref{fig:optim_preconditioners} is the balance between the data and prior curvature. For the local diagonal model, a useful voxel-wise diagnostic is
+A plausible explanation for the modality dependence in Figure~\ref{fig:optim_preconditioners} is the balance between the data and prior curvature. For the Jacobi-diagonal model, a useful voxel-wise diagnostic is
 \begin{equation}
     \frac{\widehat H_{\mathcal R,m,n}}{\widehat H_{\mathrm D,m,n}}
     =
-    \frac{V_{\mathrm{vox}}\,\rho_{m,n}^{2}\,c_{mm,n}\,\tau_{m,n}\,(z_{m,n}+\epsilon_x)}{s_{m,n}} .
+    \frac{\left[H_{\mathcal R}^{\mathrm{frozen}}\right]_{(m,n),(m,n)}\,(z_{m,n}+\epsilon_x)}{s_{m,n}} .
     \label{eq:curvature_ratio}
 \end{equation}
-The data curvature contains no explicit $\rho$ dependence, whereas the prior curvature contains $\rho_{m,n}^2$ and the \gls{mm} weight $c_{mm,n}$ formed from the weighted Jacobian. In a scalar or effectively uncoupled limit, this gives intuitive linear scaling with $\rho$ for large directional gradients and quadratic scaling near a flat region. For the coupled $2\times2$ problem, however, $c_{mm,n}$ depends on both modality columns and their cross-coupling, so these limits do not bound the net scaling. The ratio in~\eqref{eq:curvature_ratio} was not measured in the experiment and is offered only as local, diagonal intuition.
+The data curvature contains no explicit $\rho$ dependence, whereas the prior diagonal accumulates $\rho_{m,r}^2\,c_{mm,r}$ over the incident stencil. In a scalar or effectively uncoupled limit, this gives intuitive linear scaling with $\rho$ for large directional gradients and quadratic scaling near a flat region. For the coupled $2\times2$ problem, however, $c_{mm,r}$ depends on both modality columns and their cross-coupling, so these limits do not bound the net scaling. The ratio in~\eqref{eq:curvature_ratio} was not measured in the experiment and is offered only as local, diagonal intuition.
 
 The weights $\rho_{m,n}$ were selected in Chapter~\ref{chapter:wdtnv} to balance gradients entering the nuclear norm, independently of the modality sensitivities. It is therefore plausible, but not established, that the different \gls{pet} and \gls{spect} trajectories reflect different prior/data curvature ratios. An untested extension would introduce a separate modality scaling for the preconditioner,
 \begin{equation}
@@ -666,7 +662,7 @@ which reduces to modality-wise curvature scaling when the operands are diagonal.
 \section{Conclusion}
 \label{sec:optimisation_conclusion}
 
-Joint multi-bed reconstruction allowed the edge-preserving prior to act across the bed overlap and avoided the stitching artefacts visible in the qualitative example. In the one-bed subset experiment, every schedule used the same smooth objective and an unbiased uniform-sampling \gls{svrg} estimator. The relaxation rate was rescaled from the folded, modality-separated reference $\eta_{\mathrm{relax}}=0.002$, so every configuration had the same step size at a given matched pass. Under these controlled factors, the folded schedules reduced \gls{nrmse} over 20 passes whereas the intermittent schedules did not; the difference therefore reflects component and subset organisation. Total update counts differ, so this is not a wall-clock or compute-efficiency result.
+Joint multi-bed reconstruction allowed the edge-preserving prior to act across the bed overlap and did not exhibit the overlap artefacts visible in the qualitative stitched example. In the one-bed subset experiment, every schedule used the same smooth objective and an unbiased uniform-sampling \gls{svrg} estimator. The relaxation rate was rescaled from the folded, modality-separated reference $\eta_{\mathrm{relax}}=0.002$, so every configuration had the same step size at a given matched pass. Under these controlled factors, the folded schedules reduced \gls{nrmse} over 20 passes whereas the intermittent schedules did not; the difference therefore reflects component and subset organisation. Total update counts differ, so this is not a wall-clock or compute-efficiency result.
 
 In the preconditioner experiment, prior-aware scaling kept count-limited \gls{pet} bounded over the same 20-pass interval, while data-only \gls{bsrem} gave comparable or slightly lower \gls{spect} \gls{nrmse}. No prior-curvature construction was uniformly best. The local curvature ratio offers a physical interpretation of this modality dependence, but was not measured; the block-valid scaling in~\eqref{eq:modality_precond_weight} remains an untested extension.
 
