@@ -27,7 +27,7 @@ Upon thermalisation, the positron interacts with an electron to form positronium
 \begin{equation}
     e^+ + e^- \rightarrow \gamma + \gamma
 \end{equation}
-The rest mass energy of the pair ($2 \times 511$ keV) is converted into two\footnote{Positron/electron pairs can also annihilate to produce more than two photons but this is much less likely ($p(3\gamma)/p(2\gamma)\approx$1/378)\cite{bassColloquiumPositroniumPhysics2023}} (near) anti-parallel\footnote{In order to conserve momentum, a certain a-collinearity will exist between the photons, introducing additional blurring \cite{shibuyaAnnihilationPhotonAcollinearity2007}.} photons (Figure~\ref{fig:positron_annihilation}).
+The rest mass energy of the pair ($2 \times 511$ keV) is converted into two\footnote{Positron/electron pairs can also annihilate to produce more than two photons but this is much less likely ($p(3\gamma)/p(2\gamma)\approx$1/378)\cite{bassColloquiumPositroniumPhysics2023}\TODO{Re-import this entry via Zenodo: the authors are Bass, Mariazzi, Moskal and Stepien (only ``Bass, SD'' is recorded), the title carries a trailing ``| Rev. Mod. Phys.'' from the scrape, and doi:10.1103/RevModPhys.95.021002 is missing.}} (near) anti-parallel\footnote{In order to conserve momentum, a certain a-collinearity will exist between the photons, introducing additional blurring \cite{shibuyaAnnihilationPhotonAcollinearity2007}.} photons (Figure~\ref{fig:positron_annihilation}).
 
 \begin{figure}
     \centering
@@ -95,7 +95,7 @@ In \gls{pet}, the system matrix may be factorised as
 \begin{equation}
     A = A_{\mathrm{det,sens}}\,A_{\mathrm{det,blur}}\,A_{\mathrm{att}}\,A_{\mathrm{geom}}\,A_{\mathrm{ToF}}\,A_{\mathrm{positron}}.
 \end{equation}
-Here, $A_{\mathrm{positron}}$ models positron-range blurring, $A_{\mathrm{ToF}}$ models the timing localisation accuracy for \gls{tof} \gls{pet} (and is omitted for non-\gls{tof} \gls{pet}), $A_{\mathrm{geom}}$ is the geometric projection operator mapping voxels to lines of response in the absence of attenuation, $A_{\mathrm{att}}$ is a diagonal operator containing attenuation factors along each line of response, $A_{\mathrm{det,blur}}$ models detector-related resolution effects in reporting the true line-of-response positions, and $A_{\mathrm{det,sens}}$ is a diagonal sensitivity factor incorporating multiplicative effects such as detector efficiencies and normalisation \cite{baileyNuclearMedicinePhysics2014}. The additive term is commonly written as $b=s+r$, corresponding to scatter and randoms, respectively.
+Here, $A_{\mathrm{positron}}$ models positron-range blurring, $A_{\mathrm{ToF}}$ models the timing localisation accuracy for \gls{tof} \gls{pet} (and is omitted for non-\gls{tof} \gls{pet}), $A_{\mathrm{geom}}$ is the geometric projection operator mapping voxels to lines of response in the absence of attenuation, $A_{\mathrm{att}}$ is a diagonal operator containing attenuation factors along each line of response, $A_{\mathrm{det,blur}}$ models detector-related resolution effects in reporting the true line-of-response positions, and $A_{\mathrm{det,sens}}$ is a diagonal sensitivity factor incorporating multiplicative effects such as detector efficiencies and normalisation \cite{baileyNuclearMedicinePhysics2014a}. The additive term is commonly written as $b=s+r$, corresponding to scatter and randoms, respectively.
 
 \section{Single Photon Emission Computed Tomography (\gls{spect})}
 
@@ -132,7 +132,7 @@ where $l$ is the physical hole length and $\mu\mathrm(E)$ is the linear attenuat
 \section{Yttrium-90 Radioembolisation (\gls{sirt})}
 \label{sec:y90}
 
-\Gls{sirt} uses \gls{y90} microspheres for the locoregional treatment of hepatic malignancies. It is an established treatment for unresectable \gls{hcc} and liver metastases \cite{sundramSelectiveInternalRadiation2017}, recommended by NICE for unresectable \glsentryshort{hcc} and used for neuroendocrine and colorectal liver metastases in the UK \cite{nationalinstituteforhealthandcareexcellenceniceSelectiveInternalRadiation2021, nationalinstituteforhealthandcareexcellenceniceSelectiveInternalRadiation2024}. The reconstruction of post-\gls{sirt} microsphere distribution presents a severe ill-posed inverse problem, as \gls{y90} is designed for therapy, not imaging.
+\Gls{sirt} uses \gls{y90} microspheres for the locoregional treatment of hepatic malignancies. It is an established treatment for unresectable \gls{hcc} and liver metastases \cite{sundramSelectiveInternalRadiation2017}, recommended by NICE for unresectable \glsentryshort{hcc} and used for neuroendocrine and colorectal liver metastases in the UK \cite{nationalinstituteforhealthandcareexcellenceniceSelectiveInternalRadiation2021}. NICE has since appraised radioembolisation with \isotope[166]{Ho} microspheres for the same indication \cite{nationalinstituteforhealthandcareexcellenceniceSelectiveInternalRadiation2024}, although this thesis concerns \gls{y90} throughout. The reconstruction of post-\gls{sirt} microsphere distribution presents a severe ill-posed inverse problem, as \gls{y90} is designed for therapy, not imaging.
 
 \subsection{Decay Characteristics}
 \gls{y90} is an almost pure $\beta^-$ emitter decaying to the stable ground state of \gls{zr90} with a half-life of 64.1 hours:
@@ -143,7 +143,7 @@ The electrons have a high endpoint energy of \SI{2.28}{\mega\electronvolt}. The 
 
 \subsection{Bremsstrahlung \gls{spect}}
 \label{subsec:bremss}
-As high-energy $\beta^-$ particles decelerate in tissue through Coulomb interactions with charged particles, they emit Bremsstrahlung photons. These photons can be imaged with \gls{spect} systems. However, the continuous spectrum of bremsstrahlung photons (Figure~\ref{fig:brems_emission}) hugely reduces the suitability of traditional energy-window scatter-correction methods, while bremsstrahlung range blurring (Figure~\ref{fig:bremsstrahlung}) reduces resolution. Consequently, bremsstrahlung \gls{spect} is often characterised by poor spatial resolution and limited quantitative accuracy \cite{simpkinSpatialEnergyDependence1992}.
+As high-energy $\beta^-$ particles decelerate in tissue through Coulomb interactions with charged particles, they emit Bremsstrahlung photons. These photons can be imaged with \gls{spect} systems. However, the continuous spectrum of bremsstrahlung photons (Figure~\ref{fig:brems_emission}) hugely reduces the suitability of traditional energy-window scatter-correction methods, while bremsstrahlung range blurring (Figure~\ref{fig:bremsstrahlung}) reduces resolution \cite{simpkinSpatialEnergyDependence1992}. Consequently, bremsstrahlung \gls{spect} is often characterised by poor spatial resolution and limited quantitative accuracy \cite{minarikEvaluationQuantitative90Y2008, rongDevelopmentEvaluationImproved2012}.
 
 \begin{figure}
     \centering
