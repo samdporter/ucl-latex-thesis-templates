@@ -221,7 +221,7 @@ Reconstructions were run for 250 epochs, corresponding to approximately 500 full
 \subsection{Block-diagonal preconditioning}
 \label{subsec:90y_precond}
 
-For modality $m$, the data component is the EM-type scaling \cite{depierroFastEMlikeMethods2001,ahnGloballyConvergentOrdered2002}
+For modality $m$, the data component is the EM-type scaling \cite{depierroFastEMlikeMethods2001,ahn_globally_2003}
 \begin{equation}
     \mathcal{P}_{\mathrm{data},m}
     =
@@ -282,7 +282,7 @@ For Bremsstrahlung SPECT we use the fixed acquisition model developed and simula
 
 The geometric collimator response is modelled as a depth-dependent Gaussian with linearly varying width, obtained by fitting an analytic collimator model \cite{angerSensitivityResolutionLinearity1966}. Patient scatter, collimator scatter and septal penetration are excluded from this primary operator. Bremsstrahlung blur is represented by the fixed $6.9\,\mathrm{mm}$-\gls{fwhm} effective isotropic Gaussian calibrated and cross-checked against the $^{90}$Y Monte Carlo response study in Section~\ref{subsec:brem_blur_validation} \cite{raultFastSimulationYttrium902010}.
 
-Non-primary contamination is incorporated through an additive term prepared before the joint reconstruction. As described in Section~\ref{subsec:additive_refinement}, the term is estimated by an outer reconstruct--simulate loop using \gls{simind} \cite{dewarajaImprovedQuantitative90Y2017,ljungbergSIMINDMonteCarlo2015,rongDevelopmentEvaluationImproved2012}\TODO{\texttt{ljungbergSIMINDMonteCarlo2015} is a one-page \emph{JNM} meeting abstract. Replace it with the canonical SIMIND reference once in the Zenodo bibliography: M.\ Ljungberg and S.-E.\ Strand, ``A Monte Carlo program for the simulation of scintillation camera characteristics'', \emph{Comput.\ Methods Programs Biomed.}\ 29(4):257--272, 1989, doi:10.1016/0169-2607(89)90111-9.} (Appendix~\ref{app:simind_python_connector}). We initialise it using a learned estimate from a neural network \cite{xiangDeepNeuralNetwork2020} (Appendix~\ref{app:scatter_dl}) and refine it for 10 outer iterations using
+Non-primary contamination is incorporated through an additive term prepared before the joint reconstruction. As described in Section~\ref{subsec:additive_refinement}, the term is estimated by an outer reconstruct--simulate loop using \gls{simind} \cite{dewarajaImprovedQuantitative90Y2017,ljungberg_monte_1989,rongDevelopmentEvaluationImproved2012} (Appendix~\ref{app:simind_python_connector}). We initialise it using a learned estimate from a neural network \cite{xiangDeepNeuralNetwork2020} (Appendix~\ref{app:scatter_dl}) and refine it for 10 outer iterations using
 \begin{equation}
     b^{(k+1)}=\alpha\,\hat b^{(k+1)}+(1-\alpha)b^{(k)},
     \qquad

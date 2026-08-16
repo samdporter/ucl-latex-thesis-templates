@@ -82,7 +82,7 @@ Let $\bm z=(z_1,z_2)$ denote the \gls{pet} and \gls{spect} images represented on
 \end{equation}
 where $\mathcal{D}_i$ is a Poisson negative log-likelihood term composed with the relevant projector, image-space registration operator, and optional resolution model; $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ is the prior from Chapter~\ref{chapter:wdtnv}; and $\iota_{\mathbb{R}_+}$ is the indicator of the non-negative orthant, equal to zero when $\bm z\geq 0$ component-wise and $+\infty$ otherwise. The gradient estimator $g^{(k)}$ contains only the smooth terms $\mathcal D+\mathcal R$; the proximal map of the non-smooth indicator clips negative components to zero, as implemented by $\{\cdot\}_{\geq 0}$ in Equation~\eqref{eq:optimisation_projected_update}.
 
-The stochastic experiments use \gls{svrg} \cite{johnsonAcceleratingStochasticGradient2013,twymanInvestigationStochasticVariance2022,ehrhardtFastPETReconstruction2025a}. Writing $\mathcal R=\mathcal{R}_{\mathrm{w\text{-}dTNV}}$, the implemented estimator keeps the complete prior outside the sampler. At anchor point $\widetilde{\bm z}$ it is
+The stochastic experiments use \gls{svrg} \cite{johnsonAcceleratingStochasticGradient2013,twyman_investigation_2023,ehrhardtFastPETReconstruction2025a}. Writing $\mathcal R=\mathcal{R}_{\mathrm{w\text{-}dTNV}}$, the implemented estimator keeps the complete prior outside the sampler. At anchor point $\widetilde{\bm z}$ it is
 \begin{equation}
     g^{(k)} = \nabla\mathcal R(\bm z^{(k)})
     + \nabla\mathcal D(\widetilde{\bm z})
@@ -152,7 +152,7 @@ The regions are evaluated separately over the whole image, the hot-sphere mask, 
 \section{Subset Selection}
 \label{sec:optimisation_subset_selection}
 
-Subset methods accelerate early iterations in emission tomography by replacing full data passes with stochastic or ordered blocks of projection data \cite{hudsonAcceleratedImageReconstruction1994}. Joint \gls{pet}/\gls{spect} reconstruction introduces two further choices: corresponding modality subsets can be paired or treated as separate stochastic functions, and the prior can be scheduled relative to those functions in different ways. The experiment crosses these two subset organisations with three prior-application schedules motivated by prior subset-selection analysis \cite{OptimisingSubsetSelection}\TODO{The \texttt{OptimisingSubsetSelection} entry is a scraped IEEE Xplore landing page with no authors, year or venue, and a title ending ``| IEEE Conference Publication | IEEE Xplore''. Re-import the full record for IEEE Xplore document 10654962 (``Optimising Subset Selection in Synergistic Emission Tomography Reconstruction'', IEEE NSS/MIC/RTSD) via Zenodo.}.
+Subset methods accelerate early iterations in emission tomography by replacing full data passes with stochastic or ordered blocks of projection data \cite{hudsonAcceleratedImageReconstruction1994}. Joint \gls{pet}/\gls{spect} reconstruction introduces two further choices: corresponding modality subsets can be paired or treated as separate stochastic functions, and the prior can be scheduled relative to those functions in different ways. The experiment crosses these two subset organisations with three prior-application schedules motivated by prior subset-selection analysis \cite{porterOptimisingSubsetSelection2024a}.
 
 \subsection{Data-Subset Organisation}
 \label{subsec:subset_data_organisation}
@@ -246,7 +246,7 @@ The relaxation normalisation rules out different step-size reduction with matche
 \label{sec:optimisation_preconditioners}
 \label{subsec:preconditioning}
 
-Preconditioning can materially affect \gls{map} reconstruction because the data term and the edge-preserving prior can have very different local curvature scales \cite{clinthornePreconditioningMethodsImproved1993,ahnGloballyConvergentOrdered2002,depierroFastEMlikeMethods2001,ehrhardtFastPETReconstruction2025a}. The comparison below includes data-only \gls{bsrem} scaling and four prior-aware curvature models for $\wdtnv$.
+Preconditioning can materially affect \gls{map} reconstruction because the data term and the edge-preserving prior can have very different local curvature scales \cite{clinthornePreconditioningMethodsImproved1993,ahn_globally_2003,depierroFastEMlikeMethods2001,ehrhardtFastPETReconstruction2025a}. The comparison below includes data-only \gls{bsrem} scaling and four prior-aware curvature models for $\wdtnv$.
 
 \subsection{Data Curvature}
 \label{subsec:optimisation_data_preconditioning}
@@ -416,7 +416,7 @@ A scalar metric removes the remaining within-voxel coupling by diagonalising eac
     c_{r\leftarrow n}.
     \label{eq:frozen_surrogate_exact_diagonal}
 \end{equation}
-Extracting a diagonal as a weighted sum of squared operator coefficients is the standard Jacobi construction for curvature of the form $\mathcal B^\top W\mathcal B$\TODO{cite here: Fessler and Booth 1999, \emph{IEEE Trans.\ Image Process.}\ 8(5):688--699, doi:10.1109/83.760336, Eqs.~(5) and~(8); Sotthivirat and Fessler 2002, \emph{IEEE Trans.\ Image Process.}\ 11(3):306--317, doi:10.1109/83.988963, Eq.~(18) --- import via the Zenodo-managed bibliography}, and Equation~\eqref{eq:frozen_surrogate_exact_diagonal} is independent of the factorisation used to evaluate it; coupled-field Hessians additionally contain the corresponding off-diagonal field blocks\TODO{cite here: Crestel, Stadler and Ghattas 2019, \emph{Inverse Problems} 35(2):024003, doi:10.1088/1361-6420/aaf129, Eq.~(15) --- import via the Zenodo-managed bibliography}.
+Extracting a diagonal as a weighted sum of squared operator coefficients is the standard Jacobi construction for curvature of the form $\mathcal B^\top W\mathcal B$~\cite{fessler_conjugate-gradient_1999, sotthivirat_image_2002}, and Equation~\eqref{eq:frozen_surrogate_exact_diagonal} is independent of the factorisation used to evaluate it; coupled-field Hessians additionally contain the corresponding off-diagonal field blocks~\cite{crestel_comparative_2018}.
 
 The \glsentryshort{mm} Jacobi-diagonal operand, the extraction strategy, uses Equation~\eqref{eq:frozen_surrogate_exact_diagonal} directly,
 \begin{equation}
