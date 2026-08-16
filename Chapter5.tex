@@ -274,7 +274,7 @@ HKRL & $\sigma_{f}$ & \{0.1, 0.2, 0.5, 1.0, 2.0, 5.0\} \\
 \end{tabular}
 \end{table}
 
-The requirement for early stopping in \gls{rl}, \gls{krl} and \gls{hkrl} means that the initialising image plays a pivotal role in regularisation. We investigate the effect that initialisation could have on image quality by running identical sweeps over the sphere dataset initialising with a uniform image of ones and the blurred \gls{pet} image.
+The requirement for early stopping in \gls{rl}, \gls{krl} and \gls{hkrl} means that the initialising image itself acts as part of the regularisation. We investigate the effect of initialisation on image quality by running identical sweeps over the sphere dataset initialising with a uniform image of ones and the blurred \gls{pet} image.
 
 $\tau$-\gls{pet} brain data reconstructions were initialised using a uniform image of ones for \gls{rl}/\gls{krl}/\gls{hkrl} and the blurred \gls{pet} image for \gls{rldtv}.
 
@@ -364,7 +364,7 @@ The effect of initialisation on the quality of reconstructions can be seen in Fi
         \centering
         \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_unif_init/fig4eii_spheres_recovery_vs_cov_all_params_curves_fixed_axes.png}
     \end{subfigure}
-    \caption{Figures showing RC versus CoV for all reconstructions. Top, initialised by the blurred \protect\gls{pet} image and bottom, initialised by a uniform image. KRL and HKRL are visually indistinguishable in these plots. Comparing the two plots highlights the effect of initialisation on kernelised and RL methods, whereas \protect\gls{rldtv} has optimal solutions independent of initialisation.}
+    \caption{Figures showing RC versus CoV for all reconstructions. Top, initialised by the blurred \protect\gls{pet} image and bottom, initialised by a uniform image. KRL and HKRL are visually indistinguishable in these plots. Comparing the two plots shows the effect of initialisation on kernelised and RL methods, whereas \protect\gls{rldtv} has optimal solutions independent of initialisation.}
     \label{fig:rc_cov_krl}
 \end{figure}
 
@@ -397,7 +397,7 @@ Deblurring is inherently ill-posed: the \gls{psf} attenuates high frequencies, s
 
 All guidance-based methods risk bias when the guidance image does not reflect tracer uptake boundaries. \gls{krl} is the most restrictive because it enforces $x\in\mathrm{range}(K)$; \gls{rldtv} is less restrictive but can still encourage over-alignment where the data term is weak (low counts, low contrast). \gls{hkrl} partially mitigates mismatch by allowing the coupling structure to adapt to \gls{pet} features, but must be controlled (e.g.\ by freezing) to avoid noise-driven feedback.
 
-The behaviours observed here anticipate challenges in the full reconstruction setting: guidance mechanisms must be designed to avoid suppressing modality-unique information. These considerations directly motivate the synergy-aware prior and optimisation strategy developed later in the thesis.
+The same difficulties recur in the full reconstruction setting: guidance mechanisms must avoid suppressing modality-unique information. This is a central design constraint for the synergistic prior developed later in the thesis.
 
 The present study should be viewed as a proof-of-principle rather than a definitive validation. A stronger evaluation would require a larger set of patient scans and more demanding controlled simulations, for example BrainWeb-style digital brain phantoms with inserted \gls{pet}-unique lesions or tumours. Such work would allow the qualitative observations here to be tested with population-level variability and known ground truth.
 
