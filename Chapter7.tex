@@ -492,9 +492,22 @@ The fourth construction uses the exact Lewis--Sendov Hessian of the smoothed spe
     [H_{\mathcal R}]_{nn}\in\mathbb R^{2\times2}.
     \label{eq:ls_block_preconditioner}
 \end{equation}
-It therefore retains \gls{pet}/\gls{spect} cross-curvature within each voxel but discards spatial off-diagonal blocks. Evaluating the smoothed spectral Hessian requires the voxel-wise singular-value decompositions used by the Lewis--Sendov construction. Recomputing this block model once per epoch consequently has a non-negligible cost.
+It therefore retains \gls{pet}/\gls{spect} cross-curvature within each voxel but discards spatial off-diagonal blocks. In practice each voxel block is assembled per neighbourhood target: the Lewis--Sendov calculus is evaluated in local Jacobian coordinates, and the retained direction-diagonal blocks are mapped into modality space by the diagonal congruence
+\begin{equation}
+    T_{r,\ell}
+    =
+    \operatorname{diag}(a_{r,\ell})\,
+    \Theta_{r,\ell}\,
+    \operatorname{diag}(a_{r,\ell})
+    =
+    \bigl(a_{r,\ell}a_{r,\ell}^{\top}\bigr)\circ \Theta_{r,\ell},
+    \label{eq:ls_block_pullback}
+\end{equation}
+where $\Theta_{r,\ell}$ is the local Hessian block for difference channel $\ell$ at target $r$ and the modality scalings $[a_{r,\ell}]_m$ combine the modality weights $\rho_{m,r}$ and the stencil step scaling with the square roots of the channel-$\ell$ diagonal entries of the operator Gram matrices $\Pi_{m,r}^{\top}\Pi_{m,r}$. Each contribution~\eqref{eq:ls_block_pullback} is the Hadamard product of a rank-one Gram matrix with a positive-semidefinite local block---$\Theta_{r,\ell}$ is a principal block of the local Hessian of the convex smoothed spectral penalty---hence positive semidefinite by the Schur product theorem. Accumulated over the targets incident on voxel $n$ and their difference channels, the assembled voxel blocks are therefore positive semidefinite before flooring. Because the scalings compress the cross-operator geometry to its diagonal energies, the assembled blocks approximate the exact voxel blocks $[H_{\mathcal R}]_{nn}$ rather than reproducing them exactly.
 
-This construction is Newton-like rather than \gls{mm}-like: it retains blocks of the exact local Hessian rather than reducing the quadratic majoriser above. Convexity gives $H_{\mathcal R}\succeq0$, but does not make these blocks invertible. Numerical flooring and, in the combined model, addition of positive data curvature make the practical inverse well defined and positive definite. The local Hessian of a non-quadratic function need not majorise that function, so this curvature model alone supplies no descent guarantee.
+Evaluating the smoothed spectral Hessian requires the voxel-wise singular-value decompositions used by the Lewis--Sendov construction. Recomputing this block model once per epoch consequently has a non-negligible cost.
+
+This construction is Newton-like rather than \gls{mm}-like: it builds its blocks from the exact local Hessian rather than reducing the quadratic majoriser above. Convexity gives $H_{\mathcal R}\succeq0$, but does not make these blocks invertible. Numerical flooring and, in the combined model, addition of positive data curvature make the practical inverse well defined and positive definite. The local Hessian of a non-quadratic function need not majorise that function, so this curvature model alone supplies no descent guarantee.
 
 \subsubsection{Interaction with the non-negativity constraint}
 \label{subsubsec:precond_constraint}
