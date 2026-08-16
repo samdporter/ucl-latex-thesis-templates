@@ -1,4 +1,73 @@
 
+@inproceedings{fessler_image_2017,
+	title = {Image {Reconstruction} : {Algorithms} and {Analysis} {Draft} !},
+	shorttitle = {Image {Reconstruction}},
+	url = {https://www.semanticscholar.org/paper/Image-Reconstruction-%3A-Algorithms-and-Analysis-!-Fessler/4847c06c0fc46b1ac482957daebc7f2274f4c9e8},
+	abstract = {This book describes the theory and practice of iterative methods for tomographic image reconstruction and related inverse problems such as image restoration. I emphasize methods that are rooted in statistical models for the measurement noise; previous texts have emphasized primarily analytical image reconstruction methods or iterative methods that are based on algebraic principles rather than statistical models. Some of the earliest tomographic images created by Hounsfield [1, 2] for X-ray computed tomography were formed using iterative methods. And even earlier than that, Muehllehner and Wetzel described an iterative method for (4 view) SPECT reconstruction [3]. Around the same time, Kuhl et al. also developed iterative methods for SPECT [4, p. 183] [5]. However, by the mid 1970’s the analytical filter-backproject (FBP) method quickly became the method used exclusively in routine clinical practice for tomographic reconstruction for many years [6, p. 695]. In the late 1990’s, statistical image reconstruction (SIR) methods (of the type described in Chapter 16) were first introduced commercially for reconstructing SPECT and PET images, following many years of academic research demonstrating their benefits. SIR methods soon supplanted the venerable FBP algorithm clinically for PET and SPECT. Full SIR methods for X-ray CT (of the type described in this book) became commercially available in about 2011, motivated primarily by concerns about patient X-ray dose. The enormous computation time of SIR methods for X-ray CT has slowed its adoption and spurred considerable research into acceleration methods. Image reconstruction methods for magnetic resonance imaging (MRI) are poised to undergo a revolution similar to that of PET, SPECT and X-ray CT in the near future. Historically, the exclusive reconstruction method used for clinical MRI has been the inverse fast Fourier transform (FFT). Many factors have increased interest in iterative reconstruction methods for MRI, including the introduction of parallel imaging with multiple coils, problems such as field inhomogeneity and non-Cartesian k-space trajectories, and incomplete sampling, often called compressed sensing [7, 8], particularly in dynamic imaging problems. Therefore, this book also describes MR image reconstruction problems even though the primary considerations in MRI are sampling, not noise statistics. The increasing use of and interest in statistical image reconstruction methods motivated this text. The concepts needed for research and implementation of statistically based iterative reconstruction methods are spread far and wide over the literature, in journals with homes in engineering, mathematics, physics, radiology, and statistics. This book is an attempt to bring together in one place many of the key ingredients. Although focused on PET, SPECT, X-ray CT, and MRI, tomographic reconstruction problems arise in numerous applications, some surprising, such as ecological inference from aggregate data [9, Section 6.2.4], and ionospheric measurements [10]. I had in mind two distinct audiences when writing this book. One audience is the researchers and students involved in developing new methods for image reconstruction. The other audience is the practitioners of medical (and nonmedical) imaging (medical physicists, etc.) who need to use image reconstruction for their work, and would benefit from making informed choices among the many reconstruction methods available. For the first audience, I have included the many mathematical details that one must master before one reaches a point where one can contribute useful new algorithms. The theorems and proofs throughout the text are aimed primarily at this audience. For the benefit of the more applied readers, I try to explain the practical implications of the theory, rather than adopting the traditional mathematical style where the theorems and proofs stand on their own with relatively little explanatory text. In other words, practical readers will find the text too theoretical, and mathematical readers will find the text too verbose. C’est la vie... For the benefit of all readers, I have tried to include explicit algorithms in forms that are very close to their actual implementations. In addition, I provide free software (suitable for use with MATLAB or OCTAVE) that illustrates many of the algorithms described in this book an accompanying web site http://web.eecs.umich.edu/ ̃fessler. Many sections of the book refer to this software. The web site also lists any errata found for this book. The book is designed to be reasonably self contained for readers who have familiarity with the basic principles of tomographic imaging systems. Some background in basic probability is essential for working with statistical methods. The appendices summarize some “well known” useful mathematical and statistical tools that are used in the text. This book is organized into several parts.},
+	urldate = {2026-08-16},
+	author = {Fessler, J.},
+	year = {2017},
+}
+
+@article{byrd_limited_1995,
+	title = {A {Limited} {Memory} {Algorithm} for {Bound} {Constrained} {Optimization}},
+	volume = {16},
+	issn = {1064-8275, 1095-7197},
+	url = {http://epubs.siam.org/doi/10.1137/0916069},
+	doi = {10.1137/0916069},
+	abstract = {An algorithm for solving large nonlinear optimization problems with simple bounds is described. It is based on the gradient projection method and uses a limited memory BFGS matrix to approximate the Hessian of the objective function. It is shown how to take advantage of the form of the limited memory approximation to implement the algorithm efficiently. The results of numerical tests on a set of large problems are reported.},
+	language = {en},
+	number = {5},
+	urldate = {2026-08-16},
+	journal = {SIAM Journal on Scientific Computing},
+	author = {Byrd, Richard H. and Lu, Peihuang and Nocedal, Jorge and Zhu, Ciyou},
+	month = sep,
+	year = {1995},
+	pages = {1190--1208},
+}
+
+@misc{noauthor_limited_nodate,
+	title = {A {Limited} {Memory} {Algorithm} for {Bound} {Constrained} {Optimization} {\textbar} {SIAM} {Journal} on {Scientific} {Computing}},
+	url = {https://epubs.siam.org/doi/10.1137/0916069},
+	urldate = {2026-08-16},
+}
+
+@misc{noauthor_bayesian-based_nodate,
+	title = {Bayesian-{Based} {Iterative} {Method} of {Image} {Restoration}*},
+	url = {https://opg.optica.org/josa/abstract.cfm?uri=josa-62-1-55},
+	urldate = {2026-08-16},
+}
+
+@article{richardson_bayesian-based_1972,
+	title = {Bayesian-{Based} {Iterative} {Method} of {Image} {Restoration}*},
+	volume = {62},
+	copyright = {https://doi.org/10.1364/OA\_License\_v1\#VOR},
+	issn = {0030-3941},
+	url = {https://opg.optica.org/abstract.cfm?URI=josa-62-1-55},
+	doi = {10.1364/JOSA.62.000055},
+	abstract = {An iterative method of restoring degraded images was developed by treating images, point spread functions, and degraded images as probability-frequency functions and by applying Bayes’s theorem. The method functions effectively in the presence of noise and is adaptable to computer operation.},
+	language = {en},
+	number = {1},
+	urldate = {2026-08-16},
+	journal = {Journal of the Optical Society of America},
+	author = {Richardson, William Hadley},
+	month = jan,
+	year = {1972},
+	pages = {55},
+}
+
+@article{noauthor_bayesian-based_2026,
+	title = {Bayesian-{Based} {Iterative} {Method} of {Image} {Restoration}},
+	url = {https://www.researchgate.net/publication/235890203_Bayesian-Based_Iterative_Method_of_Image_Restoration},
+	doi = {10.1364/JOSA.62.000055},
+	abstract = {Download Citation {\textbar} Bayesian-Based Iterative Method of Image Restoration {\textbar} An iterative method of restoring degraded images was developed by treating images, point spread functions, and degraded images as... {\textbar} Find, read and cite all the research you need on ResearchGate},
+	language = {en},
+	urldate = {2026-08-16},
+	journal = {ResearchGate},
+	month = jul,
+	year = {2026},
+}
+
 @article{crestel_comparative_2018,
 	title = {A comparative study of structural similarity and regularization for joint inverse problems governed by {PDEs}},
 	volume = {35},
@@ -193,19 +262,19 @@
 	pages = {745},
 }
 
-@misc{noauthor_bayesian-based_nodate,
+@misc{noauthor_bayesian-based_nodate-1,
 	title = {Bayesian-{Based} {Iterative} {Method} of {Image} {Restoration}*},
 	url = {https://opg.optica.org/josa/abstract.cfm?uri=josa-62-1-55},
 	urldate = {2026-08-16},
 }
 
-@misc{noauthor_limited_nodate,
+@misc{noauthor_limited_nodate-1,
 	title = {A {Limited} {Memory} {Algorithm} for {Bound} {Constrained} {Optimization} {\textbar} {SIAM} {Journal} on {Scientific} {Computing}},
 	url = {https://epubs.siam.org/doi/10.1137/0916069},
 	urldate = {2026-08-16},
 }
 
-@misc{noauthor_limited_nodate-1,
+@misc{noauthor_limited_nodate-2,
 	title = {A {Limited} {Memory} {Algorithm} for {Bound} {Constrained} {Optimization} {\textbar} {SIAM} {Journal} on {Scientific} {Computing}},
 	url = {https://epubs.siam.org/doi/10.1137/0916069},
 	urldate = {2026-08-16},
@@ -368,7 +437,7 @@
 	pages = {298--311},
 }
 
-@inproceedings{fessler_image_2017,
+@inproceedings{fessler_image_2017-1,
 	title = {Image {Reconstruction} : {Algorithms} and {Analysis} {Draft} !},
 	shorttitle = {Image {Reconstruction}},
 	url = {https://www.semanticscholar.org/paper/Image-Reconstruction-%3A-Algorithms-and-Analysis-!-Fessler/4847c06c0fc46b1ac482957daebc7f2274f4c9e8},
@@ -18133,5 +18202,3 @@ imaging modes where different types of information are obtained (e.g. in medical
 	note = {tex.eprint: https://doi.org/10.1137/S089547980036838X},
 	pages = {368--386},
 }
-
-
