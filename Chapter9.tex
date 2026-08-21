@@ -36,43 +36,7 @@ The evaluation protocol also carries limitations that follow from the decision t
 \subsection{Relative Nuclear Variation}
 \label{subsec:future_rnv}
 
-The modality weights used by \wdtnv{} compensate for the markedly different global scales of the PET and SPECT images. However, a single global normalisation does not account for the large spatial variation in activity within either image. An extension inspired by the \acrfull{rdp} \cite{nuytsConcavePriorPenalizing2002} could introduce this local intensity dependence while retaining the edge-alignment mechanism of the nuclear norm. We refer to the proposed construction as relative nuclear variation (\acrfull{rnv}).
-
-The \gls{rdp} of Equation~\eqref{eq:rdp} divides the squared difference across a neighbouring voxel pair by the local sum of the two intensities, together with a $\gamma$-weighted difference term that restores \gls{tv}-like behaviour at strong edges. Transferring this structure to \wdtnv{} requires two voxel-wise ingredients: a numerator measuring the coupled multimodality edge strength at voxel $n$, and a local intensity sum over the same neighbourhood by which to divide it. These are defined in turn below and then combined.
-
-The numerator is the edge magnitude that \wdtnv{} already penalises. Let
-\begin{equation}
-    r_n(\bm{z})
-    :=
-    \left\|\tilde{\mathcal{G}}_n(\bm{z})\right\|_*
-    =
-    \sum_{\ell=1}^{\min(d,M)}
-    \sigma_\ell\!\left(\tilde{\mathcal{G}}_n(\bm{z})\right)
-    \label{eq:rnv_nuclear_magnitude}
-\end{equation}
-be the nuclear magnitude of the same weighted directional Jacobian used by \wdtnv, including the modality weights $\rho_{m,n}$ and CT-derived operators $\Pi_{m,n}$. This plays the role of $|x_j-x_k|$ in the \gls{rdp}, with the scalar pairwise difference replaced by a single quantity that aggregates the directional information of all modalities at the voxel and, through the nuclear norm, favours edges that are shared between them.
-
-The denominator requires a counterpart to the voxel-wise sum $x_j+x_k$ acting on the same neighbourhood as the finite-difference operator. Let $\mathcal{E}=\{e_\ell\}_{\ell=1}^{d}$ be the same stencil used by $D$ in Chapter~\ref{chapter:paper}. Alongside $D$, define a Euclidean-distance weighted sum operator $Z$ by
-\begin{equation}
-    \bigl((Z z_m)_n\bigr)^{(\ell)}
-    :=
-    \frac{z_{m,n+e_\ell}+z_{m,n}}{\|e_\ell\|_\Delta},
-    \qquad \ell=1,\ldots,d.
-    \label{eq:rnv_sum_operator}
-\end{equation}
-$Z$ uses the same neighbourhood, boundary treatment and physical distance scaling as $D$, differing only in replacing subtraction by addition. Under the Neumann extension used in Chapter~\ref{chapter:paper}, an out-of-domain neighbour is replaced by the boundary voxel itself, so the corresponding endpoint sum is $2z_{m,n}$. The same fixed PET/SPECT weights that scale the columns of the weighted directional Jacobian should also scale their contributions to the local sum.
-Define
-\begin{equation}
-    s_n(\bm{z})
-    :=
-    \sum_{m=1}^{M}\rho_{m,n}
-    \sum_{\ell=1}^{d}
-    \bigl((Z z_m)_n\bigr)^{(\ell)},
-    \label{eq:rnv_local_sum}
-\end{equation}
-where the weights $\rho_{m,n}$ are fixed with respect to $\bm{z}$ but may be voxel-dependent; the application in Chapter~\ref{chapter:paper} would use the spatially uniform weights $\rho_m$ with $s_n$ the direct sum counterpart of the weighted finite-difference jacobian. Note that $s_n$ retains the PET/SPECT modality scaling but does not apply the CT-derived directional operators $\Pi_{m,n}$, so anatomical directionality enters only through the numerator.
-
-Combining the two, an \gls{rnv} prior could then be defined as
+The modality weights used by \wdtnv{} compensate for the markedly different global scales of the PET and SPECT images, but do not adapt to spatial variation in activity within either image. One possible extension, inspired by the \acrfull{rdp} \cite{nuytsConcavePriorPenalizing2002}, would scale the coupled edge magnitude by a local activity measure. Let $r_n(\bm{z})=\|\tilde{\mathcal{G}}_n(\bm{z})\|_*$ denote the nuclear magnitude of the weighted directional Jacobian used by \wdtnv{}, and let $s_n(\bm{z})\geq0$ denote a weighted local activity sum over the same finite-difference neighbourhood. A proposed \acrfull{rnv} penalty is
 \begin{equation}
     \mathcal{R}_{\mathrm{RNV}}(\bm{z})
     :=
@@ -86,84 +50,14 @@ Combining the two, an \gls{rnv} prior could then be defined as
     \varepsilon_{\mathrm{RNV}}>0.
     \label{eq:rnv_prior}
 \end{equation}
-This is inspired by the scalar RDP construction, but aggregates the multimodality directional information into a single nuclear magnitude rather than summing pairwise RDP terms. Because $D$ and $Z$ use the same physical distance scaling and the same modality weights, $r_n$ and $s_n$ have the same units; $\gamma_{\mathrm{RNV}}$ is dimensionless and $\varepsilon_{\mathrm{RNV}}$ has the units of $r_n$. Retaining the full directional sum in Equation~\eqref{eq:rnv_local_sum}, rather than a single voxel intensity or a per-direction average, keeps the numerator and denominator built from the same stencil. For $r_n\ll(s_n+\varepsilon_{\mathrm{RNV}})/\gamma_{\mathrm{RNV}}$, the local density would behave approximately as $r_n^2/(s_n+\varepsilon_{\mathrm{RNV}})$ and therefore provide locally intensity-scaled quadratic regularisation of the nuclear gradient. For $r_n\gg(s_n+\varepsilon_{\mathrm{RNV}})/\gamma_{\mathrm{RNV}}$, it approaches $r_n/\gamma_{\mathrm{RNV}}$ and hence recovers TNV-like linear edge penalisation.
-
-The proposed non-negative penalty would be convex under the definitions above. To see this, consider
-\begin{equation}
-    h(r,s)
-    :=
-    \frac{r^2}{s+\gamma_{\mathrm{RNV}}r+
-        \varepsilon_{\mathrm{RNV}}},
-    \qquad r\geq0,\quad s\geq0.
-\end{equation}
-Its Hessian with respect to $(r,s)$ is
-\begin{equation}
-    \nabla^2 h(r,s)
-    =
-    \frac{2}{\left(s+\gamma_{\mathrm{RNV}}r+\varepsilon_{\mathrm{RNV}}\right)^3}
-    \begin{bmatrix}
-        s+\varepsilon_{\mathrm{RNV}}\\
-        -r
-    \end{bmatrix}
-    \begin{bmatrix}
-        s+\varepsilon_{\mathrm{RNV}} & -r
-    \end{bmatrix}
-    \succeq 0.
-    \label{eq:rnv_hessian}
-\end{equation}
-Moreover, $h$ is non-decreasing in $r$. The mapping $\bm{z}\mapsto r_n(\bm{z})$ is convex because the nuclear norm is convex and $\tilde{\mathcal{G}}_n$ is linear in $\bm{z}$, while $\bm{z}\mapsto s_n(\bm{z})$ is non-negative and affine when the weights in Equation~\eqref{eq:rnv_local_sum} are fixed. Their composition in Equation~\eqref{eq:rnv_prior} is therefore convex on the non-negative image domain.
-
-The gradient follows from the same decomposition. Differentiating $h$ gives
-\begin{equation}
-    \frac{\partial h}{\partial r}
-    =
-    \frac{r\left(2s+\gamma_{\mathrm{RNV}}r+2\varepsilon_{\mathrm{RNV}}\right)}
-        {\left(s+\gamma_{\mathrm{RNV}}r+\varepsilon_{\mathrm{RNV}}\right)^2},
-    \qquad
-    \frac{\partial h}{\partial s}
-    =
-    -\frac{r^2}
-        {\left(s+\gamma_{\mathrm{RNV}}r+\varepsilon_{\mathrm{RNV}}\right)^2},
-    \label{eq:rnv_h_partials}
-\end{equation}
-the first of which is the monotonicity in $r$ asserted above, and the second of which shows the local activity level entering with the opposite sign, exactly as in the \gls{rdp}: raising $s_n$ weakens the penalty applied to a given edge magnitude.
-
-Of the two inner derivatives, that of $s_n$ is immediate since $s_n$ is affine. Where $\tilde{\mathcal{G}}_n$ has full column rank, the nuclear magnitude is differentiable in Jacobian space with
-\begin{equation}
-    \Psi_n
-    :=
-    \nabla_{\mathcal{G}}\,r_n
-    =
-    U_nV_n^\top
-    =
-    \tilde{\mathcal{G}}_n\,\Omegazero{\tilde{\mathcal{G}}_n}
-    \in\mathbb{R}^{d\times M},
-    \label{eq:rnv_sign_matrix}
-\end{equation}
-where $\tilde{\mathcal{G}}_n=U_n\Sigma_nV_n^\top$ and, under the stated full-column-rank assumption, $\bm{\Omega}_0(Y):=(Y^\top Y)^{-1/2}$ is the unsmoothed specialization of the spectral weight~\eqref{eq:spectral_weight}. The right-hand form is therefore the $\epsilon\to0$ limit of the Jacobian-space gradient in Equation~\eqref{eq:2x2_gram}, so for $M=2$ it needs no explicit \glsentryshort{svd} and can be evaluated with the same $2\times2$ inverse square-root. At rank-deficient $Y$, $\bm{\Omega}_\epsilon(Y)$ itself has no finite limit as $\epsilon\downarrow0$; only the product $Y\bm{\Omega}_\epsilon(Y)$ has a finite polar-factor limit, which is one nuclear-norm subgradient rather than a gradient. This distinction is why the differentiable formulation used in the preceding chapters retains $\epsilon>0$.
-
-Write $\psi_{m,n}\in\mathbb{R}^d$ for the $m$-th column of $\Psi_n$, and abbreviate the two partial derivatives in Equation~\eqref{eq:rnv_h_partials} evaluated at $(r_n,s_n)$ as $h_{r,n}\geq0$ and $h_{s,n}\leq0$. Applying the chain rule through the linear maps $\bm{z}\mapsto\tilde{\mathcal{G}}_n(\bm{z})$ and $\bm{z}\mapsto s_n(\bm{z})$ then gives, for each modality,
-\begin{equation}
-    \nabla_{z_m}\mathcal{R}_{\mathrm{RNV}}(\bm{z})
-    =
-    V_{\mathrm{vox}}
-    \left[
-        D^\ast\left\{h_{r,n}\,\rho_{m,n}\,\Pi_{m,n}^\top\psi_{m,n}\right\}_{n=1}^{N}
-        +
-        Z^\ast\left\{h_{s,n}\,\rho_{m,n}\,\bm{1}_d\right\}_{n=1}^{N}
-    \right],
-    \label{eq:rnv_gradient}
-\end{equation}
-where $\bm{1}_d\in\mathbb{R}^d$ arises because $s_n$ sums over all $d$ stencil directions, and $Z^\ast$ shares the sparsity pattern of $D^\ast$ but with both neighbour contributions entering positively. The first term has the structure of the \wdtnv{} gradient, with $h_{r,n}$ reweighting each voxel by its local relative edge magnitude. The second has no \wdtnv{} counterpart: it is the analogue of the \gls{rdp} denominator gradient, acting to raise the local activity where the relative edge magnitude is large, and vanishing quadratically as $r_n\to0$.
-
-Further work is required to determine whether the local adaptation improves the bias--noise trade-off in regions with heterogeneous uptake without allowing the activity scale of one modality to inappropriately weaken regularisation of the other. This should include derivation of prior-aware curvature models and controlled simulations containing shared and modality-unique edges. The spatially adaptive \gls{rnv} formulation should also be compared with a simpler baseline in which $s_n$ is estimated from initial PET and SPECT reconstructions and then frozen. Finally, the unsmoothed nuclear norm in Equation~\eqref{eq:rnv_nuclear_magnitude} makes the relationship to the classical RDP explicit but is not differentiable at all rank-deficient Jacobians. A differentiable convex approximation suitable for the optimisation framework of Chapter~\ref{chapter:optimisation} would therefore need to be derived. Directly substituting the Charbonnier-smoothed spectral magnitude used by \wdtnv{} would alter the limiting behaviour at very small gradients and should be evaluated rather than assumed equivalent.
+The construction is ``relative'' because the penalty on a coupled edge is moderated by the local activity scale. For fixed non-negative modality weights on the non-negative image domain, the scalar density $r^2/(s+\gamma_{\mathrm{RNV}}r+\varepsilon_{\mathrm{RNV}})$ is jointly convex in $(r,s)$ and non-decreasing in $r$; since $r_n$ is convex and $s_n$ is affine, the proposed penalty is convex under these assumptions. This construction was not implemented or evaluated in this thesis, and whether such local scaling improves the bias--noise trade-off without weakening cross-modality regularisation inappropriately remains to be established.
 
 \subsection{Robustness and Clinical Translation}
 \label{subsec:future_translation}
 
 Three methodological directions follow directly from the limitations above. First, the directional field should be made robust to CTAC quality. Estimating $\xi$ from a denoised, artefact-corrected or segmentation-derived attenuation map, rather than from $D\mu$ alone, would retain the anatomical orientation information while removing the pathway by which coherent streak artefacts enter the emission reconstruction. Second, the sensitivity of \wdtnv{} to residual registration error should be quantified directly, for example by applying controlled rigid and deformable perturbations to the SPECT-to-PET warp and measuring the resulting lesion-level bias; a joint reconstruction--registration formulation is the natural extension if that sensitivity proves material. Third, the optimisation results of Chapter~\ref{chapter:optimisation} indicate that a single shared step-size schedule is not equally well calibrated to both modalities, since increasing the initial step improved SPECT convergence while destabilising the count-limited PET reconstruction. Modality-dependent initial steps or relaxation rates are therefore a straightforward and likely worthwhile refinement.
 
-Beyond this, two extensions would broaden the applicability of the framework. The present study addresses the favourable case in which PET and SPECT image the same underlying \gls{y90} microsphere distribution. Settings with shared anatomy but non-identical functional distributions, such as \gls{maa} planning versus post-treatment imaging, multi-nuclide studies, or multiple timepoints, would require the coupling strength to be relaxed or made spatially adaptive so that modality-specific or temporally evolving uptake is not suppressed; the \gls{rnv} construction of Section~\ref{subsec:future_rnv} is one route to such adaptivity. Finally, the endpoints should be advanced from image quality to absorbed dose. Propagating the reconstructions through voxel-level dose kernels and evaluating dose--volume endpoints, ideally in a multi-centre cohort with response data, would test whether the lesion-level improvements reported here translate into more reliable dosimetry, which is the ultimate motivation for the work.
+Beyond this, two extensions would broaden the applicability of the framework. The present study addresses the favourable case in which PET and SPECT image the same underlying \gls{y90} microsphere distribution. Settings with shared anatomy but non-identical functional distributions, such as \gls{maa} planning versus post-treatment imaging, multi-nuclide studies, or multiple timepoints, would require the coupling strength to be relaxed or made spatially adaptive so that modality-specific or temporally evolving uptake is not suppressed. Finally, the endpoints should be advanced from image quality to absorbed dose. Propagating the reconstructions through voxel-level dose kernels and evaluating dose--volume endpoints, ideally in a multi-centre cohort with response data, would test whether the lesion-level improvements reported here translate into more reliable dosimetry, which is the ultimate motivation for the work.
 
 Two further comparisons would strengthen the case. The effective range kernel of Chapter~\ref{chapterlabel3} is isotropic and water-equivalent, so replacing it with an anisotropic, material-dependent Bremsstrahlung model such as that of Lim \textit{et al.} \cite{lim_y-90_2018} would test how much of the residual SPECT modelling error remains attributable to that approximation. Separately, the comparators used throughout this thesis are variational and kernel-based, and a comparison against learned reconstruction and learned correction methods \cite{hashimotoPETImageReconstruction2022,jia90YSPECTScatter2023} would establish where an interpretable, physically constrained prior stands relative to the data-driven alternatives now being developed for this problem.
 

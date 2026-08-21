@@ -338,34 +338,20 @@ RL--DTV & 0.0177 & 164 & 0.889& 0.123& -- & -- & 2  \\
 
 Across both initialisation strategies, \gls{rldtv} achieved the lowest \gls{nrmse} (0.0177), the highest aggregate \gls{rc} (0.889), and the lowest background \gls{cov} (0.123). \gls{krl} and \gls{hkrl} substantially improved on unregularised \gls{rl}, but were almost indistinguishable from one another in this simple sphere phantom. With blurred initialisation, the best \gls{rl} result occurred at iteration 0, indicating that unconstrained \gls{rl} deconvolution immediately increased the \gls{nrmse} once applied to this noisy reconstruction.
 
-The effect of initialisation on the quality of reconstructions can be seen in Figures~\ref{fig:nrmse_krl} and~\ref{fig:rc_cov_krl}.
+Figure~\ref{fig:deconv_rc_cov_selected} shows the recovery--noise trajectories for the selected hyperparameter setting of each method. The trajectories and their selected operating points change with the initial image for \gls{rl}, \gls{krl} and \gls{hkrl}, demonstrating that their reported performance depends on both initialisation and early stopping. Selection by minimum \gls{nrmse} is possible in this controlled phantom because the ground truth is known, but an equivalent stopping rule is not directly available for clinical data. In contrast, \gls{rldtv} reaches the same selected recovery, background \gls{cov} and \gls{nrmse} from both initialisations, although the number of optimiser iterations differs.
 
 \begin{figure}[hbtp]
     \centering
     \begin{subfigure}[b]{0.8\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_blur_init/fig4_spheres_nrmse_curves.png}
+        \includegraphics[width=\linewidth]{figures/Chapter5/curves/fig4e_spheres_recovery_vs_cov_curves_blur.png}
     \end{subfigure}
     \begin{subfigure}[b]{0.8\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_unif_init/fig4_spheres_nrmse_curves.png}
+        \includegraphics[width=\linewidth]{figures/Chapter5/curves/fig4e_spheres_recovery_vs_cov_curves_unif.png}
     \end{subfigure}
-    \caption{Figures showing iteration versus global NRMSE for the best performing reconstructions. Top, initialised by the blurred \gls{pet} image and bottom, initialised by a uniform image.}
-    \label{fig:nrmse_krl}
-\end{figure}
-
-\begin{figure}[hbtp]
-    \centering
-    \begin{subfigure}[b]{0.8\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_blur_init/fig4eii_spheres_recovery_vs_cov_all_params_curves_fixed_axes.png}
-    \end{subfigure}
-    \begin{subfigure}[b]{0.8\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{figures/Chapter3a/poster_figures_unif_init/fig4eii_spheres_recovery_vs_cov_all_params_curves_fixed_axes.png}
-    \end{subfigure}
-    \caption{Figures showing RC versus CoV for all reconstructions. Top, initialised by the blurred \protect\gls{pet} image and bottom, initialised by a uniform image. KRL and HKRL are visually indistinguishable in these plots. Comparing the two plots shows the effect of initialisation on kernelised and RL methods, whereas \protect\gls{rldtv} has optimal solutions independent of initialisation.}
-    \label{fig:rc_cov_krl}
+    \caption{Recovery coefficient versus background coefficient of variation for the single hyperparameter setting of each method that achieved its minimum NRMSE. Each line joins successive iterates and the large marker identifies the minimum-NRMSE iterate. The reconstructions were initialised with the blurred \protect\gls{pet} image (top) or a uniform image (bottom). The figure illustrates sensitivity to initialisation and stopping; iteration counts and trajectory lengths are method-specific and should not be interpreted as comparisons of convergence speed.}
+    \label{fig:deconv_rc_cov_selected}
 \end{figure}
 
 \subsection{$\tau$-\gls{pet} brain}
