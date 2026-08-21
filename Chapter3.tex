@@ -176,6 +176,7 @@ which penalises predominantly the gradient component orthogonal to the anatomica
 Regularisation strategies also exist outside the standard Bayesian (penalised-likelihood) framework. A prominent example is the \gls{kem}, in which prior information is encoded directly in the image representation rather than through an explicit penalty term. Following Wang and Qi \cite{wangPETImageReconstruction2015} and its anatomically-aided extension \cite{hutchcroftAnatomicallyaidedPETReconstruction2016}, the emission image is modelled as a linear combination of kernel-derived basis functions:
 \begin{equation}
     x = K\alpha,
+    \label{eq:kernel1}
 \end{equation}
 where $\alpha \in \mathbb{R}^J$ is a coefficient image and $K\in\mathbb{R}^{J\times J}$ is a (typically sparse) kernel matrix whose entries encode similarity between voxels based on features extracted from a guidance image \cite{hutchcroftAnatomicallyaidedPETReconstruction2016}. Each voxel $j$ is assigned a feature vector $f_j$ (commonly a patch of intensities in the high-resolution guidance image), and a radial Gaussian kernel is often used,
 \begin{equation} \label{eq:gaussian_kernel}
@@ -190,7 +191,7 @@ Substituting $x=K\alpha$ into the Poisson forward model gives a kernelised expec
 \end{equation}
 so that reconstruction reduces to maximum-likelihood estimation of $\alpha$ under the same Poisson model, followed by $\hat{x}=K\hat{\alpha}$. Because the model remains linear in the unknown coefficients, an \gls{em}-type update can be derived with essentially the same structure as conventional MLEM/OSEM, but with $K$ embedded within the projector/backprojector operations. The resulting procedure is straightforward to implement in existing \gls{em} pipelines, and often improves the bias--variance trade-off at low counts by enforcing anatomically-informed, spatially adaptive smoothing in the image representation \cite{wangPETImageReconstruction2015,hutchcroftAnatomicallyaidedPETReconstruction2016}.
 
-A known limitation of purely anatomy-derived kernels is \gls{pet}-unique feature suppression: structures present in the anatomical image but absent (or weak) in the emission image can be biased towards anatomically plausible but functionally incorrect solutions \cite{deiddaHybridPETMR2019}. To mitigate this, \gls{hkem} augments the kernel with synergistic information from the evolving \gls{pet} estimate itself, yielding an iteration-dependent kernel that combines anatomical and emission-driven similarity . In the \gls{hkem} formulation of Deidda \textit{et al.}, the hybrid kernel entry factorises as
+A known limitation of purely anatomy-derived kernels is \gls{pet}-unique feature suppression: structures present in the anatomical image but absent (or weak) in the emission image can be biased towards anatomically plausible but functionally incorrect solutions \cite{deiddaHybridPETMR2019}. To mitigate this, \gls{hkem} augments the kernel with synergistic information from the evolving \gls{pet} estimate itself, yielding an iteration-dependent kernel that combines anatomical and emission-driven similarity. In the \gls{hkem} formulation of Deidda \textit{et al.}, the hybrid kernel entry factorises as
 \begin{equation}
     k^{(n)}_{fj} = k_m(v_f,v_j)\,k_p(z^{(n)}_f,z^{(n)}_j),
 \end{equation}
@@ -203,7 +204,8 @@ where $v_j$ denotes the (fixed) anatomical feature vector at voxel $j$ and $z^{(
 \end{align}
 where $x_j$ denotes the voxel coordinates and the parameters $\sigma_a,\sigma_f,\sigma_{da},\sigma_{df}$ control the relative influence of anatomical similarity, functional-driven (emission) similarity, and spatial locality. The functional term helps address emission--guidance mismatch and reduces the tendency of anatomy-only kernels to suppress \gls{pet}-unique lesions by allowing the neighbourhood coupling to adapt to features emerging in the emission estimate. Empirically, Deidda \textit{et al.} report that this hybridisation can reduce negative bias under low-count conditions and improve lesion contrast while retaining the denoising benefits of kernelised reconstruction \cite{deiddaHybridPETMR2019}.
 
-Kernel approaches extend naturally to multiple guidance sources by enlarging the feature vectors (e.g.\ concatenating features from \gls{ct} and/or additional functional channels \cite{wangPETImageReconstruction2015}) and defining the kernel on the resulting joint feature space. This provides a flexible mechanism for sequential or multi-modality guidance without introducing an explicit Bayesian penalty term.
+Kernel approaches extend naturally to multiple guidance sources by enlarging the feature vectors (e.g.\ concatenating features from \gls{ct} and/or additional functional channels \cite{wangPETImageReconstruction2015}) and defining the kernel on the resulting joint feature space. This provides a flexible mechanism for sequential or multi-modality guidance without introducing an explicit Bayesian penalty term. 
+\SA{Refer forward to chapter~\ref{chapter:deconvolution_pvc} where this comes in again.}
 
 \subsection{Synergistic Regularisation}\label{subsec:synergistic_recon}
 
