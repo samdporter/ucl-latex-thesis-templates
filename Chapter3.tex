@@ -204,8 +204,7 @@ where $v_j$ denotes the (fixed) anatomical feature vector at voxel $j$ and $z^{(
 \end{align}
 where $x_j$ denotes the voxel coordinates and the parameters $\sigma_a,\sigma_f,\sigma_{da},\sigma_{df}$ control the relative influence of anatomical similarity, functional-driven (emission) similarity, and spatial locality. The functional term helps address emission--guidance mismatch and reduces the tendency of anatomy-only kernels to suppress \gls{pet}-unique lesions by allowing the neighbourhood coupling to adapt to features emerging in the emission estimate. Empirically, Deidda \textit{et al.} report that this hybridisation can reduce negative bias under low-count conditions and improve lesion contrast while retaining the denoising benefits of kernelised reconstruction \cite{deiddaHybridPETMR2019}.
 
-Kernel approaches extend naturally to multiple guidance sources by enlarging the feature vectors (e.g.\ concatenating features from \gls{ct} and/or additional functional channels \cite{wangPETImageReconstruction2015}) and defining the kernel on the resulting joint feature space. This provides a flexible mechanism for sequential or multi-modality guidance without introducing an explicit Bayesian penalty term. 
-\SA{Refer forward to chapter~\ref{chapter:deconvolution_pvc} where this comes in again.}
+Kernel approaches extend naturally to multiple guidance sources by enlarging the feature vectors (e.g.\ concatenating features from \gls{ct} and/or additional functional channels \cite{wangPETImageReconstruction2015}) and defining the kernel on the resulting joint feature space. This provides a flexible mechanism for sequential or multi-modality guidance without introducing an explicit Bayesian penalty term. The kernel image model is applied to image-domain deconvolution in Chapter~\ref{chapter:deconvolution_pvc}.
 
 \subsection{Synergistic Regularisation}\label{subsec:synergistic_recon}
 
