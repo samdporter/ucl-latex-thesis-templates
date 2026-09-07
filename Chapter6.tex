@@ -51,7 +51,7 @@ then the image-space gradient is
 \begin{equation}
 \nabla_{x_m}\tilde{\mathcal{R}}_{\mathrm{TV}}(x_m)
 \;=\;
--\,\operatorname{div}\!\left(\frac{D x_m}{\|D x_m\|_{2,\epsilon}}\right),
+-\,\operatorname{div}\!\left(\frac{D x_m}{\sqrt{\|D x_m\|_2^2+\epsilon^2}}\right),
 \end{equation}
 where the division is understood pointwise over voxels.
 
@@ -143,7 +143,7 @@ Equation~\eqref{eq:phi_grad_inv_sqrt} shows that the Jacobian-space gradient is 
     \in\mathbb{R}^{M\times M},
     \label{eq:spectral_weight}
 \end{equation}
-so that~\eqref{eq:phi_grad_inv_sqrt} reads $\nabla_{\mathcal{G}}\phi(\mathcal{G})=\mathcal{G}\,\Omegaeps{\mathcal{G}}$. Because $\epsilon>0$, $\Omegaeps{Y}$ is well defined and \gls{spd} for every $Y$, including rank-deficient ones. For $M=1$ it collapses to the scalar $(\|Y\|_2^2+\epsilon^2)^{-1/2}$, which is exactly the curvature of the hyperbola potential at the sole singular value $\sigma_1(Y)=\|Y\|_2$; Chapter~\ref{chapter:optimisation} shows that the matrix case inherits that role, so that the same weight governs both the gradient here and the quadratic surrogate there.
+so that~\eqref{eq:phi_grad_inv_sqrt} reads $\nabla_{\mathcal{G}}\phi(\mathcal{G})=\mathcal{G}\,\Omegaeps{\mathcal{G}}$. Because $\epsilon>0$, $\Omegaeps{Y}$ is well defined and \gls{spd} for every $Y$, including rank-deficient ones. For $M=1$ it collapses to the scalar $(\|Y\|_2^2+\epsilon^2)^{-1/2}$, which is the quadratic-surrogate (IRLS) weight for the hyperbola potential; it is not its second derivative. Chapter~\ref{chapter:optimisation} uses this surrogate weight in its majorisation construction.
 
         For $M=2$ modalities, even an eigendecomposition of $G$ can be avoided. Writing
         \begin{equation}
@@ -275,7 +275,7 @@ The weighted directional Jacobian is then
 \end{equation}
 The columns of $\tilde{\mathcal{G}}_n$ are $\tilde{g}_{m,n} := \rho_{m,n}\,\Pi_{m,n}(D z_m)_n \in \mathbb{R}^d$.
 
-Throughout, $B_n$ is treated as a fixed operator that does not depend on $\bm{z}$. This is required for the prior to be the convex functional stated in~\eqref{eq:wdtnv_convex} and for the chain rule of Section~\ref{subsec:tnv_differentiability} to give its gradient: if the weights were recomputed from the current iterate, the resulting update would no longer be the gradient of any fixed objective. In the application of Chapter~\ref{chapter:paper} the weights are accordingly computed once, from early-stopped unregularised reconstructions, and then held fixed. The weights also absorb the overall regularisation strength; there is no separate global scalar prior multiplier in~\eqref{eq:wdtnv_prior}, because the modality-specific regularisation weights $\beta_m$ enter through $\rho_{m,n}$ (Section~\ref{subsec:90y_global_weights}).
+Throughout, $B_n$ is treated as a fixed operator that does not depend on $\bm{z}$. In the application of Chapter~\ref{chapter:paper} the weights are computed once, from early-stopped unregularised reconstructions, and then held fixed. Recomputing them from the current iterate would require a separate analysis because the resulting update is not the gradient of the stated fixed-weight objective. The weights also absorb the overall regularisation strength; there is no separate global scalar prior multiplier in~\eqref{eq:wdtnv_prior}, because the modality-specific regularisation weights $\beta_m$ enter through $\rho_{m,n}$ (Section~\ref{subsec:90y_global_weights}).
 
 The weighted directional Total Nuclear Variation ($\wdtnv$) prior is then
 \begin{equation}
@@ -299,7 +299,7 @@ Write $Y\coloneqq\mathcal{G}^{\mathrm{dir}}_n(\bm{z})$ for the unweighted direct
     \qquad \ell=1,\dots,\min(d,M),
     \label{eq:weighted_sv_bounds}
 \end{equation}
-so the weights control the overall scale of the spectrum but not the distribution of energy across it. The intended effect is instead on the Gram matrix: $\tilde{\mathcal{G}}_n^\top \tilde{\mathcal{G}}_n$ contains modality self-terms $\rho_{m,n}^2\|\Pi_{m,n}(Dz_m)_n\|_2^2$ and cross-terms $\rho_{1,n}\rho_{2,n}\langle \Pi_{1,n}(Dz_1)_n,\Pi_{2,n}(Dz_2)_n\rangle$, so suitable $\rho_{m,n}$ values allow both modalities to contribute comparably to the coupled singular spectrum rather than one self-term dominating the trace. The $2\times2$ Gram-matrix algebra in Section~\ref{sec:tv_to_tnv} applies directly to this weighted case.
+so the weights affect both the overall scale and the distribution of energy across the spectrum. The intended effect is instead on the Gram matrix: $\tilde{\mathcal{G}}_n^\top \tilde{\mathcal{G}}_n$ contains modality self-terms $\rho_{m,n}^2\|\Pi_{m,n}(Dz_m)_n\|_2^2$ and cross-terms $\rho_{1,n}\rho_{2,n}\langle \Pi_{1,n}(Dz_1)_n,\Pi_{2,n}(Dz_2)_n\rangle$, so suitable $\rho_{m,n}$ values allow both modalities to contribute comparably to the coupled singular spectrum rather than one self-term dominating the trace. The $2\times2$ Gram-matrix algebra in Section~\ref{sec:tv_to_tnv} applies directly to this weighted case.
 
 \paragraph{Weighting is a modelling choice, not a conditioning choice.}
 The preceding motivation is often described as a conditioning argument, but $B_n$ changes the estimator as well as the geometry seen by the optimiser. Relative weights affect the spatial resolution and noise of each reconstruction, and these effects are difficult to control when the channel statistics differ. \gls{pet} and bremsstrahlung \gls{spect} of the same $^{90}$Y distribution differ in count level, sensitivity, and intrinsic resolution. We therefore interpret the weights as relative edge credibility between modalities. The setting used in Chapter~\ref{chapter:paper} was selected as a task-based trade-off, not because it improves convergence.

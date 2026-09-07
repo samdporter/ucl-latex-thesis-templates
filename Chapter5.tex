@@ -196,7 +196,7 @@ For \gls{rl} and \gls{krl}/\gls{hkrl}, early stopping is essential and is treate
     \qquad
     \mathcal{O}(x)=\mathcal{L}(x)+\beta R_{\mathrm{sDTV}}(x;u).
 \end{equation}
-Here $f_{\mathrm{tol}}$ is chosen to be $10^{-6} \times \epsilon$, where $\epsilon$ denotes machine precision.
+Here $f_{\mathrm{tol}}$ is chosen to be $10^{-6}\epsilon_{\mathrm{mach}}$. SciPy's \texttt{minimize(..., method='L-BFGS-B')} option calls this parameter \texttt{ftol}; the lower-level \texttt{fmin\_l\_bfgs\_b} interface exposes the equivalent \texttt{factr} relation $f_{\mathrm{tol}}=\texttt{factr}\,\epsilon_{\mathrm{mach}}$.
 
 \section{Data and experimental setup} \label{sec:deconv_data}
 Two datasets are used to characterise behaviour under controlled and realistic conditions.
@@ -381,7 +381,7 @@ In the brain example, \gls{rl} produced sharp but visibly noisy cortical structu
 
 Deblurring is inherently ill-posed: the \gls{psf} attenuates high frequencies, so naive unregularised \gls{rl} deconvolution magnifies noise. Anatomical guidance provides a structured way to preferentially preserve edges that are plausible given $u$ while damping noise-like oscillations, either by restricting the solution space (kernel methods) or by penalising anatomically inconsistent gradients (\gls{dtv}).
 
-All guidance-based methods risk bias when the guidance image does not reflect tracer uptake boundaries. \gls{krl} is the most restrictive because it enforces $x\in\mathrm{range}(K)$; \gls{rldtv} is less restrictive but can still encourage over-alignment where the data term is weak (low counts, low contrast). \gls{hkrl} partially mitigates mismatch by allowing the coupling structure to adapt to \gls{pet} features, but must be controlled (e.g.\ by freezing) to avoid noise-driven feedback.
+All guidance-based methods risk bias when the guidance image does not reflect tracer uptake boundaries. With non-negative coefficients, \gls{krl} restricts the image to the cone $K\mathbb{R}_+^J=\{K\alpha:\alpha\ge0\}$, generally smaller than the linear space $\mathrm{range}(K)$; \gls{rldtv} is less restrictive but can still encourage over-alignment where the data term is weak (low counts, low contrast). \gls{hkrl} partially mitigates mismatch by allowing the coupling structure to adapt to \gls{pet} features, but must be controlled (e.g.\ by freezing) to avoid noise-driven feedback.
 
 The full reconstruction problem has the same failure mode: guidance must not suppress information present in only one modality. This constraint motivates the synergistic prior developed in the following chapters.
 

@@ -117,12 +117,12 @@ where $\mathcal{P}^{(k)}$ is either a diagonal preconditioner or a voxel-wise $2
     \eta_{\mathrm{relax}}=0.002,
     \label{eq:optimisation_step_size}
 \end{equation}
-Here $\eta_{\mathrm{relax}}=0.002$ is the reference rate for the folded, modality-separated configuration, which performs 36 stochastic updates per matched data pass. The preconditioner studies use this reference configuration. The other subset configurations rescale $\eta_{\mathrm{relax}}$ to reproduce the same relaxation history on the matched-pass axis, as specified in Section~\ref{subsec:subset_selection_experiment_methods}.
+Here $\eta_{\mathrm{relax}}=0.002$ is the reference rate for the folded, modality-separated configuration, which performs 36 stochastic updates per matched expected data-draw unit. The preconditioner studies use this reference configuration. The other subset configurations rescale $\eta_{\mathrm{relax}}$ to reproduce the same relaxation history on the matched-unit axis, as specified in Section~\ref{subsec:subset_selection_experiment_methods}.
 
 \subsection{Common Evaluation Protocol}
 \label{subsec:optimisation_evaluation_protocol}
 
-The optimisation experiments used an anthropomorphic phantom scanned on the Mediso AnyScan at the National Physical Laboratory. \gls{pet} and \gls{spect} were each partitioned into 18 subsets. Each plotted comparison curve comprises five stochastic realisations and covers the first 20 complete data passes. A single 1000-epoch reconstruction of the same objective, run with more conservative optimisation settings, provided the reference image $x^\star$. Appendix~\ref{app:baseline_convergence} reports the objective and iterate diagnostics supporting its effective stationarity relative to the best observed iterate.
+The optimisation experiments used an anthropomorphic phantom scanned on the Mediso AnyScan at the National Physical Laboratory. \gls{pet} and \gls{spect} were each partitioned into 18 subsets. Each plotted comparison curve comprises five stochastic realisations and covers the first 20 matched expected data-draw units. A single 1000-epoch reconstruction of the same objective, run with slower relaxation decay, provided the reference image $x^\star$. Appendix~\ref{app:baseline_convergence} reports the objective and iterate diagnostics supporting its effective stationarity relative to the best observed iterate.
 
 For each stochastic run and each saved iteration, the \acrfull{nrmse} in region $R$ is
 \begin{equation}
@@ -211,14 +211,14 @@ Here $n=N_{\mathrm d}+1$: one full-prior component $\mathcal R$ is appended to t
 \subsection{Experiment Design and Work Accounting}
 \label{subsec:subset_selection_experiment_methods}
 
-All stochastic components were sampled uniformly with replacement. One matched data pass is defined by 36 modality-specific data-subset evaluations: 18 paired data draws or 36 separate draws. For folded, sampled, and once-per-epoch scheduling, respectively, one expected data pass therefore requires $N_{\mathrm d}$, $2N_{\mathrm d}$, and $N_{\mathrm d}+1$ total stochastic updates. These are 18, 36, and 19 updates for paired organisation, and 36, 72, and 37 for separate organisation.
+All stochastic components were sampled uniformly with replacement. One matched expected data-draw unit represents 36 modality-specific data-subset evaluations: 18 paired data draws or 36 separate draws. For folded, sampled, and once-per-epoch scheduling, respectively, one expected unit requires $N_{\mathrm d}$, $2N_{\mathrm d}$, and $N_{\mathrm d}+1$ total stochastic updates. These are 18, 36, and 19 updates for paired organisation, and 36, 72, and 37 for separate organisation; this matches expected data exposure, not wall-clock cost or snapshot work.
 
-Let $L_q$ denote the number of stochastic updates per matched pass for configuration $q$. Since $k$ in Equation~\eqref{eq:optimisation_step_size} counts stochastic updates, the relaxation rate was normalised as
+Let $L_q$ denote the number of stochastic updates per matched unit for configuration $q$. Since $k$ in Equation~\eqref{eq:optimisation_step_size} counts stochastic updates, the relaxation rate was normalised as
 \[
     \eta_{\mathrm{relax}}^{(q)}
     =0.002\,\frac{36}{L_q}.
 \]
-At pass $p$, $k_q=L_qp$ and hence $\eta_{\mathrm{relax}}^{(q)}k_q=0.002\times36p$; every curve therefore has the same step size at a given matched pass. The plotted axis is matched by projection work and relaxation history, but not by total update count or computation. All configurations used the same smooth objective and the \gls{mm} Jacobi-diagonal curvature preconditioner of Section~\ref{subsec:optimisation_prior_preconditioning}, and were assessed with the common 20-pass protocol in Section~\ref{subsec:optimisation_evaluation_protocol}.
+At unit $p$, $k_q=L_qp$ and hence $\eta_{\mathrm{relax}}^{(q)}k_q=0.002\times36p$; every curve therefore has the same step size at a given matched unit. The plotted axis is matched by expected data exposure and relaxation history, but not by total update count or computation. All configurations used the same smooth objective and the \gls{mm} Jacobi-diagonal curvature preconditioner of Section~\ref{subsec:optimisation_prior_preconditioning}, and were assessed with the common 20-unit protocol in Section~\ref{subsec:optimisation_evaluation_protocol}.
 
 \begin{figure}[htbp]
     \centering
@@ -230,17 +230,17 @@ At pass $p$, $k_q=L_qp$ and hence $\eta_{\mathrm{relax}}^{(q)}k_q=0.002\times36p
         \includegraphics[width=\linewidth]{figures/preconditioning/subsets/full/exp_subset_selection_1bpos_mm_diag_tight_combine_majoriser_alpha_1_SPECT.png}
         \caption{\gls{spect}.}
     \end{subfigure}
-    \caption{\gls{nrmse} trajectories for the six combinations of subset organisation (paired, separate) and prior-application schedule (folded, sampled, once per epoch) using the \gls{mm} Jacobi-diagonal curvature preconditioner. Lines show the mean per-run \gls{nrmse} over five stochastic realisations and shading shows the pointwise minimum--maximum over the first 20 matched data passes, with relaxation normalised to give the same step size at each pass. In the legend, prior folded, prior/half, and prior once/epoch denote component lists that sum to the same smooth objective and give unbiased uniform-sampling \gls{svrg} estimators, but differ in prior-correction frequency and total update count.}
+    \caption{\gls{nrmse} trajectories for the six combinations of subset organisation (paired, separate) and prior-application schedule (folded, sampled, once per epoch) using the \gls{mm} Jacobi-diagonal curvature preconditioner. Lines show the mean per-run \gls{nrmse} over five stochastic realisations and shading shows the pointwise minimum--maximum over the first 20 matched expected data-draw units, with relaxation normalised to give the same step size at each unit. In the legend, prior folded, prior/half, and prior once/epoch denote component lists that sum to the same smooth objective and give unbiased uniform-sampling \gls{svrg} estimators, but differ in prior-correction frequency and total update count.}
     \label{fig:optim_subset_organisation}
 \end{figure}
 
 \subsection{Results and Interpretation}
 
-Figure~\ref{fig:optim_subset_organisation} separates the six configurations mainly by prior schedule. The folded runs reduce mean \gls{nrmse} over the tested 20 passes; separate-folded attains the lowest mean \gls{nrmse} at pass 20 in every region for both modalities, with paired-folded close behind. The separate-folded \gls{pet} whole-image \gls{nrmse} curve has a transient jump near pass six before recovering. Neither the sampled nor once-per-epoch schedule shows a net \gls{nrmse} reduction over the same interval.
+Figure~\ref{fig:optim_subset_organisation} separates the six configurations mainly by prior schedule. The folded runs reduce mean \gls{nrmse} over the tested 20-unit interval; separate-folded attains the lowest mean \gls{nrmse} at unit 20 in every region for both modalities, with paired-folded close behind. The separate-folded \gls{pet} whole-image \gls{nrmse} curve has a transient jump near unit six before recovering. Neither the sampled nor once-per-epoch schedule shows a net \gls{nrmse} reduction over the same interval.
 
 The prior correction gives one precise difference between the schedules. Let $\Delta_{\mathcal R}=\nabla\mathcal R(\bm z^{(k)})-\nabla\mathcal R(\widetilde{\bm z})$. Its contribution is $\Delta_{\mathcal R}$ at every folded update, either zero or $2\Delta_{\mathcal R}$ under sampled scheduling, and either zero or $(N_{\mathrm d}+1)\Delta_{\mathcal R}$ under once-per-epoch scheduling. The expectation is $\Delta_{\mathcal R}$ in all cases, but the intermittent schedules introduce greater correction variability than folded evaluation.
 
-The relaxation normalisation rules out different step-size reduction with matched-pass count as the explanation. With the smooth objective, preconditioner, projection-work axis and relaxation history fixed, the observed differences arise from the component and subset organisation, including how the prior correction is scheduled. Total update counts still differ---within the folded schedule, for example, separate organisation performs 36 updates per matched pass and paired organisation 18---so the comparison is not compute-matched and establishes no wall-clock advantage.
+The relaxation normalisation rules out different step-size reduction with matched-unit count as the explanation. With the smooth objective, preconditioner, expected data-exposure axis and relaxation history fixed, the observed differences arise from the component and subset organisation, including how the prior correction is scheduled. Total update counts still differ---within the folded schedule, for example, separate organisation performs 36 updates per matched unit and paired organisation 18---so the comparison is not compute-matched and establishes no wall-clock advantage.
 
 \section{Prior-Aware Preconditioning}
 \label{sec:optimisation_preconditioners}
@@ -480,16 +480,16 @@ An explicit De Pierro construction for a fixed factorisation would majorise the 
 
 \subsubsection{Lewis--Sendov block curvature}
 
-The fourth construction uses the exact Lewis--Sendov Hessian of the smoothed spectral penalty \cite{doi:10.1137/S089547980036838X}. Equation~\eqref{eq:phi_as_trace} writes that penalty as $\phi(Y)=f(Y^\top Y)$, where $f$ is a twice-differentiable spectral function of the symmetric matrix $Y^\top Y$; the Lewis--Sendov calculus supplies the Hessian of $f$, and the chain rule through the smooth map $Y\mapsto Y^\top Y$ and the linear dependence of each voxel Jacobian on the images then yields the image-space Hessian used here. If $H_{\mathcal R}=\nabla^2\mathcal R$ denotes the resulting image-space Hessian, the implemented approximation retains only its voxel-wise diagonal blocks,
+The fourth construction starts from the exact Lewis--Sendov Hessian of the smoothed spectral penalty \cite{doi:10.1137/S089547980036838X}. If $H_{\mathcal R}=\nabla^2\mathcal R$ denotes the resulting image-space Hessian, the implemented approximation retains only locally assembled voxel blocks,
 \begin{equation}
     \widehat H_{\mathcal R}^{\mathrm{LS\text{-}block}}
     =
     \operatorname{blkdiag}
     \left(
-        [H_{\mathcal R}]_{11},\ldots,[H_{\mathcal R}]_{NN}
+        \widehat H_{11}^{\mathrm{LS}},\ldots,\widehat H_{NN}^{\mathrm{LS}}
     \right),
     \qquad
-    [H_{\mathcal R}]_{nn}\in\mathbb R^{2\times2}.
+    \widehat H_{nn}^{\mathrm{LS}}\approx[H_{\mathcal R}]_{nn}\in\mathbb R^{2\times2}.
     \label{eq:ls_block_preconditioner}
 \end{equation}
 It therefore retains \gls{pet}/\gls{spect} cross-curvature within each voxel but discards spatial off-diagonal blocks. In practice each voxel block is assembled per neighbourhood target: the Lewis--Sendov calculus is evaluated in local Jacobian coordinates, and the retained direction-diagonal blocks are mapped into modality space by the diagonal congruence
@@ -561,11 +561,11 @@ Thus $p=0$ has the conditional additive-majoriser interpretation above; other Le
 \subsection{Experimental Protocol}
 \label{subsec:preconditioner_experiment_methods}
 
-The comparison uses the one-bed anthropomorphic phantom, modality-separated subsets, and the folded prior schedule, i.e.\ the complete prior gradient at every update. All methods use the same objective, initialisation, long-run reference, initial step $\varsigma^{(0)}=1$, and relaxation parameter $\eta_{\mathrm{relax}}=0.002$. Five stochastic realisations are evaluated for the first 20 matched data passes. Sensitivity-derived support masks are enabled with relative threshold $10^{-3}$, and the data component is smoothed with a $5\,\mathrm{mm}$ Gaussian \gls{fwhm}.
+The comparison uses the one-bed anthropomorphic phantom, modality-separated subsets, and the folded prior schedule, i.e.\ the complete prior gradient at every update. All methods use the same objective, initialisation, long-run reference, initial step $\varsigma^{(0)}=1$, and relaxation parameter $\eta_{\mathrm{relax}}=0.002$. Five stochastic realisations are evaluated for the first 20 matched expected data-draw units. Sensitivity-derived support masks are enabled with relative threshold $10^{-3}$, and the data component is smoothed with a $5\,\mathrm{mm}$ Gaussian \gls{fwhm}.
 
 The preconditioner is updated once per epoch and held fixed between updates. This limits curvature-computation cost, particularly for the Lewis--Sendov construction, but means the preconditioner becomes progressively stale within each epoch.
 
-The reference is separate from this five-method comparison: it is a single 1000-epoch run with the same objective, a Gershgorin-diagonal \gls{mm} preconditioner, and more conservative optimisation settings, including $\eta_{\mathrm{relax}}=10^{-4}$. It provides $x^\star$ for the \gls{nrmse} calculation rather than an additional candidate method. Since every method addresses the same objective, the preconditioner changes the optimisation metric rather than the objective or its set of minimisers, so a reference generated under one metric is a common comparison target for all. For the block methods, whose clipped update lies outside variable-metric projected-gradient theory (Section~\ref{subsubsec:precond_constraint}), approach to $x^\star$ is an empirical observation rather than a guaranteed limit.
+The reference is separate from this five-method comparison: it is a single 1000-epoch run with the same objective, a Gershgorin-diagonal \gls{mm} preconditioner, and slower relaxation decay, including $\eta_{\mathrm{relax}}=10^{-4}$. It provides $x^\star$ for the \gls{nrmse} calculation rather than an additional candidate method. Since every method addresses the same objective, the preconditioner changes the optimisation metric rather than the objective or its set of minimisers, so a reference generated under one metric is a common comparison target for all. For the block methods, whose clipped update lies outside variable-metric projected-gradient theory (Section~\ref{subsubsec:precond_constraint}), approach to $x^\star$ is an empirical observation rather than a guaranteed limit.
 
 \begin{table}[htbp]
 \centering
@@ -580,7 +580,7 @@ Data-only BSREM & None; EM data scaling only & Not applicable\\
 MM local voxel-block & Exact $2\times2$ voxel-diagonal block of the frozen MM curvature & Inverse sum\\
 MM Jacobi diagonal & Exact scalar diagonal of the frozen MM curvature, by impulse accumulation & Inverse sum\\
 MM Gershgorin-inflated diagonal & Exact diagonal of the modality-Gershgorin majoriser of the frozen MM curvature & Inverse sum\\
-Lewis--Sendov block-diagonal & Voxel-block diagonal of the exact smoothed spectral Hessian & Inverse sum\\
+Lewis--Sendov block-diagonal & Voxel-block approximation assembled from the exact smoothed spectral Hessian & Inverse sum\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -599,7 +599,7 @@ Lewis--Sendov block-diagonal & Voxel-block diagonal of the exact smoothed spectr
         \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_SPECT.png}
         \caption{\gls{spect}.}
     \end{subfigure}
-    \caption{\gls{nrmse} trajectories for data-only \gls{bsrem} and the four prior-aware preconditioners in Table~\ref{tab:preconditioner_settings}. All methods use the same objective and long-run reference within each modality. Lines show the mean per-run \gls{nrmse} over five stochastic realisations, and shading shows the pointwise minimum--maximum over the first 20 matched data passes. Each panel uses its own vertical scale; for \gls{pet} the whole-image panel spans the full range reached by the data-only trajectory, which lies several orders of magnitude above the three anatomical regions.}
+    \caption{\gls{nrmse} trajectories for data-only \gls{bsrem} and the four prior-aware preconditioners in Table~\ref{tab:preconditioner_settings}. All methods use the same objective and long-run reference within each modality. Lines show the mean per-run \gls{nrmse} over five stochastic realisations, and shading shows the pointwise minimum--maximum over the first 20 matched expected data-draw units. Each panel uses its own vertical scale; for \gls{pet} the whole-image panel spans the full range reached by the data-only trajectory, which lies several orders of magnitude above the three anatomical regions.}
     \label{fig:optim_preconditioners}
 \end{figure}
 \clearpage
@@ -620,7 +620,7 @@ For \gls{spect}, all five trajectories remain bounded, and data-only \gls{bsrem}
         \includegraphics[width=\linewidth]{figures/preconditioning/lehmer_vs_parallel_1bpos_ls_block_diag_SPECT.png}
         \caption{\gls{spect} represented on the \gls{pet} grid.}
     \end{subfigure}
-    \caption{\gls{nrmse} trajectories for parallel-sum and Lehmer combinations of the Lewis--Sendov block-diagonal prior model. This experiment changes only the combination rule; lines and shading show the five-run mean and pointwise minimum--maximum over 20 matched data passes.}
+    \caption{\gls{nrmse} trajectories for parallel-sum and Lehmer combinations of the Lewis--Sendov block-diagonal prior model. This experiment changes only the combination rule; lines and shading show the five-run mean and pointwise minimum--maximum over 20 matched expected data-draw units.}
     \label{fig:optim_lehmer_parallel}
 \end{figure}
 
@@ -675,7 +675,7 @@ which reduces to modality-wise curvature scaling when the operands are diagonal.
 \section{Conclusion}
 \label{sec:optimisation_conclusion}
 
-Joint multi-bed reconstruction allowed the edge-preserving prior to act across the bed overlap and did not exhibit the overlap artefacts visible in the qualitative stitched example. In the one-bed subset experiment, all schedules used the same smooth objective and an unbiased uniform-sampling \gls{svrg} estimator. We rescaled the relaxation rate from the folded, modality-separated reference $\eta_{\mathrm{relax}}=0.002$, giving every configuration the same step size at a given matched pass. On that matched-pass axis, the folded schedules reduced \gls{nrmse} over 20 passes and the intermittent schedules did not. Since the total update counts differ, this comparison does not establish a wall-clock or compute-efficiency advantage.
+Joint multi-bed reconstruction allowed the edge-preserving prior to act across the bed overlap and did not exhibit the overlap artefacts visible in the qualitative stitched example. In the one-bed subset experiment, all schedules used the same smooth objective and an unbiased uniform-sampling \gls{svrg} estimator. We rescaled the relaxation rate from the folded, modality-separated reference $\eta_{\mathrm{relax}}=0.002$, giving every configuration the same step size at a given matched unit. On that expected data-exposure axis, the folded schedules reduced \gls{nrmse} over 20 units and the intermittent schedules did not. Since the total update counts differ, this comparison does not establish a wall-clock or compute-efficiency advantage.
 
 In the preconditioner experiment, prior-aware scaling kept count-limited \gls{pet} bounded over the same 20-pass interval. Data-only \gls{bsrem} gave comparable or slightly lower \gls{spect} \gls{nrmse}, and no prior-curvature construction was uniformly best. The local curvature ratio may help explain this modality dependence, but it was not measured. The block-valid scaling in~\eqref{eq:modality_precond_weight} therefore remains an untested extension.
 

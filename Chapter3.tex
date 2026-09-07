@@ -91,7 +91,7 @@ One of the simplest forms of regularisation is Tikhonov regularisation, which im
     \mathcal{R}_{\mathrm{Quad}}(x)
     = \sum_{j=1}^J \sum_{k \in \mathcal{N}_j} w_{jk}\, (x_j - x_k)^2,
 \end{equation}
-where $\mathcal{N}_j$ denotes a local neighbourhood of voxel $j$ (e.g.\ 6, 18, or 26-connected in 3D) and $w_{jk}\ge 0$ are weights (often distance-based and symmetric). While strongly convex and computationally efficient, the quadratic penalty strongly discourages large local differences, which tends to oversmooth edges and suppress high-contrast structures \cite{gemanStochasticRelaxationGibbs1984}.
+where $\mathcal{N}_j$ denotes a local neighbourhood of voxel $j$ (e.g.\ 6, 18, or 26-connected in 3D) and $w_{jk}\ge 0$ are weights (often distance-based and symmetric). This convex and computationally efficient penalty strongly discourages large local differences, which tends to oversmooth edges and suppress high-contrast structures \cite{gemanStochasticRelaxationGibbs1984}.
 
 To better preserve edges, \gls{tv} \cite{rudinNonlinearTotalVariation1992} replaces the squared penalty with an $\ell_1$-type penalty on local differences. A neighbourhood-difference form that makes the connection to $\mathcal{R}_{\mathrm{Quad}}$ explicit is
 \begin{equation}
@@ -180,10 +180,10 @@ Regularisation strategies also exist outside the standard Bayesian (penalised-li
 \end{equation}
 where $\alpha \in \mathbb{R}^J$ is a coefficient image and $K\in\mathbb{R}^{J\times J}$ is a (typically sparse) kernel matrix whose entries encode similarity between voxels based on features extracted from a guidance image \cite{hutchcroftAnatomicallyaidedPETReconstruction2016}. Each voxel $j$ is assigned a feature vector $f_j$ (commonly a patch of intensities in the high-resolution guidance image), and a radial Gaussian kernel is often used,
 \begin{equation} \label{eq:gaussian_kernel}
-    \kappa(f_j,f_k)=\
-    \!\left(-\frac{\|f_j-f_k\|_2^2}{2\sigma^2}\right),
+    \kappa(f_j,f_k)=
+    \exp\!\left(-\frac{\|f_j-f_k\|_2^2}{2\sigma^2}\right),
 \end{equation}
-with $\sigma$ controlling edge sensitivity. The kernel matrix is then defined entrywise by $K_{jk}=\kappa(f_j,f_k)$, with additional sparsification for tractability: for each voxel $j$, only a small set of the most similar neighbours (e.g.\ via a local $k$-nearest-neighbour search within a window) are allowed to contribute, yielding a sparse $K$. To preserve overall intensity scaling (counts), $K$ is typically row-normalised.
+with $\sigma$ controlling edge sensitivity. The kernel matrix is then defined entrywise by $K_{jk}=\kappa(f_j,f_k)$, with additional sparsification for tractability: for each voxel $j$, only a small set of the most similar neighbours (e.g.\ via a local $k$-nearest-neighbour search within a window) are allowed to contribute, yielding a sparse $K$. Row normalisation preserves constant images; it does not by itself guarantee preservation of total counts.
 
 Substituting $x=K\alpha$ into the Poisson forward model gives a kernelised expectation for the data,
 \begin{equation}
@@ -274,7 +274,7 @@ for singular values $\sigma_\ell(Y)$ of a rank-$R$ matrix $Y$. Note that $R=\min
 \begin{equation}
     \|Y\|_* = \sum_{r=1}^{R}\sigma_r(Y).
 \end{equation}
-The nuclear norm is the convex envelope of the Rank function. Applied to the voxel-wise jacobians, it promotes singular value sparsity and has the effect of either driving functionally misaligned gradients to zero or parallel/anti-parallel, promoting edge-alignment. Applying this nuclear norm to the voxel-wise jacobians is known as \gls{tnv} \cite{holtTotalNuclearVariation2014, rigieJointReconstructionMultichannel2015}.
+On the unit spectral-norm ball, the nuclear norm is the convex envelope of the rank function. Applied to the voxel-wise jacobians, it promotes singular value sparsity and has the effect of either driving functionally misaligned gradients to zero or parallel/anti-parallel, promoting edge-alignment. Applying this nuclear norm to the voxel-wise jacobians is known as \gls{tnv} \cite{holtTotalNuclearVariation2014, rigieJointReconstructionMultichannel2015}.
 \begin{equation}\label{eq:tnv}
     \mathcal{R}_{\mathrm{TNV}}(\bm{z}) = \sum_{n=1}^N  \|\mathcal{G}_n(\bm{z})\|_*
 \end{equation}
@@ -346,12 +346,12 @@ A_s^{\mathsf T}\!\left(\frac{y_s}{\bar{y}_s\!\left(x^{(k)}\right)}\right),
 \end{equation}
 where $A_s$ denotes the system matrix and data restricted to subset $s$. \gls{osem} cycles through subsets incrementally.
 
-\glsentryshort{osem} typically shows a marked improvement in early-stage convergence by providing a cheaper approximation of the full-data \glsentryshort{em} update. However, because the subset gradient is only an approximation to the full gradient, \glsentryshort{osem} is not, in general, a convergent algorithm for the maximum-likelihood problem: as the iterates approach a solution, incremental sub-gradient updates can lead to cyclical behaviour. An example illustrating this is shown in  Figure~\ref{fig:osem_limit_cycle}.
+\glsentryshort{osem} typically shows a marked improvement in early-stage convergence by providing a cheaper approximation of the full-data \glsentryshort{em} update. However, because the subset gradient is only an approximation to the full gradient, \glsentryshort{osem} is not, in general, a convergent algorithm for the maximum-likelihood problem: as the iterates approach a solution, incremental subset-gradient updates can lead to cyclical behaviour. An example illustrating this is shown in  Figure~\ref{fig:osem_limit_cycle}.
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\linewidth]{figures/Chapter2/osem_limit_cycle.png}
-    \caption{Demonstration of limit cycle behaviour with an ordered subset gradient descent algorithm. Top row: 3 different simple binomial sub-functions representing subset likelihoods. Bottom row: left, full function with sub-gradient steps; centre, zoomed version of the full function demonstrating limit cycle behaviour (green dots show approximate points of limit cycle); right, likelihood value per iteration, demonstrating thre limit cycle.}
+    \caption{Demonstration of limit cycle behaviour with an ordered subset gradient descent algorithm. Top row: 3 different simple binomial sub-functions representing subset likelihoods. Bottom row: left, full function with subset-gradient steps; centre, zoomed version of the full function demonstrating limit cycle behaviour (green dots show approximate points of limit cycle); right, likelihood value per iteration, demonstrating thre limit cycle.}
     \label{fig:osem_limit_cycle}
 \end{figure}
 
@@ -365,12 +365,12 @@ We seek a fast and convergent algorithm for \gls{map} reconstruction. A widely u
         + \frac{\beta}{S}\,\nabla_x \mathcal{R}(x^{(k)})
     \right),
 \end{equation}
-where $\varsigma_k>0$ is an iteration dependent step size. Convergence is promoted by choosing $\{\varsigma_k\}$ to diminish appropriately (e.g.\ $\varsigma_k\rightarrow 0$ with $\sum_k \varsigma_k=\infty$), which suppresses the subset-induced limit-cycle behaviour while retaining rapid early progress (see Figure~\ref{fig:relaxed_limit_cycle}).
+where $\varsigma_k>0$ is an iteration dependent step size. The $1/S$ factor is specific to this subset-scaled BSREM convention; the full-gradient SVRG formulation below uses the full-data preconditioner convention and scales the estimator to $\nabla\mathcal L$. Convergence is promoted by choosing $\{\varsigma_k\}$ to diminish appropriately (e.g.\ $\varsigma_k\rightarrow 0$ with $\sum_k \varsigma_k=\infty$), which suppresses the subset-induced limit-cycle behaviour while retaining rapid early progress (see Figure~\ref{fig:relaxed_limit_cycle}).
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\linewidth]{figures/Chapter2/relaxed_limit_cycle.png}
-    \caption{Demonstration of reduction in limit cycle behaviour with step size relaxation $\varsigma_k=\varsigma_0/(1+0.05k)$. Left, full function with sub-gradient steps; centre, zoomed version of the full function demonstrating relaxed limit cycle behaviour; right, likelihood value per iteration, demonstrating relaxed limit cycle precession. }
+    \caption{Demonstration of reduction in limit cycle behaviour with step size relaxation $\varsigma_k=\varsigma_0/(1+0.05k)$. Left, full function with subset-gradient steps; centre, zoomed version of the full function demonstrating relaxed limit cycle behaviour; right, likelihood value per iteration, demonstrating relaxed limit cycle precession. }
     \label{fig:relaxed_limit_cycle}
 \end{figure}
 
@@ -388,7 +388,7 @@ which is cheap but noisy. Variance reduction augments this step by incorporating
 \begin{equation}
     \tilde g_k
     \;=\;
-    g_{s_k}(x^{(k)}) - g_{s_k}(\tilde x_{s_k}) + \frac{1}{S}\sum_{s=1}^{S} g_s(\tilde x_s),
+    S\!\left[g_{s_k}(x^{(k)}) - g_{s_k}(\tilde x_{s_k})\right] + \sum_{s=1}^{S} g_s(\tilde x_s),
 \end{equation}
 where $\tilde x_s$ denotes the iterate at which the stored gradient for subset $s$ was last evaluated.
 
@@ -396,14 +396,14 @@ where $\tilde x_s$ denotes the iterate at which the stored gradient for subset $
 \begin{equation}
     \tilde g_k
     \;=\;
-    g_{s_k}(x^{(k)}) - g_{s_k}(\tilde x) + \nabla_x \mathcal{L}(\tilde x).
+    S\!\left[g_{s_k}(x^{(k)}) - g_{s_k}(\tilde x)\right] + \nabla_x \mathcal{L}(\tilde x).
 \end{equation}
-In both cases, $\tilde g_k$ is designed so that $\mathbb{E}[\tilde g_k]\approx 1/S \;\nabla_x \mathcal{L}(x^{(k)})$ while its variance decreases as $x^{(k)}$ approaches a stationary point, thereby mitigating the oscillatory behaviour seen in OSEM and improving stability at high iteration counts (see Figure~\ref{fig:svrg_limit_cycle}).
+With uniform subset sampling, $\mathbb{E}[\tilde g_k]=\nabla_x \mathcal{L}(x^{(k)})$ for SVRG (and up to the stored-gradient approximation for SAGA), while the variance decreases as $x^{(k)}$ approaches a stationary point. This is the full-gradient convention used in the experiments.
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\linewidth]{figures/Chapter2/svrg_limit_cycle.png}
-    \caption{Demonstration of removal of limit cycle behaviour with an \gls{svrg}-type (Ordered VRG) algorithm. Left, full function with sub-gradient steps; centre, zoomed version of the full function demonstrating removal of limit cycle behaviour; right, likelihood value per iteration, demonstrating removal of limit cycle precession }
+    \caption{Demonstration of removal of limit cycle behaviour with an \gls{svrg}-type (Ordered VRG) algorithm. Left, full function with subset-gradient steps; centre, zoomed version of the full function demonstrating removal of limit cycle behaviour; right, likelihood value per iteration, demonstrating removal of limit cycle precession }
     \label{fig:svrg_limit_cycle}
 \end{figure}
 
