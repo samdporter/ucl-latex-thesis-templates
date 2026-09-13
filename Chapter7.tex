@@ -627,6 +627,45 @@ For \gls{spect}, all five trajectories remain bounded, and data-only \gls{bsrem}
 For the Lewis--Sendov block model, $p=0.01$ gives slightly lower \gls{nrmse} than $p=0$ over the plotted interval, but the difference is small and says nothing about the preferred order for the \gls{mm}-derived models. Equation~\eqref{eq:lehmer_parallel_equivalence} shows that $p=0$ reproduces the additive inverse-sum form.
 
 Changing $p$ also changes the effective step scale. The factor $\tfrac12$ is calibrated at $p=0$; for eigenvalues of $T$ of order $10^2$, $p=0.01$ increases the spectral factor by roughly two per cent relative to the parallel sum, rising to a few per cent at $10^3$. A fixed-$\varsigma^{(0)}$ sweep therefore mixes the effect of the Lehmer order with a modest step-size change. Retuning $\varsigma^{(0)}$ for each order would be needed to separate them, and no universal optimality is inferred here.
+
+\subsubsection{Computational cost}
+\label{subsubsec:preconditioner_cost}
+
+Preconditioner construction and application were timed on an NVIDIA RTX 3080 using ten repeats after two warm-up evaluations. Table~\ref{tab:preconditioner_cost} reports the mean and standard deviation for the one-bed phantom and two-bed patient configurations. The data-only \gls{bsrem} scaling depends on the current iterate and was therefore recomputed at every update; the four prior-aware preconditioners were constructed once per epoch and cached between updates.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Mean preconditioner construction and cached application times in seconds; uncertainties are standard deviations over ten repeats.}
+    \label{tab:preconditioner_cost}
+    \small
+    \begin{tabular}{@{}llrr@{}}
+        \toprule
+        Preconditioner & Operation & One bed & Two beds\\
+        \midrule
+        \multirow{2}{*}{Data-only \gls{bsrem}}
+            & Construction & $0.105 \pm 0.0024$ & $0.516 \pm 0.0115$\\
+            & Application  & $0.019 \pm 0.0004$ & $0.082 \pm 0.0026$\\
+        \addlinespace
+        \multirow{2}{*}{\gls{mm} local voxel-block}
+            & Construction & $0.920 \pm 0.0149$ & $3.416 \pm 0.0259$\\
+            & Application  & $0.242 \pm 0.0019$ & $1.090 \pm 0.0046$\\
+        \addlinespace
+        \multirow{2}{*}{\gls{mm} Jacobi diagonal}
+            & Construction & $0.375 \pm 0.0026$ & $1.616 \pm 0.0135$\\
+            & Application  & $0.021 \pm 0.0011$ & $0.085 \pm 0.0035$\\
+        \addlinespace
+        \multirow{2}{*}{\gls{mm} Gershgorin-inflated diagonal}
+            & Construction & $0.378 \pm 0.0035$ & $1.634 \pm 0.0131$\\
+            & Application  & $0.022 \pm 0.0012$ & $0.087 \pm 0.0034$\\
+        \addlinespace
+        \multirow{2}{*}{Lewis--Sendov block-diagonal}
+            & Construction & $1.389 \pm 0.0141$ & $5.867 \pm 0.0395$\\
+            & Application  & $0.237 \pm 0.0011$ & $1.093 \pm 0.0052$\\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Cached application of a block model was approximately 11--13 times slower than application of a diagonal model. The two block models had similar application costs, whereas Lewis--Sendov construction was 51\% and 72\% more expensive than \gls{mm} voxel-block construction for the one- and two-bed configurations, respectively. With one construction and 30 or 48 applications per epoch, the diagonal models cost approximately $1.0$ and $5.7$--$5.8\,\mathrm{s}$ per epoch, compared with $8.2$--$8.5$ and $55.7$--$58.3\,\mathrm{s}$ for the block models. Since retaining the within-voxel cross-modal blocks produced no consistent improvement in \gls{nrmse} over the tested interval, the diagonal models gave the preferable cost--convergence trade-off in this implementation. This result does not exclude a benefit from block curvature for other objectives, parameter regimes, or stopping criteria.
 \clearpage
 
 \subsection{Interpretation and Limitations}
@@ -677,6 +716,6 @@ which reduces to modality-wise curvature scaling when the operands are diagonal.
 
 Joint multi-bed reconstruction allowed the edge-preserving prior to act across the bed overlap and did not exhibit the overlap artefacts visible in the qualitative stitched example. In the one-bed subset experiment, all schedules used the same smooth objective and an unbiased uniform-sampling \gls{svrg} estimator. We rescaled the relaxation rate from the folded, modality-separated reference $\eta_{\mathrm{relax}}=0.002$, giving every configuration the same step size at a given matched unit. On that expected data-exposure axis, the folded schedules reduced \gls{nrmse} over 20 units and the intermittent schedules did not. Since the total update counts differ, this comparison does not establish a wall-clock or compute-efficiency advantage.
 
-In the preconditioner experiment, prior-aware scaling kept count-limited \gls{pet} bounded over the same 20-pass interval. Data-only \gls{bsrem} gave comparable or slightly lower \gls{spect} \gls{nrmse}, and no prior-curvature construction was uniformly best. The local curvature ratio may help explain this modality dependence, but it was not measured. The block-valid scaling in~\eqref{eq:modality_precond_weight} therefore remains an untested extension.
+In the preconditioner experiment, prior-aware scaling kept count-limited \gls{pet} bounded over the same 20-pass interval. Data-only \gls{bsrem} gave comparable or slightly lower \gls{spect} \gls{nrmse}, and no prior-curvature construction was uniformly best. Since the block models cost approximately eight to ten times more per epoch than the diagonal models without a consistent convergence advantage, the diagonal constructions were preferable for the tested implementation. The local curvature ratio may help explain the modality dependence, but it was not measured. The block-valid scaling in~\eqref{eq:modality_precond_weight} therefore remains an untested extension.
 
 The $p=0.01$ Lehmer result was only slightly below the parallel-sum \gls{nrmse}, and it also changes the effective step scale. Chapter~\ref{chapter:paper} retains the Lewis--Sendov block-diagonal/$p=0.01$ setting because that application protocol was fixed before the broader benchmark, not because these results establish it as universally optimal.
