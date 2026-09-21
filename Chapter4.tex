@@ -5,10 +5,9 @@ Chapter~\ref{chap:intro_material} described the principal limitations of \isotop
 
 The resulting model is
 \begin{equation} \label{eq:brems_forward_model}
-    \bar y(x) = A_{\mathrm{prim}}K_{\mathrm{brem}}x+b_{\mathrm{MC}}
+    \bar y(x) = A_{\mathrm{prim}}C_{\mathrm{brem}}x+b_{\mathrm{MC}}
 \end{equation}
-\SA{In "Notation" on page 29-33 you have $C$ as "convolution" and $K$ as "kernel matrix" (as in "kernel method" I suppose. Is this consistent?)} 
-where $A_{\mathrm{prim}}$ contains attenuation, geometric projection, the intrinsic detector response and the geometric collimator response; $K_{\mathrm{brem}}$ is the image-space range-blur operator and $b_{\mathrm{MC}}$ represents detected counts not described by this primary-event model. The latter includes patient scatter, collimator scatter and septal penetration, so these effects are not also included in $A_{\mathrm{prim}}$. It is therefore referred to throughout as a non-primary additive term, rather than as patient scatter alone.
+where $A_{\mathrm{prim}}$ contains attenuation, geometric projection, the intrinsic detector response and the geometric collimator response; $C_{\mathrm{brem}}$ is the image-space range-blur convolution operator and $b_{\mathrm{MC}}$ represents detected counts not described by this primary-event model. The latter includes patient scatter, collimator scatter and septal penetration, so these effects are not also included in $A_{\mathrm{prim}}$. It is therefore referred to throughout as a non-primary additive term, rather than as patient scatter alone.
 
 The two components in Equation~\ref{eq:brems_forward_model} are estimated in a preparatory stage. Once estimated, both the acquisition model and $b_{\mathrm{MC}}$ are fixed during the target reconstruction. The purpose of the reconstruct--simulate loop below is to prepare an object- and acquisition-specific additive estimate, which avoids altering the objective function, and therefore the solution, during reconstruction.
 
@@ -34,9 +33,7 @@ Starting from $b^{(0)}$, an outer iteration consists of the following operations
 \end{enumerate}
 Each intermediate reconstruction used 12 staggered subsets and 10 epochs (120 subset updates), warm-started from the preceding outer iterate. Ten outer iterations were used as a pre-specified computational budget. This endpoint is not presented as evidence of asymptotic convergence. The simulations were driven from Python using the interface described in Appendix~\ref{app:simind_python_connector}.
 
-At outer iteration $k$, one simulation produces the total simulated detected projection counts $p_{\mathrm{tot}}^{(k)}$ and the attenuated, geometrically collimated primary component $p_{\mathrm{geo}}^{(k)}$. Inspired by the work by Dewaraja et. al in \cite{dewarajaImprovedQuantitative90Y2017}, the Monte Carlo projections are first placed on the scale of the analytic acquisition model $A_{\star}=A_{\mathrm{prim}}K_{\mathrm{brem}}$ 
-\SA{By "placed on the scale of" I think you mean "calibrated against"; I think that is a better phrase becuase that is how the $s^{(k)}$ term is being used in eq.\ref{eq:simind_scale}}. 
-Let $\mathcal I_k$ contain bins with non-zero $p_{\mathrm{geo},i}^{(k)}$ after the lowest and highest 5\% of the per-bin ratios $(A_{\star}\widetilde x^{(k)})_i/ p_{\mathrm{geo},i}^{(k)}$ have been excluded \SA{This sounds like outlier removal; but I think you need to justify this better by showing what these counts and ratios look like.}. The scalar calibration is
+At outer iteration $k$, one simulation produces the total simulated detected projection counts $p_{\mathrm{tot}}^{(k)}$ and the attenuated, geometrically collimated primary component $p_{\mathrm{geo}}^{(k)}$. Inspired by the work by Dewaraja et. al in \cite{dewarajaImprovedQuantitative90Y2017}, the Monte Carlo projections are first calibrated against the analytic acquisition model $A_{\star}=A_{\mathrm{prim}}C_{\mathrm{brem}}$. Let $\mathcal I_k$ contain bins with non-zero $p_{\mathrm{geo},i}^{(k)}$ after the lowest and highest 5\% of the per-bin ratios $(A_{\star}\widetilde x^{(k)})_i/ p_{\mathrm{geo},i}^{(k)}$ have been excluded. This is a symmetric trim rather than a test for outliers. The ratio is formed bin by bin, so bins in which the simulated primary count is small carry a large relative Monte Carlo error, and bins at the edge of the object, where the analytic and simulated primary models differ most, populate both tails of the ratio distribution. Discarding the tails prevents a small number of such bins from setting a scalar that is applied to the whole projection. \TODO{Add a diagnostic figure showing the distribution of the per-bin ratios and the associated counts, with the retained interval marked.} The scalar calibration is
 \begin{equation}
     s^{(k)} =
     \frac{\sum_{i\in\mathcal I_k}(A_{\star}\widetilde x^{(k)})_i}
@@ -82,9 +79,9 @@ Figure~\ref{fig:nema_scatter_est} shows the diagnostic that motivated this choic
         \includegraphics[width=\linewidth]{figures/Chapter3/offline_scatter_damped.png}
         \caption{Under-relaxed update, $\alpha=0.2$.}
     \end{subfigure}
-    \caption{Projection-domain behaviour of the preparatory additive-term refinement for a measured NEMA phantom. Coloured curves are profiles of the estimated non-primary term $b^{(k)}$; every displayed iteration is one outer step of the preparatory reconstruct--simulate loop. Profiles are summed over views at an axial position through the spheres; the horizontal coordinate is the tangential detector bin and the vertical coordinate is counts. Full replacement
+    \caption{Projection-domain behaviour of the preparatory additive-term refinement for the measured \glsentryshort{nema} \glsentryshort{iec} phantom acquisition described in Section~\ref{subsec:90y_phantom}; these are acquired data, not a simulation. Coloured curves are profiles of the estimated non-primary term $b^{(k)}$; every displayed iteration is one outer step of the preparatory reconstruct--simulate loop. Profiles are summed over views at an axial position through the spheres; the horizontal coordinate is the tangential detector bin and the vertical coordinate is counts. Full replacement
     produces large alternating changes within four outer iterations, whereas the under-relaxed profiles remain bounded through the tenth outer iteration.
-    \SA{By "measured" you mean simulated, right ? Wouldn't it be better to show $p_{\mathrm{geo}}^{(k)}+ b^{(k)}$ , I.e. the estimateed $\bar y(x)$ in eq~\ref{eq:brems_forward_model}, compared to the "data"}}
+    \TODO{Regenerate this figure to show the total forward prediction $A_{\star}\widetilde x^{(k)}+b^{(k)}$ of Equation~\ref{eq:brems_forward_model} overlaid on the measured profile, rather than $b^{(k)}$ alone.}}
     \label{fig:nema_scatter_est}
 \end{figure}
 
@@ -110,12 +107,12 @@ External Bremsstrahlung photons may be emitted after the $\beta^-$ particle has 
 
 The analytic primary projector blurs each source plane with a depth-dependent Gaussian point-spread function that represents the intrinsic and geometric components of the \gls{cdr}; scatter and penetration remain in $b_{\mathrm{MC}}$. For photon energy $E$ and source--collimator distance $h$, this \gls{psf} is
 \begin{equation}
-    K_{\mathrm{cdr}}(\mathbf r;h,E)=
-    \mathcal N\!\left(\mathbf r;\mathbf 0,
+    G_{\mathrm{cdr}}(\mathbf r;h,E)=
+    G\!\left(\mathbf r;\mathbf 0,
     \sigma_{\mathrm{cdr}}(h;E)^2\mathbb I\right),
     \label{eq:cdr_psf}
 \end{equation}
-an isotropic Gaussian in the detector plane whose standard deviation $\sigma_{\mathrm{cdr}}$ sets the blur width.\SA{By ${\rm r}$ I guess you mean "in-plane" distance whereas $h$ is perpendicular distance. But in any case $K$ is stationary (in plane) so you don't need the ${\rm r}$ dependence.} \gls{stir} models this width as affine in depth,
+an isotropic Gaussian in the detector plane, where $\mathbf r$ is the in-plane displacement between the projected source position and the detector bin, $h$ is the perpendicular source--collimator distance and $G$ is the Gaussian kernel of the Notation list. The response is stationary within a plane, so it depends on $\mathbf r$ only through this displacement and on position only through the depth $h$; the single parameter $\sigma_{\mathrm{cdr}}$ therefore sets the blur width. \gls{stir} models this width as affine in depth,
 \begin{equation}
     \sigma_{\mathrm{cdr}}(h;E)=c_0(E)+c_1(E)h,
     \label{eq:cdr_linear}
@@ -128,31 +125,26 @@ so the two coefficients $c_0(E),c_1(E)$ fully specify the depth-dependent \gls{c
 An exact reduced transport model would distinguish internal Bremsstrahlung, represented by an identity component at the decay site, from the displaced external component. The reconstruction implementation instead uses one zero-mean isotropic Gaussian as an empirical surrogate for their net central-response broadening,
 \begin{equation}
     G_{\mathrm{brem}}(\mathbf r)=
-    \mathcal N\!\left(\mathbf r;\mathbf 0,
+    G\!\left(\mathbf r;\mathbf 0,
     \sigma_{\mathrm{eff}}^2\mathbb I\right).
     \label{eq:brem}
 \end{equation}
-\SA{It's a but weird to use ${\mathcal N}$ as way of defining a Gaussian. Usually ${\mathcal N}$ is a probability density function which is a different entity to a convolution function. Why don't you just refer to a standard canonical Gaussian notation such as (in dimension $d$)
-\[
-G({\bf r}; \mu,\Sigma) := \frac{\exp\left[-({\bf r - \mu})^{\rm T}\Sigma^{-1}({\bf r - \mu})\right] }{\sqrt{(2 \pi)^d |\Sigma|}}
-\]
-You can put that in the notation table and just refer to it.}
 The Gaussian form is motivated by the external-photon displacement distributions of Rault et al., while its effective width was estimated from the water-equivalent Monte Carlo response study described below \cite{raultFastSimulationYttrium902010}. 
 
-The resulting operator $K_{\mathrm{brem}}$ is a three-dimensional Gaussian convolution applied in image space. It is composed with the analytic projector in the forward operation and with the analytic backprojector in reverse order in the adjoint,
+The resulting operator $C_{\mathrm{brem}}$ is a three-dimensional Gaussian convolution applied in image space. It is composed with the analytic projector in the forward operation and with the analytic backprojector in reverse order in the adjoint,
 \begin{equation}
-    A_{\star}=A_{\mathrm{prim}}K_{\mathrm{brem}},
+    A_{\star}=A_{\mathrm{prim}}C_{\mathrm{brem}},
     \qquad
-    A_{\star}^{\mathsf T}=K_{\mathrm{brem}}^{\mathsf T}
+    A_{\star}^{\mathsf T}=C_{\mathrm{brem}}^{\mathsf T}
     A_{\mathrm{prim}}^{\mathsf T}.
     \label{eq:brem_matched_operator}
 \end{equation}
-For the symmetric Gaussian kernel, $K_{\mathrm{brem}}^{\mathsf T}=K_{\mathrm{brem}}$. This construction therefore preserves a matched forward--adjoint pair while adding only an image-space convolution to each operation.
+For the symmetric Gaussian kernel, $C_{\mathrm{brem}}^{\mathsf T}=C_{\mathrm{brem}}$. This construction therefore preserves a matched forward--adjoint pair while adding only an image-space convolution to each operation.
 
 \subsection{Projection-response calibration and cross-code comparison}
 \label{subsec:brem_blur_validation}
 
-The approximation was assessed using spherical \SI{22}{\milli\metre} \isotope[90]{Y} source distributions in water, inspired by the physical phantoms produced by Rong et al in \cite{rongDevelopmentEvaluationImproved2012} \footnote{\SI{22}{\milli\metre} is chosen here as a source diameter approximately twice the maximum range of \isotope[90]{Y} electrons in water. A point source is not a useful surrogate for this calibration because surrounding material is needed to generate the measured bremsstrahlung response.}, and four source--collimator distances ($2$, $5$, $10$ and $20\,\mathrm{cm}$). Detector-plane response widths were compared for three energy windows representing standard practice at The Christie NHS Foundation Trust, Oxford University Hospitals Foundation Trust and The Royal Surrey NHS Foundation Trust. These were $[39.8,126.6]$, $[50,150]$ and $[75,225]\,\mathrm{keV}$, respectively. The four models were GATE Monte Carlo, SIMIND Monte Carlo, \glsentryshort{stir} with the geometric \glsentryshort{cdr} alone, and \glsentryshort{stir} with the geometric response composed with $K_{\mathrm{brem}}$. GATE provides the response used to calibrate and check the effective width, while SIMIND provides a cross-code comparison.
+The approximation was assessed using spherical \SI{22}{\milli\metre} \isotope[90]{Y} source distributions in water, inspired by the physical phantoms produced by Rong et al in \cite{rongDevelopmentEvaluationImproved2012} \footnote{\SI{22}{\milli\metre} is chosen here as a source diameter approximately twice the maximum range of \isotope[90]{Y} electrons in water. A point source is not a useful surrogate for this calibration because surrounding material is needed to generate the measured bremsstrahlung response.}, and four source--collimator distances ($2$, $5$, $10$ and $20\,\mathrm{cm}$). Detector-plane response widths were compared for three energy windows representing standard practice at The Christie NHS Foundation Trust, Oxford University Hospitals Foundation Trust and The Royal Surrey NHS Foundation Trust. These were $[39.8,126.6]$, $[50,150]$ and $[75,225]\,\mathrm{keV}$, respectively. The four models were GATE Monte Carlo, SIMIND Monte Carlo, \glsentryshort{stir} with the geometric \glsentryshort{cdr} alone, and \glsentryshort{stir} with the geometric response composed with $C_{\mathrm{brem}}$. GATE provides the response used to calibrate and check the effective width, while SIMIND provides a cross-code comparison.
 
 Figure~\ref{fig:gaussian_bremss_range} reports the fitted detector-plane standard deviation. The geometric-only STIR model is systematically narrower than both Monte Carlo responses. Adding the image-space kernel moves the STIR prediction towards the GATE and SIMIND values at every evaluated distance and for all three energy windows. The agreement is not exact, particularly for the widest window at large distance, but the comparison supports the Gaussian kernel as a practical reduced-order representation of the missing net response broadening. 
 
