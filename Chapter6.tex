@@ -36,7 +36,7 @@ This section builds on the definitions in Section~\ref{subsec:synergistic_recon}
 \subsection{Mathematical properties and differentiability}
 \label{subsec:tnv_differentiability}
 
-Briefly revisiting total variation, optimisation of $\mathcal{R}_{\mathrm{TV}}$ (cf.\ \eqref{eq:tv}) is inconvenient in gradient-based methods because these functionals are not globally smooth: the TV gradient is undefined when $(D x_m)_j=0$. A standard remedy is to introduce a small smoothing parameter $\epsilon>0$ and smooth using a Charbonnier fucntion.
+Briefly revisiting total variation, $\mathcal{R}_{\mathrm{TV}}$ (cf.\ \eqref{eq:tv}) is not differentiable when a voxel gradient $(D x_m)_j$ vanishes. For gradient-based optimisation, we use a Charbonnier smoothing with $\epsilon>0$.
 
 If we define
 \begin{equation}
@@ -54,7 +54,9 @@ then the image-space gradient is
 \end{equation}
 where the division is understood pointwise over voxels.
 
-For nuclear-norm vectorial total variation, the singular-value penalty is not differentiable when one or more singular values vanish. We therefore smooth the singular values using the same Charbonnier function
+The nuclear norm used by TNV is a particular orthogonally invariant penalty: $\|UYV^\top\|_*=\|Y\|_*$ for orthogonal $U\in\mathbb{R}^{d\times d}$ and $V\in\mathbb{R}^{M\times M}$. More generally, an orthogonally invariant scalar function of $Y\in\mathbb{R}^{d\times M}$ can be written as $F(Y)=f(\sigma(Y))$, where $\sigma(Y)$ lists its $r=\min\{d,M\}$ singular values and $f$ is \emph{absolutely symmetric}: invariant under permutations and sign changes of its arguments \cite{lewisConvexAnalysisUnitarily1995}. The nuclear norm corresponds to $f_0(s)=\sum_{\ell=1}^{r}|s_\ell|$. This absolute-value extension has a cusp at zero, explaining why the nuclear norm is not differentiable at rank-deficient matrices, even though singular values themselves are nonnegative.
+
+We smooth this cusp by applying the same Charbonnier function used for TV to each singular value \cite{charbonnier_deterministic_1997,fessler_image_2017}:
 \begin{equation}\label{eq:charbonnier_g}
 g(s)=\sqrt{s^2+\epsilon^2}-\epsilon,
 \qquad
@@ -64,41 +66,24 @@ g''(s)=\frac{\epsilon^2}{(s^2+\epsilon^2)^{3/2}},
 \end{equation}
 where $\epsilon>0$ controls the degree of smoothing.
 
-Orthogonally invariant functions are matrix-valued penalties that are unchanged by any rotation or reflection of the coordinate system. In other words, for orthogonal matrices $U\in\mathbb{R}^{d\times d}$ and $V\in\mathbb{R}^{M\times M}$,
+For the smoothed penalty, define
 \begin{equation}
-    \phi(Y)=\phi(UYV^\top).
-\end{equation}
-Such functions therefore do not depend on the particular basis used to represent $Y$, but only on basis-independent quantities such as its singular values. The broad class of orthogonally invariant functions can be written as
-\begin{equation}
-    \phi(Y):=f(\sigma(Y)),
+    \phi(Y):=f_\epsilon(\sigma(Y)),
     \qquad
-    f(s):=\sum_{\ell=1}^{r} g(s_\ell),
-    \qquad
-    r=\min\{d,M\}.
+    f_\epsilon(s):=\sum_{\ell=1}^{r}g(s_\ell).
 \end{equation}
-For symmetric matrices, the analogous construction gives spectral functions, which depend only on the eigenvalues.
-
-There is, however, a subtlety when considering smooth penalties of this type. Even if $g$ is smooth for nonnegative arguments, this does not automatically imply that $\phi$ is smooth as a function of the matrix $Y$. The singular values can coincide or pass through zero, at which point their individual ordering and signs in the corresponding spectral representation are not intrinsically defined. The Lewis--Sendov theory handles this by requiring the underlying function $f$ to extend smoothly to all of $\mathbb{R}^r$ and to be absolutely symmetric, meaning that it is unchanged by permutations and sign changes of its arguments
-\cite{lewisConvexAnalysisUnitarily1995,lewisDerivativesSpectralFunctions1996}.
-
-The unsmoothed choice $g(s)=s$ is $C^\infty$ (infinitely differentiable) on $[0,\infty)$, but the corresponding spectral function is the nuclear norm, which is not differentiable at rank-deficient matrices. By contrast, for $\epsilon>0$, the Charbonnier function in \eqref{eq:charbonnier_g} is naturally defined as an even function on $\mathbb{R}$ and is $C^\infty$ across $s=0$. Consequently,
-\begin{equation}
-    f(s)=\sum_{\ell=1}^{r}g(s_\ell)
-\end{equation}
-is absolutely symmetric and $C^\infty$ on $\mathbb{R}^r$. It follows that the associated spectral function $\phi=f\circ\sigma$ is differentiable everywhere, including at rank-deficient $Y$, with gradient given by the standard formula for orthogonally invariant matrix functions \cite{lewisConvexAnalysisUnitarily1995,lewisDerivativesSpectralFunctions1996}.
-
-Smoothing the singular values is therefore the spectral analogue of the corner rounding commonly used in \gls{tv} regularisation. In the scalar case, the nondifferentiable function $|z|$ is replaced by $\sqrt{z^2+\epsilon^2}$, yielding the hyperbola potential used in standard edge-preserving regularisation \cite{charbonnier_deterministic_1997, fessler_image_2017}.
+The Charbonnier function $g$ in \eqref{eq:charbonnier_g} is even, convex and smooth across zero, so $f_\epsilon$ is convex, absolutely symmetric and differentiable on all of $\mathbb{R}^r$. Lewis's gradient formula for convex orthogonally invariant functions therefore shows that $\phi$ is differentiable even when $Y$ is rank deficient \cite[Theorem~3.1]{lewisConvexAnalysisUnitarily1995}. This is the matrix analogue of smoothing the corner of the absolute value in scalar \gls{tv}.
 
 
 \paragraph{Convexity.}
-The function $f(s)=\sum_{\ell=1}^{r}\sqrt{s_\ell^2+\epsilon^2}-r\epsilon$ is convex and absolutely symmetric on $\mathbb{R}^r$, so by \cite{lewisConvexAnalysisUnitarily1995} the spectral function $\phi=f\circ\sigma$ is convex on $\mathbb{R}^{d\times M}$. All of the operators applied to $\bm{z}$ in the remainder of this chapter, namely the finite-difference operator $D$, the directional projectors $\Pi_{m,n}$ of Section~\ref{subsec:directional_from_guidance} and the weight matrices $B_n$ of Section~\ref{subsec:modality_weighting}, are linear and independent of $\bm{z}$. The smoothed prior is therefore a convex function composed with a linear map, and hence
+Since $f_\epsilon$ is convex and absolutely symmetric, $\phi=f_\epsilon\circ\sigma$ is convex on $\mathbb{R}^{d\times M}$ \cite[Corollary~2.6]{lewisConvexAnalysisUnitarily1995}. The finite-difference operator $D$, directional operators $\Pi_{m,n}$ of Section~\ref{subsec:directional_from_guidance}, and weight matrices $B_n$ of Section~\ref{subsec:modality_weighting} are fixed linear maps. Composing $\phi$ with these maps and summing over voxels preserves convexity, so
 \begin{equation}
     \mathcal{R}_{\mathrm{w\text{-}dTNV}} \ \text{is convex on}\ \mathbb{R}^{N\times M}.
     \label{eq:wdtnv_convex}
-\end{equation}.
+\end{equation}
 
 \paragraph{Jacobian-space gradient.}
-Let $\phi(\mathcal{G})=\sum_{\ell=1}^{\min(d,M)} g(\sigma_\ell(\mathcal{G}))$, where $\sigma_\ell(\mathcal{G})$ are the singular values of the voxel-wise Jacobian matrix $\mathcal{G}\in\mathbb{R}^{d\times M}$. A thin \gls{svd}
+For a voxel-wise Jacobian $\mathcal{G}\in\mathbb{R}^{d\times M}$, a thin \gls{svd}
 \begin{equation}
 \mathcal{G} \;=\; U\,\Sigma\,V^\top,
 \qquad
