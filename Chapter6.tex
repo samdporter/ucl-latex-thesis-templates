@@ -20,11 +20,11 @@ This section builds on the definitions in Section~\ref{subsec:synergistic_recon}
         \mathcal{G}_n(\bm{z})
         \coloneqq
         \begin{bmatrix}
-        D z_{1,n} & D z_{2,n} & \cdots & D z_{M,n}
+        (D z_1)_n & (D z_2)_n & \cdots & (D z_M)_n
         \end{bmatrix}
         \in \mathbb{R}^{d\times M}.
     \]
-    \item Nuclear norm: for a matrix $Y$ with singular values $\{\sigma_k(Y)\}_{k=1}^{r}$ and $r=\operatorname{rank}(Y)$,
+    \item Nuclear norm: for a matrix $Y\in\mathbb{R}^{d\times M}$ with singular values $\{\sigma_k(Y)\}_{k=1}^{r}$ and $r=\min\{d,M\}$,
     \[
         \|Y\|_* \coloneqq \sum_{k=1}^{r}\sigma_k(Y).
     \]

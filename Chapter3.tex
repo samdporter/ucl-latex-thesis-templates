@@ -251,14 +251,14 @@ The paper reports that this sequential design is particularly beneficial for low
 
 Sequential guidance is limited by one-way dependency: errors in $u$ may propagate directly to $x$ and the shared information may not be fully utilised. Truly synergistic reconstruction estimates both images simultaneously, allowing information to flow bi-directionally. Perhaps the most obvious way to extend single modality regularisation to achieve a synergistic regulariser is \gls{jtv} \cite{blomgrenColorTVTotal1998}, a simple extension of TV which sums gradient magnitudes:
 \begin{equation}
-    \mathcal{R}_{\mathrm{JTV}}(\bm{z}) = \sum_{n=1}^N \sqrt{ \|D z_{1,n}\|^2 + \|D z_{2,n}\|^2 + \dots +\|D z_{M,n}\|^2 }.
+    \mathcal{R}_{\mathrm{JTV}}(\bm{z}) = \sum_{n=1}^N \sqrt{ \|(D z_1)_n\|^2 + \|(D z_2)_n\|^2 + \dots +\|(D z_M)_n\|^2 }.
 \end{equation}
 This encourages joint sparsity, encouraging co-located edges. A convenient way to formalise multi-modality edge co-localisation is to view the set of images as a vector-valued field.  For each voxel $n$, the voxel-wise Jacobian is defined by stacking image gradients (Equation \ref{eq:finite_difference}) in columns:
 \begin{equation}\label{eq:jacobian}
 \mathcal{G}_n(\bm{z})
 \;\coloneqq\;
 \begin{bmatrix}
-D z_{1,n} & D z_{2,n} & \cdots & D z_{M,n}
+(D z_1)_n & (D z_2)_n & \cdots & (D z_M)_n
 \end{bmatrix}
 \;\in\; \mathbb{R}^{d\times M}.
 \end{equation}
@@ -270,7 +270,7 @@ where the Schatten $p$-norm is defined as
 \begin{equation}\label{eq:schatten}
     \|Y\|_{Sp} \coloneqq \left(\sum_{r=1}^{R}\sigma_r(Y)^p\right)^{1/p}
 \end{equation}
-for singular values $\sigma_\ell(Y)$ of a rank-$R$ matrix $Y$. Note that $R=\min\{d,M\}$. The Schatten $1$-norm, also known as the nuclear norm is the sum of singular values
+for a matrix $Y\in\mathbb{R}^{d\times M}$, where $R=\min\{d,M\}$. The Schatten $1$-norm, also known as the nuclear norm, is the sum of singular values
 \begin{equation}
     \|Y\|_* = \sum_{r=1}^{R}\sigma_r(Y).
 \end{equation}
