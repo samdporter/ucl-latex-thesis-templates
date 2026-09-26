@@ -6,10 +6,9 @@ The optimisation machinery used to apply this prior in large-scale \gls{pet}/\gl
 
 \section{Total Nuclear Variation Revisited}
 \label{sec:tv_to_tnv}
-
 This section builds on the definitions in Section~\ref{subsec:synergistic_recon}. For convenience, we restate the key definitions here:
 \begin{itemize}
-    \item Registered images: $\bm{z} \coloneqq (z_1,\dots,z_M)\in(\mathbb{R}_+^N)^M\simeq\mathbb{R}_+^{N\times M}$, where the matrix-space identification stacks the images as columns, $z_m \coloneqq W_m x_m$, and
+    \item Registered images: $\bm{z} \coloneqq (z_1,\dots,z_M)\in\mathbb{R}_+^{N\times M}$, where the matrix-space identification stacks the images as columns, $z_m \coloneqq W_m x_m$, and
     $W_m : \mathbb{R}_+^{J_m} \to \mathbb{R}_+^{N}$.
     \item Finite-difference operator: for $\ell=1,\dots,d$,
     \[
@@ -37,7 +36,7 @@ This section builds on the definitions in Section~\ref{subsec:synergistic_recon}
 \subsection{Mathematical properties and differentiability}
 \label{subsec:tnv_differentiability}
 
-Briefly revisiting total variation, optimisation of $\mathcal{R}_{\mathrm{TV}}$ (cf.\ \eqref{eq:tv}) is inconvenient in gradient-based methods because these functionals are not globally smooth: the TV gradient is undefined when $(D x_m)_j=0$. A standard remedy is to introduce a small smoothing parameter $\epsilon>0$.
+Briefly revisiting total variation, optimisation of $\mathcal{R}_{\mathrm{TV}}$ (cf.\ \eqref{eq:tv}) is inconvenient in gradient-based methods because these functionals are not globally smooth: the TV gradient is undefined when $(D x_m)_j=0$. A standard remedy is to introduce a small smoothing parameter $\epsilon>0$ and smooth using a Charbonnier fucntion.
 
 If we define
 \begin{equation}
@@ -55,7 +54,7 @@ then the image-space gradient is
 \end{equation}
 where the division is understood pointwise over voxels.
 
-For nuclear-norm vectorial total variation, the singular-value penalty is not differentiable when one or more singular values vanish. We therefore smooth the singular values using the Charbonnier function
+For nuclear-norm vectorial total variation, the singular-value penalty is not differentiable when one or more singular values vanish. We therefore smooth the singular values using the same Charbonnier function
 \begin{equation}\label{eq:charbonnier_g}
 g(s)=\sqrt{s^2+\epsilon^2}-\epsilon,
 \qquad
@@ -65,20 +64,24 @@ g''(s)=\frac{\epsilon^2}{(s^2+\epsilon^2)^{3/2}},
 \end{equation}
 where $\epsilon>0$ controls the degree of smoothing.
 
-The nuclear norm is orthogonally invariant: for any orthogonal matrices $U\in\mathbb{R}^{d\times d}$ and $V\in\mathbb{R}^{M\times M}$,
+Orthogonally invariant functions are matrix-valued penalties that are unchanged by any rotation or reflection of the coordinate system. In other words, for orthogonal matrices $U\in\mathbb{R}^{d\times d}$ and $V\in\mathbb{R}^{M\times M}$,
 \begin{equation}
-    |Y|_*=|UYV^\top|_*.
+    \phi(Y)=\phi(UYV^\top).
 \end{equation}
-More generally, let
+Such functions therefore do not depend on the particular basis used to represent $Y$, but only on basis-independent quantities such as its singular values. The broad class of orthogonally invariant functions can be written as
 \begin{equation}
-    \phi(Y):=f(\sigma(Y)), \qquad f(s):=\sum_{\ell=1}^{r} g(s_\ell), \qquad r=\min{d,M},
+    \phi(Y):=f(\sigma(Y)),
+    \qquad
+    f(s):=\sum_{\ell=1}^{r} g(s_\ell),
+    \qquad
+    r=\min\{d,M\}.
 \end{equation}
-where $\sigma(Y)=(\sigma_1(Y),\ldots,\sigma_r(Y))$ denotes the vector of singular values of (Y). Then$\phi$ is orthogonally invariant and depends on (Y) only through its singular values.
+For symmetric matrices, the analogous construction gives spectral functions, which depend only on the eigenvalues.
 
-Smoothness of $g$ on $[0,\infty)$ however, is not by itself sufficient to guarantee smoothness of $\phi$. The Lewis--Sendov theory of spectral functions requires $f$ to be absolutely symmetric, meaning that it is invariant under both permutations and sign changes of its arguments. Moreover, $f$ must be differentiable as a function on all of $\mathbb{R}^r$, rather than only on the nonnegative orthant
+There is, however, a subtlety when considering smooth penalties of this type. Even if $g$ is smooth for nonnegative arguments, this does not automatically imply that $\phi$ is smooth as a function of the matrix $Y$. The singular values can coincide or pass through zero, at which point their individual ordering and signs in the corresponding spectral representation are not intrinsically defined. The Lewis--Sendov theory handles this by requiring the underlying function $f$ to extend smoothly to all of $\mathbb{R}^r$ and to be absolutely symmetric, meaning that it is unchanged by permutations and sign changes of its arguments
 \cite{lewisConvexAnalysisUnitarily1995,lewisDerivativesSpectralFunctions1996}.
 
-This distinction is essential. The unsmoothed choice $g(s)=s$ is $C^\infty$ (infinitely differentiable) on $[0,\infty)$, but the corresponding spectral function is the nuclear norm, which is not differentiable at rank-deficient matrices. By contrast, for $\epsilon>0$, the Charbonnier function in \eqref{eq:charbonnier_g} is naturally defined as an even function on $\mathbb{R}$ and is $C^\infty$ across $s=0$. Consequently,
+The unsmoothed choice $g(s)=s$ is $C^\infty$ (infinitely differentiable) on $[0,\infty)$, but the corresponding spectral function is the nuclear norm, which is not differentiable at rank-deficient matrices. By contrast, for $\epsilon>0$, the Charbonnier function in \eqref{eq:charbonnier_g} is naturally defined as an even function on $\mathbb{R}$ and is $C^\infty$ across $s=0$. Consequently,
 \begin{equation}
     f(s)=\sum_{\ell=1}^{r}g(s_\ell)
 \end{equation}
