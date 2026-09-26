@@ -1,7 +1,7 @@
 \chapter{Monte Carlo-Informed Modelling for \isotope[90]{Y} Bremsstrahlung SPECT}
 \label{chapterlabel3}
 
-Chapter~\ref{chap:intro_material} described the principal limitations of \isotope[90]{Y} Bremsstrahlung \gls{spect}: the continuous photon spectrum makes conventional energy-window scatter correction unsuitable, high-energy photons undergo septal penetration and collimator scatter, and external Bremsstrahlung photons may be emitted away from the original decay site as the $\beta^-$ particle traverses tissue. This chapter develops a practical \glsentryshort{spect} model used later for joint \glsentryshort{pet}/\glsentryshort{spect} reconstruction. It addresses two specific components: a \glsentryshort{simind}-derived estimate of non-primary counts and an image-space approximation to Bremsstrahlung range blur.
+Chapter~\ref{chap:intro_material} described the principal limitations of \isotope[90]{Y} Bremsstrahlung \gls{spect}: the continuous photon spectrum makes conventional energy-window scatter correction unsuitable, high-energy photons undergo septal penetration and collimator scatter, and external Bremsstrahlung photons may be emitted away from the original decay site as the $\beta^-$ particle traverses tissue. This chapter develops a practical \glsentryshort{spect} model used later for joint \glsentryshort{pet}/\glsentryshort{spect} reconstruction. It addresses two specific components: an image-space approximation to Bremsstrahlung range blur and a \glsentryshort{simind}-derived estimate of non-primary counts.
 
 The resulting model is
 \begin{equation} \label{eq:brems_forward_model}
@@ -12,10 +12,85 @@ where $A_{\mathrm{prim}}$ contains attenuation, geometric projection, the intrin
 The two components in Equation~\ref{eq:brems_forward_model} are estimated in a preparatory stage. Once estimated, both the acquisition model and $b_{\mathrm{MC}}$ are fixed during the target reconstruction. The purpose of the reconstruct--simulate loop below is to prepare an object- and acquisition-specific additive estimate, which avoids altering the objective function, and therefore the solution, during reconstruction.
 
 
+\section{The \glsentryshort{spect} Projection Response Model}
+\label{sec:brem_range_blur}
+
+External Bremsstrahlung photons may be emitted after the $\beta^-$ particle has travelled away from the \isotope[90]{Y} decay site, whereas internal Bremsstrahlung is emitted at the decay site. The displacement distribution of the external component is energy dependent, as illustrated in Figure~\ref{fig:source_to_emission}, and its net contribution adds a resolution loss distinct from the collimator--detector response \cite{raultFastSimulationYttrium902010,rongDevelopmentEvaluationImproved2012, dewarajaImpactInternalBremsstrahlung2018}. Detailed Monte Carlo projectors can model this transport directly, but repeatedly evaluating such a model is impractical for the iterative and joint reconstructions developed later in this thesis.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.68\linewidth]{figures/Chapter3/source_to_emission.png}
+    \caption{Probability of external Bremsstrahlung photon emission as a function
+    of displacement from the \isotope[90]{Y} decay site for four photon-energy
+    intervals. Curves were derived from the fast-simulation data reported by
+    Rault et al.\ \cite{raultFastSimulationYttrium902010}.}
+    \label{fig:source_to_emission}
+\end{figure}
+
+\subsection{Primary collimator--detector response}
+
+The analytic primary projector blurs each source plane with a depth-dependent Gaussian response function that represents the intrinsic and geometric components of the \gls{cdr} \cite{fuster_integration_2013}; scatter and penetration remain in $b_{\mathrm{MC}}$. For photon energy $E$ and source--collimator distance $h$, this \gls{cdr} is
+\begin{equation}
+    G_{\mathrm{cdr}}(\mathbf r;h,E)=
+    G\!\left(\mathbf r;\mathbf 0,
+    \sigma_{\mathrm{cdr}}(h;E)^2\mathbb I\right),
+    \label{eq:cdr_psf}
+\end{equation}
+an isotropic Gaussian in the detector plane, where $\mathbf r$ is the in-plane displacement between the projected source position and the detector bin, $h$ is the perpendicular source--collimator distance and $G$ is the Gaussian kernel of the Notation list. The response is stationary within a plane, so it depends on $\mathbf r$ only through this displacement and on position only through the depth $h$; the single parameter $\sigma_{\mathrm{cdr}}$ therefore sets the blur width. \gls{stir} models this width as affine in depth,
+\begin{equation}
+    \sigma_{\mathrm{cdr}}(h;E)=c_0(E)+c_1(E)h,
+    \label{eq:cdr_linear}
+\end{equation}
+so the two coefficients $c_0(E),c_1(E)$ fully specify the depth-dependent \gls{cdr} for a given energy. Physically, however, the \gls{cdr} standard deviation is the quadrature sum of a depth-independent intrinsic term and a depth-dependent parallel-hole geometric term, $\sqrt{\sigma_{\mathrm{int}}(E)^2+\sigma_{\mathrm{geo}}(h;E)^2}$, which is not affine in $h$. We therefore fit \gls{stir}'s affine model \eqref{eq:cdr_linear} by least squares over $h\in[2,20]\,\mathrm{cm}$ to this quadrature sum, evaluated from the measured intrinsic and analytic geometric standard deviations. Over this range the quadrature sum is close to linear, so the affine surrogate reproduces the conventional distance dependence of the collimator response to within the accuracy required inside the projector \cite{angerSensitivityResolutionLinearity1966}.
+
+\subsection{Effective Gaussian range-kernel approximation}
+\label{subsec:brem_specific_blur}
+
+An exact reduced transport model would distinguish internal Bremsstrahlung, represented by an identity component at the decay site, from the displaced external component. The reconstruction implementation instead uses one zero-mean isotropic Gaussian as an empirical surrogate for their net central-response broadening,
+\begin{equation}
+    G_{\mathrm{brem}}(\mathbf r)=
+    G\!\left(\mathbf r;\mathbf 0,
+    \sigma_{\mathrm{eff}}^2\mathbb I\right).
+    \label{eq:brem}
+\end{equation}
+The Gaussian form is motivated by the external-photon displacement distributions of Rault et al., while its effective width was estimated from the water-equivalent Monte Carlo response study described below \cite{raultFastSimulationYttrium902010}.
+
+The resulting operator $C_{\mathrm{brem}}$ is a three-dimensional Gaussian convolution applied in image space. It is composed with the analytic projector in the forward operation and with the analytic backprojector in reverse order in the adjoint,
+\begin{equation}
+    A_{\star}=A_{\mathrm{prim}}C_{\mathrm{brem}},
+    \qquad
+    A_{\star}^{\mathsf T}=C_{\mathrm{brem}}^{\mathsf T}
+    A_{\mathrm{prim}}^{\mathsf T}.
+    \label{eq:brem_matched_operator}
+\end{equation}
+For the symmetric Gaussian kernel, $C_{\mathrm{brem}}^{\mathsf T}=C_{\mathrm{brem}}$. This construction therefore preserves a matched forward--adjoint pair while adding only an image-space convolution to each operation. The composition of the \gls{cdr} with $C_{\mathrm{brem}}$ is referred to below as the total projection response.
+
+\subsection{Projection-response calibration and cross-code comparison}
+\label{subsec:brem_blur_validation}
+
+The total approximation was assessed using spherical \SI{22}{\milli\metre} \isotope[90]{Y} source distributions in water, inspired by the physical phantoms produced by Rong et al in \cite{rongDevelopmentEvaluationImproved2012} \footnote{\SI{22}{\milli\metre} is chosen here as a source diameter approximately twice the maximum range of \isotope[90]{Y} electrons in water. A point source is not a useful surrogate for this calibration because surrounding material is needed to generate the measured bremsstrahlung response.}, and four source--collimator distances ($2$, $5$, $10$ and $20\,\mathrm{cm}$). Detector-plane response widths were compared for three energy windows representing standard practice at The Christie NHS Foundation Trust, Oxford University Hospitals Foundation Trust and The Royal Surrey NHS Foundation Trust. These were $[39.8,126.6]$, $[50,150]$ and $[75,225]\,\mathrm{keV}$, respectively. The four models were GATE Monte Carlo, SIMIND Monte Carlo, \glsentryshort{stir} with the geometric \glsentryshort{cdr} alone, and \glsentryshort{stir} with the geometric response composed with $C_{\mathrm{brem}}$. GATE provides the response used to calibrate and check the effective width, while SIMIND provides a cross-code comparison.
+
+Figure~\ref{fig:gaussian_bremss_range} reports the fitted detector-plane standard deviation. The geometric-only STIR model is systematically narrower than both Monte Carlo responses. Adding the image-space kernel moves the STIR prediction towards the GATE and SIMIND values at every evaluated distance and for all three energy windows. The agreement is not exact, particularly for the widest window at large distance, but the comparison supports the Gaussian kernel as a practical reduced-order representation of the missing net response broadening.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{figures/Chapter3/Gaussian_bremss_range.png}
+    \caption{Projection space Gaussian response standard deviation, $\sigma$ (cm), against
+    source--collimator distance for (a) $[39.8,126.6]$, (b) $[50,150]$ and
+    (c) $[75,225]\,\mathrm{keV}$. Markers show GATE MC, SIMIND MC, STIR with the
+    geometric response, and STIR with the geometric response plus the image-space
+    effective kernel. The geometric-only STIR projector
+    underestimates the width; composing it with the image-space
+    Bremsstrahlung kernel substantially reduces the net width discrepancy across the
+    evaluated distances and windows.}
+    \label{fig:gaussian_bremss_range}
+\end{figure}
+
+
 \section{Pre-Reconstruction Estimation of Non-Primary Counts}
 \label{sec:additive_corrections}
 
-Monte Carlo estimates of scatter and penetration can be combined with a faster analytic projector by alternating reconstruction and simulation \cite{dewarajaImprovedQuantitative90Y2017}. The approach used here follows that established principle. The practical questions addressed in this chapter are how to initialise the simulation for a different acquisition protocol and how to prevent an alternating update from becoming unstable before the final additive term is frozen.
+With the projection response fixed as described above, Monte Carlo estimates of scatter and penetration can be combined with a faster analytic projector by alternating reconstruction and simulation \cite{dewarajaImprovedQuantitative90Y2017}. The approach used here follows that established principle. The practical questions addressed in this chapter are how to initialise the simulation for a different acquisition protocol and how to prevent an alternating update from becoming unstable before the final additive term is frozen.
 
 \subsection{Learned initialisation}
 
@@ -90,81 +165,6 @@ Figure~\ref{fig:nema_scatter_est} shows the diagnostic that motivated this choic
 After the tenth outer iteration, the final estimate is denoted $b_{\mathrm{MC}}=b^{(10)}$ and is frozen. No additional SIMIND simulation or additive-term update is performed during the target reconstruction. This makes $b_{\mathrm{MC}}$ a data- and activity-dependent plug-in estimate and the target reconstruction has a fixed objective.
 
 
-\section{Image-Space Bremsstrahlung Range Blur}
-\label{sec:brem_range_blur}
-
-External Bremsstrahlung photons may be emitted after the $\beta^-$ particle has travelled away from the \isotope[90]{Y} decay site, whereas internal Bremsstrahlung is emitted at the decay site. The displacement distribution of the external component is energy dependent, as illustrated in Figure~\ref{fig:source_to_emission}, and its net contribution adds a resolution loss distinct from the collimator--detector response \cite{raultFastSimulationYttrium902010,rongDevelopmentEvaluationImproved2012, dewarajaImpactInternalBremsstrahlung2018}. Detailed Monte Carlo projectors can model this transport directly, but repeatedly evaluating such a model is impractical for the iterative and joint reconstructions developed later in this thesis.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.68\linewidth]{figures/Chapter3/source_to_emission.png}
-    \caption{Probability of external Bremsstrahlung photon emission as a function
-    of displacement from the \isotope[90]{Y} decay site for four photon-energy
-    intervals. Curves were derived from the fast-simulation data reported by
-    Rault et al.\ \cite{raultFastSimulationYttrium902010}.}
-    \label{fig:source_to_emission}
-\end{figure}
-
-\subsection{Primary collimator--detector response}
-
-The analytic primary projector blurs each source plane with a depth-dependent Gaussian point-spread function that represents the intrinsic and geometric components of the \gls{cdr} \cite{fuster_integration_2013}; scatter and penetration remain in $b_{\mathrm{MC}}$. For photon energy $E$ and source--collimator distance $h$, this \gls{psf} is
-\begin{equation}
-    G_{\mathrm{cdr}}(\mathbf r;h,E)=
-    G\!\left(\mathbf r;\mathbf 0,
-    \sigma_{\mathrm{cdr}}(h;E)^2\mathbb I\right),
-    \label{eq:cdr_psf}
-\end{equation}
-an isotropic Gaussian in the detector plane, where $\mathbf r$ is the in-plane displacement between the projected source position and the detector bin, $h$ is the perpendicular source--collimator distance and $G$ is the Gaussian kernel of the Notation list. The response is stationary within a plane, so it depends on $\mathbf r$ only through this displacement and on position only through the depth $h$; the single parameter $\sigma_{\mathrm{cdr}}$ therefore sets the blur width. \gls{stir} models this width as affine in depth,
-\begin{equation}
-    \sigma_{\mathrm{cdr}}(h;E)=c_0(E)+c_1(E)h,
-    \label{eq:cdr_linear}
-\end{equation}
-so the two coefficients $c_0(E),c_1(E)$ fully specify the depth-dependent \gls{cdr} for a given energy. Physically, however, the \gls{cdr} standard deviation is the quadrature sum of a depth-independent intrinsic term and a depth-dependent parallel-hole geometric term, $\sqrt{\sigma_{\mathrm{int}}(E)^2+\sigma_{\mathrm{geo}}(h;E)^2}$, which is not affine in $h$. We therefore fit \gls{stir}'s affine model \eqref{eq:cdr_linear} by least squares over $h\in[2,20]\,\mathrm{cm}$ to this quadrature sum, evaluated from the measured intrinsic and analytic geometric standard deviations. Over this range the quadrature sum is close to linear, so the affine surrogate reproduces the conventional distance dependence of the collimator response to within the accuracy required inside the projector \cite{angerSensitivityResolutionLinearity1966}.
-
-\subsection{Effective Gaussian range-kernel approximation}
-\label{subsec:brem_specific_blur}
-
-An exact reduced transport model would distinguish internal Bremsstrahlung, represented by an identity component at the decay site, from the displaced external component. The reconstruction implementation instead uses one zero-mean isotropic Gaussian as an empirical surrogate for their net central-response broadening,
-\begin{equation}
-    G_{\mathrm{brem}}(\mathbf r)=
-    G\!\left(\mathbf r;\mathbf 0,
-    \sigma_{\mathrm{eff}}^2\mathbb I\right).
-    \label{eq:brem}
-\end{equation}
-The Gaussian form is motivated by the external-photon displacement distributions of Rault et al., while its effective width was estimated from the water-equivalent Monte Carlo response study described below \cite{raultFastSimulationYttrium902010}. 
-
-The resulting operator $C_{\mathrm{brem}}$ is a three-dimensional Gaussian convolution applied in image space. It is composed with the analytic projector in the forward operation and with the analytic backprojector in reverse order in the adjoint,
-\begin{equation}
-    A_{\star}=A_{\mathrm{prim}}C_{\mathrm{brem}},
-    \qquad
-    A_{\star}^{\mathsf T}=C_{\mathrm{brem}}^{\mathsf T}
-    A_{\mathrm{prim}}^{\mathsf T}.
-    \label{eq:brem_matched_operator}
-\end{equation}
-For the symmetric Gaussian kernel, $C_{\mathrm{brem}}^{\mathsf T}=C_{\mathrm{brem}}$. This construction therefore preserves a matched forward--adjoint pair while adding only an image-space convolution to each operation.
-
-\subsection{Projection-response calibration and cross-code comparison}
-\label{subsec:brem_blur_validation}
-
-The total approximation was assessed using spherical \SI{22}{\milli\metre} \isotope[90]{Y} source distributions in water, inspired by the physical phantoms produced by Rong et al in \cite{rongDevelopmentEvaluationImproved2012} \footnote{\SI{22}{\milli\metre} is chosen here as a source diameter approximately twice the maximum range of \isotope[90]{Y} electrons in water. A point source is not a useful surrogate for this calibration because surrounding material is needed to generate the measured bremsstrahlung response.}, and four source--collimator distances ($2$, $5$, $10$ and $20\,\mathrm{cm}$). Detector-plane response widths were compared for three energy windows representing standard practice at The Christie NHS Foundation Trust, Oxford University Hospitals Foundation Trust and The Royal Surrey NHS Foundation Trust. These were $[39.8,126.6]$, $[50,150]$ and $[75,225]\,\mathrm{keV}$, respectively. The four models were GATE Monte Carlo, SIMIND Monte Carlo, \glsentryshort{stir} with the geometric \glsentryshort{cdr} alone, and \glsentryshort{stir} with the geometric response composed with $C_{\mathrm{brem}}$. GATE provides the response used to calibrate and check the effective width, while SIMIND provides a cross-code comparison.
-
-Figure~\ref{fig:gaussian_bremss_range} reports the fitted detector-plane standard deviation. The geometric-only STIR model is systematically narrower than both Monte Carlo responses. Adding the image-space kernel moves the STIR prediction towards the GATE and SIMIND values at every evaluated distance and for all three energy windows. The agreement is not exact, particularly for the widest window at large distance, but the comparison supports the Gaussian kernel as a practical reduced-order representation of the missing net response broadening. 
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\linewidth]{figures/Chapter3/Gaussian_bremss_range.png}
-    \caption{Projection space Gaussian \gls{psf} standard deviation, $\sigma$ (cm), against
-    source--collimator distance for (a) $[39.8,126.6]$, (b) $[50,150]$ and
-    (c) $[75,225]\,\mathrm{keV}$. Markers show GATE MC, SIMIND MC, STIR with the
-    geometric response, and STIR with the geometric response plus the image-space
-    effective kernel. The geometric-only STIR projector
-    underestimates the width; composing it with the image-space
-    Bremsstrahlung kernel substantially reduces the net width discrepancy across the
-    evaluated distances and windows.}
-    \label{fig:gaussian_bremss_range}
-\end{figure}
-
-
 \section{Scope, Limitations and Deployment}
 \label{sec:brems_deployment}
 
@@ -177,4 +177,4 @@ The configuration carried forward is as follows: a learned additive estimate is 
 
 \section{Summary}
 
-This chapter established the two Bremsstrahlung-specific components required by the later reconstruction experiments. First, a learned projection estimate was used to initialise object- and acquisition-specific SIMIND simulations of non-primary contamination. Full replacement was unstable in the measured NEMA example, whereas an under-relaxed update with $\alpha=0.2$ remained bounded over the prescribed refinement budget. The resulting additive estimate was then frozen. Second, Monte Carlo response broadening was represented by a image-space Gaussian. Composing this kernel with the analytic projector brought projected response widths substantially closer to GATE and SIMIND across three energy windows. Together, these components define the fixed \isotope[90]{Y} Bremsstrahlung \glsentryshort{spect} model used in the final joint-reconstruction study.
+This chapter established the two Bremsstrahlung-specific components required by the later reconstruction experiments. First, a learned projection estimate was used to initialise object- and acquisition-specific SIMIND simulations of non-primary contamination. Full replacement was unstable in the measured NEMA example, whereas an under-relaxed update with $\alpha=0.2$ remained bounded over the prescribed refinement budget. The resulting additive estimate was then frozen. Second, Monte Carlo response broadening was represented by an image-space Gaussian. Composing this kernel with the analytic projector brought projected response widths substantially closer to GATE and SIMIND across three energy windows. Together, these components define the fixed \isotope[90]{Y} Bremsstrahlung \glsentryshort{spect} model used in the final joint-reconstruction study.
