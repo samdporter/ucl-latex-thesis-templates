@@ -1,7 +1,7 @@
 \chapter{Optimisation for Synergistic Reconstruction}
 \label{chapter:optimisation}
 
-Chapter~\ref{chapter:wdtnv} defined the smoothed weighted directional total nuclear variation prior. This chapter examines how that prior behaves in the reconstruction pipeline. The experiments cover overlapping \gls{pet} beds, the organisation of \gls{pet}/\gls{spect} subsets, and the inclusion of prior curvature in the preconditioner. Over the common 20-pass protocol, the folded prior schedule was the only tested schedule that reduced \gls{nrmse}; prior-aware scaling kept count-limited \gls{pet} bounded; and no prior-curvature model was a universal winner.
+Chapter~\ref{chapter:wdtnv} defined the smoothed weighted directional total nuclear variation prior. This chapter examines how that prior behaves in the reconstruction pipeline. The experiments cover overlapping \gls{pet} beds, the organisation of \gls{pet}/\gls{spect} subsets, and the inclusion of prior curvature in the preconditioner. 
 
 \section{Multi-Bed \gls{pet} Acquisition}
 \label{sec:multibed}
@@ -64,12 +64,12 @@ The corresponding \gls{pet} sensitivity image on the combined grid is
     R_{\mathrm{bed}}^\top A_{\mathrm{bed}}^\top \bm 1.
     \label{eq:multibed_sensitivity}
 \end{equation}
-This sensitivity is used in the \gls{em}/\gls{bsrem} data-curvature term in exactly the same way as the single-bed sensitivity in Equation~\eqref{eq:data_hessian_surrogate}. Each bed thus contributes its own data term and sensitivity to a single combined image, while the image-domain prior is evaluated over the complete field of view. The formulation is needed for the dual-bed application in Chapter~\ref{chapter:paper}; the controlled subset and preconditioner studies below instead use a one-bed phantom to isolate optimisation effects. The preceding multi-bed example is qualitative and does not enter those comparisons.
+Each bed thus contributes its own data term and sensitivity to a single combined image, while the image-domain prior is evaluated over the complete field of view. The formulation is needed for the dual-bed application in Chapter~\ref{chapter:paper}. The controlled subset and preconditioner studies below use a one-bed phantom to isolate optimisation effects.
 
 \section{Stochastic \gls{map} Optimisation}
 \label{sec:optimisation_svrg}
 
-Let $\bm z=(z_1,z_2)$ denote the \gls{pet} and \gls{spect} images represented on a common reconstruction grid. For $N_{\mathrm d}$ sampled data functions, define $\mathcal D(\bm z)=\sum_{i=1}^{N_{\mathrm d}}\mathcal D_i(\bm z)$. The objective is
+Let $\bm z=(z_1,z_2)$ again denote the \gls{pet} and \gls{spect} images represented on a common reconstruction grid. For $N_{\mathrm d}$ subset data functions, define $\mathcal D(\bm z)=\sum_{i=1}^{N_{\mathrm d}}\mathcal D_i(\bm z)$. The objective is
 \begin{equation}
     \mathcal{O}(\bm z)
     =
@@ -80,9 +80,9 @@ Let $\bm z=(z_1,z_2)$ denote the \gls{pet} and \gls{spect} images represented on
     \iota_{\mathbb{R}_+}(\bm z),
     \label{eq:optimisation_objective}
 \end{equation}
-where $\mathcal{D}_i$ is a Poisson negative log-likelihood term composed with the relevant projector, image-space registration operator, and optional resolution model; $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ is the prior from Chapter~\ref{chapter:wdtnv}; and $\iota_{\mathbb{R}_+}$ is the indicator of the non-negative orthant, equal to zero when $\bm z\geq 0$ component-wise and $+\infty$ otherwise. The gradient estimator $g^{(k)}$ contains only the smooth terms $\mathcal D+\mathcal R$; the proximal map of the non-smooth indicator clips negative components to zero, as implemented by $\{\cdot\}_{\geq 0}$ in Equation~\eqref{eq:optimisation_projected_update}.
+where $\mathcal{D}_i$ is a Poisson negative log-likelihood term composed with the relevant projector, image-space registration operator; $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ is the prior from Chapter~\ref{chapter:wdtnv}; and $\iota_{\mathbb{R}_+}$ is the indicator of the non-negative orthant, equal to zero when $\bm z\geq 0$ component-wise and $+\infty$ otherwise. The gradient estimator $g^{(k)}$ contains only the smooth terms $\mathcal D+\mathcal R$; the proximal map of the non-smooth indicator clips negative components to zero, as implemented by $\{\cdot\}_{\geq 0}$ in Equation~\eqref{eq:optimisation_projected_update}.
 
-The stochastic experiments use \gls{svrg} \cite{johnsonAcceleratingStochasticGradient2013,twyman_investigation_2023,ehrhardtFastPETReconstruction2025a}. Writing $\mathcal R=\mathcal{R}_{\mathrm{w\text{-}dTNV}}$, the implemented estimator keeps the complete prior outside the sampler. At anchor point $\widetilde{\bm z}$ it is
+The stochastic experiments use \gls{svrg} \cite{johnsonAcceleratingStochasticGradient2013,twyman_investigation_2023,ehrhardtFastPETReconstruction2025a}. Writing $\mathcal R=\mathcal{R}_{\mathrm{w\text{-}dTNV}}$, the implemented estimator can keep the complete prior outside the sampler. At anchor point $\widetilde{\bm z}$ this would be
 \begin{equation}
     g^{(k)} = \nabla\mathcal R(\bm z^{(k)})
     + \nabla\mathcal D(\widetilde{\bm z})
@@ -93,7 +93,7 @@ The stochastic experiments use \gls{svrg} \cite{johnsonAcceleratingStochasticGra
     \qquad i_k\sim\operatorname{Unif}\{1,\ldots,N_{\mathrm d}\}.
     \label{eq:svrg_estimator_general}
 \end{equation}
-The data functions are sampled uniformly with replacement. The complete prior gradient is evaluated at every stochastic update, and the full data-gradient snapshot is refreshed once per epoch. Section~\ref{sec:optimisation_subset_selection} compares alternative prior schedules.
+The data functions are sampled uniformly with replacement, the complete prior gradient is evaluated at every stochastic update, and the full data-gradient snapshot is refreshed once per epoch. Section~\ref{sec:optimisation_subset_selection} compares alternative prior schedules.
 
 The image update is a projected, preconditioned gradient step,
 \begin{equation}
@@ -106,23 +106,21 @@ The image update is a projected, preconditioned gradient step,
     \right\}_{\geq 0},
     \label{eq:optimisation_projected_update}
 \end{equation}
-where $\mathcal{P}^{(k)}$ is either a diagonal preconditioner or a voxel-wise $2\times2$ block preconditioner coupling the \gls{pet} and \gls{spect} update components. The step size is iteration dependent and follows the decaying relaxation rule
+where $\mathcal{P}^{(k)}$ is either a diagonal preconditioner or a voxel-wise $2\times2$ block preconditioner\footnote{For a non-diagonal preconditioner, component-wise projection onto the non-negative orthant may destroy the descent property of the preconditioned update. This issue is not investigated further in this thesis but is noted here.} coupling the \gls{pet} and \gls{spect} update components. The step size is iteration dependent and follows the decaying relaxation rule
 \begin{equation}
     \varsigma^{(k)}
     =
     \frac{\varsigma^{(0)}}{1+\eta_{\mathrm{relax}} k},
     \qquad
     \varsigma^{(0)}=1,
-    \qquad
-    \eta_{\mathrm{relax}}=0.002,
     \label{eq:optimisation_step_size}
 \end{equation}
-Here $\eta_{\mathrm{relax}}=0.002$ is the reference rate for the folded, modality-separated configuration, which performs 36 stochastic updates per matched expected data-draw unit. The preconditioner studies use this reference configuration. The other subset configurations rescale $\eta_{\mathrm{relax}}$ to reproduce the same relaxation history on the matched-unit axis, as specified in Section~\ref{subsec:subset_selection_experiment_methods}.
+Here $\eta_{\mathrm{relax}}$ is small, user-chosen relaxation parameter.
 
 \subsection{Common Evaluation Protocol}
 \label{subsec:optimisation_evaluation_protocol}
 
-The optimisation experiments used an anthropomorphic phantom scanned on the Mediso AnyScan at the National Physical Laboratory. \gls{pet} and \gls{spect} were each partitioned into 18 subsets. Each plotted comparison curve comprises five stochastic realisations and covers the first 20 matched expected data-draw units. A single 1000-epoch reconstruction of the same objective, run with slower relaxation decay, provided the reference image $x^\star$. Appendix~\ref{app:baseline_convergence} reports the objective and iterate diagnostics supporting its effective stationarity relative to the best observed iterate.
+The optimisation experiments used an anthropomorphic phantom scanned on the Mediso AnyScan at the National Physical Laboratory. \gls{pet} and \gls{spect} were each partitioned into 18 subsets. A single 1000-epoch reconstruction of the same objective, run with slower relaxation decay ($\eta_{\mathrm{relax}}=0.002$), provided the reference image $x^\star$. Appendix~\ref{app:baseline_convergence} reports the objective and iterate diagnostics supporting its effective stationarity relative to the best observed iterate.
 
 For each stochastic run and each saved iteration, the \acrfull{nrmse} in region $R$ is
 \begin{equation}
@@ -133,7 +131,7 @@ For each stochastic run and each saved iteration, the \acrfull{nrmse} in region 
     \qquad N=|R|.
     \label{eq:optimisation_nrmse}
 \end{equation}
-The regions are evaluated separately over the whole image, the hot-sphere mask, the cold-sphere mask, and the liver compartment, shown in Figure~\ref{fig:optim_voi_overlay}. The whole-image region includes the low-activity background surrounding the phantom, and is therefore the most sensitive of the four to behaviour in voxels that carry no clinical information; the liver is the largest structure of interest and the region over which absorbed dose to normal tissue would be scored. Reporting both separates a failure confined to the background from one that reaches the anatomy. The plotted centre line is the arithmetic mean of the five per-run \gls{nrmse} values at each iteration, not the \gls{nrmse} of an averaged reconstruction; the envelope is their pointwise minimum--maximum. The long-run reference itself was generated once.
+The regions are evaluated separately over the whole image, the hot-sphere mask, the cold-sphere mask, and the liver compartment, shown in Figure~\ref{fig:optim_voi_overlay}. The whole-image region includes the low-activity background surrounding the phantom, and is therefore the most sensitive of the four to behaviour in voxels that carry no clinical information; the liver is the largest structure of interest and the region over which absorbed dose to normal tissue would be scored. The plotted centre line is the arithmetic mean of the five per-run \gls{nrmse}; the envelope is their pointwise minimum--maximum.
 
 \begin{figure}[htbp]
     \centering

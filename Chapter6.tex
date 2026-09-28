@@ -54,9 +54,9 @@ then the image-space gradient is
 \end{equation}
 where the division is understood pointwise over voxels.
 
-The nuclear norm used by TNV is a particular orthogonally invariant penalty: $\|UYV^\top\|_*=\|Y\|_*$ for orthogonal $U\in\mathbb{R}^{d\times d}$ and $V\in\mathbb{R}^{M\times M}$. More generally, an orthogonally invariant scalar function of $Y\in\mathbb{R}^{d\times M}$ can be written as $F(Y)=f(\sigma(Y))$, where $\sigma(Y)$ lists its $r=\min\{d,M\}$ singular values and $f$ is \emph{absolutely symmetric}: invariant under permutations and sign changes of its arguments \cite{lewisConvexAnalysisUnitarily1995}. The nuclear norm corresponds to $f_0(s)=\sum_{\ell=1}^{r}|s_\ell|$. This absolute-value extension has a cusp at zero, explaining why the nuclear norm is not differentiable at rank-deficient matrices, even though singular values themselves are nonnegative.
+The nuclear norm used by \gls{tnv} is a particular orthogonally invariant penalty: $\|UYV^\top\|_*=\|Y\|_*$ for orthogonal $U\in\mathbb{R}^{d\times d}$ and $V\in\mathbb{R}^{M\times M}$. More generally, an orthogonally invariant scalar function of $Y\in\mathbb{R}^{d\times M}$ can be written as $F(Y)=f(\sigma(Y))$, where $\sigma(Y)$ lists its $r=\min\{d,M\}$ singular values and $f$ is \emph{absolutely symmetric}, i.e. it is invariant under permutations and sign changes of its arguments \cite{lewisConvexAnalysisUnitarily1995}.  This is obviously the case for a sum of non-negative singular values.
 
-We smooth this cusp by applying the same Charbonnier function used for TV to each singular value \cite{charbonnier_deterministic_1997,fessler_image_2017}:
+We can smooth TNV by applying the same Charbonnier function used for \gls{tv} to each singular value \cite{charbonnier_deterministic_1997,fessler_image_2017}:
 \begin{equation}\label{eq:charbonnier_g}
 g(s)=\sqrt{s^2+\epsilon^2}-\epsilon,
 \qquad
@@ -98,12 +98,12 @@ U\,\mathrm{diag}\!\bigl(g'(\sigma)\bigr)\,V^\top,
 g'(\sigma_\ell)=\frac{\sigma_\ell}{\sqrt{\sigma_\ell^2+\epsilon^2}}.
 \end{equation}
 
-In practice, it is unnecessary to form $U$ if we exploit the small Gram matrix
+In practice, it is unnecessary to form the left singular vectors, $U$, if we exploit the small Gram matrix
 \begin{equation}
 G := \mathcal{G}^\top \mathcal{G}\in\mathbb{R}^{M\times M},
 \qquad G\succeq 0.
 \end{equation}
-Let $G=V\Lambda V^\top$ with $\Lambda=\mathrm{diag}(\lambda_1,\dots,\lambda_M)$. Then $\lambda_\ell=\sigma_\ell^2$ and $V$ coincides with the right singular vectors of $\mathcal{G}$. Now substituting $U=\mathcal{G}V\Sigma^{-1}$ into~\eqref{eq:phi_grad_svd} gives
+Now, $G=V\Lambda V^\top$\ is a real-valued Hermitian matrix with $\Lambda=\mathrm{diag}(\lambda_1,\dots,\lambda_M)$. It has eigenvalues $\lambda_\ell=\sigma_\ell^2$ and $V$ coincides with the right singular vectors of $\mathcal{G}$. Substituting $U=\mathcal{G}V\Sigma^{-1}$\textbackslash{}footnote\{This follows from right-multiplying the singular value decomposition of $\mathcal{G}$ by $V \Sigma^{-1}$.\} into~\eqref{eq:phi_grad_svd} gives
 \begin{equation}\label{eq:phi_grad_gram}
 \nabla_{\mathcal{G}} \phi(\mathcal{G})
 \;=\;
@@ -125,15 +125,15 @@ hence
 \;=\;
 \mathcal{G}\,(G+\epsilon^2 \mathbb{I})^{-1/2}.
 \end{equation}
-Equation~\eqref{eq:phi_grad_inv_sqrt} shows that the Jacobian-space gradient is obtained by applying the inverse square-root of the $M\times M$ \gls{spd} matrix $G+\epsilon^2 \mathbb{I}$ to the columns of $\mathcal{G}$. This object recurs throughout the remainder of this chapter and in Chapters~\ref{chapter:optimisation} and~\ref{discussion}, so it is worth naming. For any $Y\in\mathbb{R}^{d\times M}$ define the \emph{smoothed spectral weight}
+Equation~\eqref{eq:phi_grad_inv_sqrt} shows that the Jacobian-space gradient is obtained by applying the inverse square-root of the $M\times M$ \gls{spd} matrix $G+\epsilon^2 \mathbb{I}$ to the columns of $\mathcal{G}$ \footnote{Note that if $d<M$ the same strategy can be applied to $\mathcal{G}\mathcal{G}^\top$}. This object recurs throughout the remainder of this chapter and in Chapters~\ref{chapter:optimisation} and~\ref{discussion}, so it is worth naming. For any $Y\in\mathbb{R}^{d\times M}$ define the diffusivity matrix
 \begin{equation}
     \Omegaeps{Y} \coloneqq \left(Y^\top Y+\epsilon^2\mathbb{I}\right)^{-1/2}
     \in\mathbb{R}^{M\times M},
     \label{eq:spectral_weight}
 \end{equation}
-so that~\eqref{eq:phi_grad_inv_sqrt} reads $\nabla_{\mathcal{G}}\phi(\mathcal{G})=\mathcal{G}\,\Omegaeps{\mathcal{G}}$. Because $\epsilon>0$, $\Omegaeps{Y}$ is well defined and \gls{spd} for every $Y$, including rank-deficient ones. For $M=1$ it collapses to the scalar $(\|Y\|_2^2+\epsilon^2)^{-1/2}$, which is the quadratic-surrogate (IRLS) weight for the hyperbola potential; it is not its second derivative. Chapter~\ref{chapter:optimisation} uses this surrogate weight in its majorisation construction.
+so that~\eqref{eq:phi_grad_inv_sqrt} reads $\nabla_{\mathcal{G}}\phi(\mathcal{G})=\mathcal{G}\,\Omegaeps{\mathcal{G}}$. Because $\epsilon>0$, $\Omegaeps{Y}$ is well defined and \gls{spd} for every $Y$, including rank-deficient ones.
 
-        For $M=2$ modalities, even an eigendecomposition of $G$ can be avoided. Writing
+        For $M=2$ modalities, we can even avoid an eigendecomposition of $G$. Writing
         \begin{equation}
         G=
         \begin{pmatrix}
@@ -161,7 +161,7 @@ so that~\eqref{eq:phi_grad_inv_sqrt} reads $\nabla_{\mathcal{G}}\phi(\mathcal{G}
         -s_{12} & s_{11}+s
         \end{pmatrix}.
         \end{equation}
-        Therefore, for two modalities the smoothed spectral weight is available in closed form, and the Jacobian-space gradient can be evaluated via
+        Therefore, for two modalities the diffusivity matrix is available in closed form, and the Jacobian-space gradient can be evaluated via
         \begin{equation}\label{eq:2x2_gram}
         \nabla_{\mathcal{G}} \phi(\mathcal{G})
         =
@@ -173,44 +173,51 @@ so that~\eqref{eq:phi_grad_inv_sqrt} reads $\nabla_{\mathcal{G}}\phi(\mathcal{G}
         using only dot products and scalar square-roots per voxel.
         
 \paragraph{Image-space gradient.}
-Define voxel-wise
+Define the voxel-wise gradient
 \begin{equation}
-Q_n \;:=\; \nabla_{\mathcal{G}} \phi\bigl(\mathcal{G}_n(\bm{z})\bigr)
-\in\mathbb{R}^{d\times M},
+Q_n
+:=
+\nabla_{\mathcal{G}}
+\phi\!\left(\mathcal{G}_n(\bm{z})\right)
+\in \mathbb{R}^{d \times M},
+\qquad n=1,\ldots,N,
 \end{equation}
-and let $Q=\{Q_n\}_{n=1}^N$. Applying the chain rule through the linear map $\bm{z}\mapsto D\bm{z}$ yields
+and let \(Q = \{Q_n\}_{n=1}^N\).
+
+Since the spatial-gradient field depends linearly on the image through
 \begin{equation}
-\delta \tilde{\mathcal{R}}_{\mathrm{TNV}}(\bm{z})[\delta \bm{z}]
-=
-\sum_{n=1}^N \left\langle Q_n,\ (D\,\delta \bm{z})_n \right\rangle_F
-=
-\left\langle Q,\ D\,\delta \bm{z} \right\rangle.
+\mathcal{G}(\bm{z}) = D\bm{z},
 \end{equation}
-By definition of the adjoint $D^\ast$,
+the chain rule maps the gradient \(Q\) back to image space using the
+adjoint \(D^\ast\):
 \begin{equation}
-\left\langle Q,\ D\,\delta \bm{z} \right\rangle
+\nabla_{\bm{z}}
+\tilde{\mathcal{R}}_{\mathrm{TNV}}(\bm{z})
 =
-\left\langle D^\ast Q,\ \delta \bm{z} \right\rangle.
+D^\ast Q.
 \end{equation}
-Defining the discrete divergence as $\operatorname{div}:=-D^\ast$, we obtain
+Defining the discrete divergence by
 \begin{equation}
-\nabla_{\bm{z}} \tilde{\mathcal{R}}_{\mathrm{TNV}}(\bm{z})
+\operatorname{div} := -D^\ast,
+\end{equation}
+we obtain
+\begin{equation}
+\nabla_{\bm{z}}
+\tilde{\mathcal{R}}_{\mathrm{TNV}}(\bm{z})
 =
 -\,\operatorname{div} Q,
 \end{equation}
-where $\operatorname{div}$ acts column-wise on $Q$.
+where the divergence is applied independently to each column of \(Q\).
 
 \section{Weighted Directional Total Nuclear Variation ($\wdtnv$)}
 \label{sec:wdtnv}
 
 This section extends TNV \cite{rigieJointReconstructionMultichannel2015, holtTotalNuclearVariation2014} in two ways:
 \begin{itemize}
-    \item high-resolution anatomical information is incorporated directionally rather than as an additional coupled intensity channel;
+    \item anatomical information is incporporated via a directional operator
     \item  voxel- and modality-specific diagonal weighting can account for differences in scale and allow each modality to be down-weighted in regions where its measurements are less reliable.
 
 \end{itemize}
-
-The starting point is the standard TNV construction: penalising the nuclear norm of a multi-modality Jacobian promotes joint sparsity and alignment of edges, since a low nuclear norm favours a locally low-rank Jacobian.
 
 \begin{comment}
 It is useful to locate this construction within the established taxonomy of multiple-channel regularisation. Channel-separable penalties $\mathcal{R}(\bm{z})=\sum_m \mathcal{R}_0(z_m)$ ignore inter-channel edge correspondence entirely and provide the baseline. Convex multiple-channel penalties couple channels through a mixed norm of the stacked differences, so that an edge present in one channel relaxes the penalty in the others; these are effectively the joint-\gls{tv} family, and correspond to penalising the Frobenius norm of the voxel-wise Jacobian. Rank-based penalties, of which TNV is the canonical example, replace the Frobenius norm by the nuclear norm and so penalise the \emph{number} of distinct edge directions rather than their total magnitude. Line-site and common-sparsity formulations pursue the same goal through auxiliary boundary or support variables, usually at the cost of convexity. The prior developed here sits in the rank-based family and retains its convexity, while drawing anatomical guidance from the separate literature on regularisation with side information, where a co-registered image supplies boundary locations without itself being reconstructed.~\cite[Sections~2.8 and~2.10]{fessler_image_2017}
@@ -219,15 +226,15 @@ It is useful to locate this construction within the established taxonomy of mult
 \subsection{Directional operators from guidance}
 \label{subsec:directional_from_guidance}
 
-We use the directional total-variation operator (Equation~\ref{eq:directional_op}) to incorporate a high-resolution anatomical image. The image steers the penalty rather than entering the joint Jacobian as an additional column. This keeps the anatomical channel separate from the emission channels, whose units, resolution, and artefacts differ.
+We use the directional total-variation operator (Equation~\ref{eq:directional_op}) to incorporate a higher-resolution anatomical image. The image steers the penalty rather than entering the joint Jacobian as an additional column. This keeps the anatomical channel separate from the emission channels, whose units, resolution, and artefacts differ.
 
-If a guidance image were appended as an additional modality, then a single global scaling would have data-dependent and spatially non-uniform consequences. Where emission gradients are weak, even modest guidance gradients can dominate the local Jacobian and hence the singular values; where emission gradients are strong, the same scaling may become negligible. Since the nuclear norm couples modalities through the eigenstructure of the local Gram matrix, such reweighting can also transfer structured guidance artefacts into the coupled reconstruction. By contrast, a directional operator modifies which gradient components are penalised, without forcing the presence of edges where the emission data do not support them (as demonstrated in Chapter~\ref{chapter:deconvolution_pvc}).
+If a guidance image were appended as an additional modality, then a single global scaling would have data-dependent and spatially non-uniform consequences. Where emission gradients are weak, even modest guidance gradients could dominate the local Jacobian and hence the singular values; where emission gradients are strong, the same scaling may become negligible. By contrast, a directional operator, $\Pi$, modifies which gradient components are penalised, without forcing the presence of edges where the emission data do not support them (as demonstrated in Chapter~\ref{chapter:deconvolution_pvc}).
 
-Applying $\Pi_{m,n}$ to each modality gradient defines the directional multi-modality Jacobian
+Applying a directional operator to each modality gradient defines the directional multi-modality Jacobian
 \begin{equation}
 \mathcal{G}^{\mathrm{dir}}_n(\bm{z})= \bigl[\Pi_{1,n}(D z_1)_n \;|\; \cdots \;|\; \Pi_{M,n}(D z_M)_n\bigr]\in\mathbb{R}^{d\times M}.
 \end{equation}
-Here $D$ denotes the chosen discrete directional-difference operator and each $\Pi_{m,n}\in\mathbb{R}^{d\times d}$ is constructed from the guidance field at voxel $n$. In the implementation used in this work, a guidance image $u$ defines
+Here $D$ denotes the chosen discrete directional-difference operator and each $\Pi_{m,n}\in\mathbb{R}^{d\times d}$ is constructed from the guidance field at voxel $n$
 \begin{equation}
 \xi_n
 =
@@ -243,9 +250,10 @@ Using \gls{ct} only to construct the directional operators decouples anatomical 
 
 \subsection{Modality-wise weighting and the full \texorpdfstring{$\wdtnv$}{w-dTNV} prior}
 \label{subsec:modality_weighting}
-\label{subsec:voxelwise_weighting}
+\label{subsec:voxelwise_weighting
+}%no idea why I've given this two labels... presumably being lazy somewhere
 
-\gls{pet} and \gls{spect} images of the same administered \gls{y90} activity differ substantially in dynamic range: the effective count level, sensitivity, and noise characteristics vary by orders of magnitude between the two modalities, and in clinical imaging the two reconstructions may also operate at different spatial resolutions. If the directional emission gradients $\Pi_{m,n}(D z_m)_n$ are used directly without normalisation, the nuclear-norm coupling is dominated by the modality with the larger gradient magnitudes.
+\gls{pet} and \gls{spect} images of the same administered \gls{y90} activity differ substantially in dynamic range: the effective count level, sensitivity, and noise characteristics vary by orders of magnitude between the two modalities. If the directional emission gradients $\Pi_{m,n}(D z_m)_n$ are used directly without normalisation, the nuclear-norm coupling is dominated by the modality with the larger gradient magnitudes.
 
 To compensate, we introduce a voxel-wise, modality-wise diagonal weight matrix
 \begin{equation}
@@ -261,9 +269,8 @@ The weighted directional Jacobian is then
     \in \mathbb{R}^{d\times 2}.
     \label{eq:Yn_weighted}
 \end{equation}
-The columns of $\tilde{\mathcal{G}}_n$ are $\tilde{g}_{m,n} := \rho_{m,n}\,\Pi_{m,n}(D z_m)_n \in \mathbb{R}^d$.
 
-Throughout, $B_n$ is treated as a fixed operator that does not depend on $\bm{z}$. In the application of Chapter~\ref{chapter:paper} the weights are computed once, from early-stopped unregularised reconstructions, and then held fixed. Recomputing them from the current iterate would require a separate analysis because the resulting update is not the gradient of the stated fixed-weight objective. The weights also absorb the overall regularisation strength; there is no separate global scalar prior multiplier in~\eqref{eq:wdtnv_prior}, because the modality-specific regularisation weights $\beta_m$ enter through $\rho_{m,n}$ (Section~\ref{subsec:90y_global_weights}).
+Throughout, $B_n$ is treated as a fixed operator that does not depend on $\bm{z}$. In the application of Chapter~\ref{chapter:paper} the weights are computed once, from early-stopped unregularised reconstructions, and then held fixed.
 
 The weighted directional Total Nuclear Variation ($\wdtnv$) prior is then
 \begin{equation}
@@ -276,24 +283,8 @@ The weighted directional Total Nuclear Variation ($\wdtnv$) prior is then
 \end{equation}
 where $V_{\mathrm{vox}}$ is the voxel volume and $g$ is the Charbonnier smoothing from~\eqref{eq:charbonnier_g}. Choosing equal weights $\rho_{m,n}\equiv 1$ recovers unweighted $d$TNV. Choosing $\rho_{m,n}$ proportional to the inverse of a characteristic modality scale brings both channels to a comparable range before the nuclear-norm coupling is evaluated. The \gls{pet}/\gls{spect} normalisation used in the application study is specified in Chapter~\ref{chapter:paper}.
 
-\paragraph{Effect on the singular spectrum.}
-Write $Y\coloneqq\mathcal{G}^{\mathrm{dir}}_n(\bm{z})$ for the unweighted directional Jacobian, so that $\tilde{\mathcal{G}}_n = Y B_n$ by~\eqref{eq:Yn_weighted}. Right-multiplying by $B_n$ scales the $m$-th column of $Y$ by $\rho_{m,n}$ to produce the $m$-th column of $\tilde{\mathcal{G}}_n$. This changes the singular values in a non-trivial way, since those of $YB_n$ are not simply $\sigma_\ell(Y)\rho_{m,n}$. What can be said in general is the two-sided bound
-\begin{equation}
-    \min_m \rho_{m,n}\;\sigma_\ell(Y)
-    \;\leq\;
-    \sigma_\ell(Y B_n)
-    \;\leq\;
-    \max_m \rho_{m,n}\;\sigma_\ell(Y),
-    \qquad \ell=1,\dots,\min(d,M),
-    \label{eq:weighted_sv_bounds}
-\end{equation}
-so the weights affect both the overall scale and the distribution of energy across the spectrum. The intended effect is instead on the Gram matrix: $\tilde{\mathcal{G}}_n^\top \tilde{\mathcal{G}}_n$ contains modality self-terms $\rho_{m,n}^2\|\Pi_{m,n}(Dz_m)_n\|_2^2$ and cross-terms $\rho_{1,n}\rho_{2,n}\langle \Pi_{1,n}(Dz_1)_n,\Pi_{2,n}(Dz_2)_n\rangle$, so suitable $\rho_{m,n}$ values allow both modalities to contribute comparably to the coupled singular spectrum rather than one self-term dominating the trace. The $2\times2$ Gram-matrix algebra in Section~\ref{sec:tv_to_tnv} applies directly to this weighted case.
-
-\paragraph{Weighting is a modelling choice, not a conditioning choice.}
-The preceding motivation is often described as a conditioning argument, but $B_n$ changes the estimator as well as the geometry seen by the optimiser. Relative weights affect the spatial resolution and noise of each reconstruction, and these effects are difficult to control when the channel statistics differ. \gls{pet} and bremsstrahlung \gls{spect} of the same $^{90}$Y distribution differ in count level, sensitivity, and intrinsic resolution. We therefore interpret the weights as relative edge credibility between modalities. The setting used in Chapter~\ref{chapter:paper} was selected as a task-based trade-off, not because it improves convergence.
-
 \section{Conclusion}
 
-This chapter introduced a smoothed, weighted, and directional Total Nuclear Variation ($\wdtnv$) prior for synergistic reconstruction. Charbonnier smoothing of the singular values yields a differentiable and convex spectral functional whose Jacobian-space gradient can be written in Gram-matrix form. Differentiability rests specifically on the smoothing function being even and smooth across zero, which is what separates the smoothed penalty from the plain nuclear norm; convexity follows from absolute symmetry of the same function and is inherited by the full prior because $D$, $\Pi_{m,n}$ and $B_n$ are all fixed linear maps. For two coupled emission modalities the key spectral operation reduces to a $2\times2$ inverse square-root, allowing the prior and its gradient to be evaluated robustly without a general per-voxel \glsentryshort{svd}.
+This chapter introduced a smoothed, weighted, and directional Total Nuclear Variation ($\wdtnv$) prior for synergistic reconstruction. Charbonnier smoothing of the singular values results in a differentiable and convex spectral functional whose Jacobian-space gradient can be written in Gram-matrix form. Convexity follows from absolute symmetry and is inherited by the full prior because $D$, $\Pi_{m,n}$ and $B_n$ are all fixed linear maps. For two coupled emission modalities the key spectral operation reduces to a $2\times2$ inverse square-root, allowing the prior and its gradient to be evaluated robustly without a general per-voxel \glsentryshort{svd}.
 
 The chapter also separated two roles that are easily confounded in multimodality reconstruction. Anatomical information is used directionally through $\Pi_{m,n}$, steering the penalty without adding \gls{ct} as another coupled intensity channel. Modality scaling is handled separately through the diagonal weight matrix $B_n$, allowing \gls{pet} and \gls{spect} gradients to enter the nuclear-norm coupling on comparable scales. Chapter~\ref{chapter:optimisation} uses these definitions to construct practical preconditioners and subset-selection strategies for large-scale $\wdtnv$ optimisation.
