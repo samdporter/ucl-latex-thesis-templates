@@ -54,7 +54,7 @@ and $\mathcal{R}$ is the coupled prior. Throughout this chapter, named variation
 \subsection{Directional guidance from the CTAC-derived $\mu$-map}
 \label{subsec:90y_mu_guidance}
 
-As in Section~\ref{subsec:directional_from_guidance}, we use CT information directionally rather than appending CT as a third coupled channel. Here the guidance image is the CTAC-derived attenuation map $\mu$ resampled to the shared grid (We use the \gls{PET} grid in this work). We pre-smooth $\mu$ with a small blurring kernel ($\mathrm{FWHM}=\SI{2}{\milli\metre}$) to reduce high-frequency CT noise while retaining high guidance edge resolution. We then compute a stabilised direction field in the discrete gradient space,
+As in Section~\ref{subsec:directional_from_guidance}, we use CT information directionally rather than appending CT as a third coupled channel. Here the guidance image is the CTAC-derived attenuation map $\mu$ resampled to the shared grid (We use the \gls{pet} grid in this work). We pre-smooth $\mu$ with a small blurring kernel ($\mathrm{FWHM}=\SI{2}{\milli\metre}$) to reduce high-frequency CT noise while retaining high guidance edge resolution. We then compute a stabilised direction field in the discrete gradient space,
 \begin{equation}
 \xi_n
 =
@@ -113,8 +113,7 @@ and use both one- and two-voxel steps, $\mathcal{E}=\mathcal{E}_1\cup\{2e:e\in\m
 \|e\|_\Delta := \sqrt{(e_x\Delta_x)^2+(e_y\Delta_y)^2+(e_z\Delta_z)^2},
 \label{eq:90y_directional_D}
 \end{equation}
-with Neumann boundary conditions.
-This follows the ``extended Jacobian'' motivation for TNV-type coupling \cite{holtTotalNuclearVariation2014} and empirically improved stability in the present PET/SPECT setting.
+with Neumann boundary conditions. This follows the ``extended Jacobian'' motivation for TNV-type coupling \cite{holtTotalNuclearVariation2014} and empirically improved stability in the present PET/SPECT setting.
 
 \subsection{The $w$-$d$TNV Jacobian and regulariser (two modalities)}
 \label{subsec:90y_wdtnv_def}
@@ -145,7 +144,7 @@ where $g$ is the Charbonnier smoothing (Equation~\ref{eq:charbonnier_g}) and $\s
 \tilde{\mathcal{G}}_n^{\mathrm{init}}:=\tilde{\mathcal{G}}^{\mathrm{w\text{-}dTNV}}_n(\bm{z}^{\mathrm{init}}),
 \label{eq:90y_epsilon_def}
 \end{equation}
-with $\bm{z}^{\mathrm{init}}=(W_1 x_1^{\mathrm{init}},W_2 x_2^{\mathrm{init}})$.
+with $\bm{z}^{\mathrm{init}}=(W_1 x_1^{\mathrm{init}},W_2 x_2^{\mathrm{init}})$ and $\epsilon$ is chosen empirically.
 
 If $\Pi_{2,n}(D z_2)_n\approx 0$ at some voxel (e.g.\ SPECT locally uniform after guidance), then $\tilde{\mathcal{G}}_n$ has an effectively single nonzero column and $\phi(\tilde{\mathcal{G}}_n)$ reduces to a TV-type penalty on the remaining modality column. This is the same ``no forced edges'' behaviour discussed in Chapter~\ref{chapter:wdtnv}.
 
