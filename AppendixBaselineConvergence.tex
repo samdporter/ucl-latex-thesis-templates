@@ -1,35 +1,15 @@
-\chapter{Convergence Diagnostics for the Long-Run Reference Reconstruction}
+\chapter{Long-Run Reference Diagnostics}
 \label{app:baseline_convergence}
 
-The \gls{nrmse} comparisons in Chapter~\ref{chapter:optimisation} use the final iterate of one long-run reconstruction as their reference image. This one-bed phantom reconstruction used the same objective as the 20-pass comparisons, but was continued for 1000 epochs with 36 stochastic updates per epoch, a Gershgorin-diagonal \gls{mm} preconditioner, and a more conservative relaxation rate of $\eta_{\mathrm{relax}}=10^{-4}$. Only one such reference run was performed.
+The single reference run in Chapter~\ref{chapter:optimisation} used the same objective as the short-run comparisons: 1000 epochs, 36 stochastic updates per epoch, a Gershgorin-diagonal \glsentryshort{mm} preconditioner and $\eta_{\mathrm{relax}}=10^{-4}$. Here $\mathcal O_k=\mathcal O(\bm z^{(k)})$ and $\mathcal O^\star=\min_{0\leq k\leq1000}\mathcal O_k$ denote the recorded and best observed objectives.
 
-Let $\mathcal O_k=\mathcal O(\bm z^{(k)})$ be the recorded objective after epoch $k$, and define
-\begin{equation}
-    \mathcal O^\star=\min_{0\leq k\leq 1000}\mathcal O_k.
-    \label{eq:app_baseline_best_objective}
-\end{equation}
-Here $\mathcal O^\star$ is the best objective observed during this run. It is not a proven global minimum, and the reference image should likewise be understood as a long-run numerical reference rather than ground truth.
-
-\begin{figure}[htbp]
-    \centering
-    \begin{subfigure}{0.49\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/baseline/baseline_convergence_final_objective_panel.png}
-        \caption{Objective gap on a logarithmic scale.}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}{0.49\linewidth}
-        \includegraphics[width=\linewidth]{figures/preconditioning/baseline/baseline_convergence_final_objective_panel_linear.png}
-        \caption{Objective gap on a linear scale.}
-    \end{subfigure}
-    \caption{Long-run objective diagnostics. The solid curve is $\mathcal O_k-\mathcal O^\star$ and the dashed curve is the relaxed step size. The linear view shows that most of the observed objective decrease occurs early, while the logarithmic view resolves the residual decrease over the complete 1000-epoch run.}
-    \label{fig:app_baseline_objective}
-\end{figure}
-
-The objective contains stochastic excursions early in the run, but its gap relative to the best observed value becomes negligible. Table~\ref{tab:app_baseline_stationarity} reports the final objective and iterate diagnostics. The run had achieved 99.9\% of its total observed objective decrease by epoch 45, when the relaxed step remained $0.8606$.
+Table~\ref{tab:app_baseline_stationarity} summarises the convergence diagnostics;
+relative \glsentryshort{pet} iterate velocity is
+$\lVert x^{(k)}-x^{(k-1)}\rVert/\lVert x^{(k)}\rVert$.
 
 \begin{table}[htbp]
     \centering
-    \caption{Stationarity diagnostics for the 1000-epoch reference reconstruction.}
+    \caption{Final diagnostics for the reference reconstruction.}
     \label{tab:app_baseline_stationarity}
     \small
     \begin{tabular}{p{0.68\linewidth}r}
@@ -46,13 +26,4 @@ The objective contains stochastic excursions early in the run, but its gap relat
     \end{tabular}
 \end{table}
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.82\linewidth]{figures/preconditioning/baseline/baseline_convergence_final_panel.png}
-    \caption{Relative \gls{pet} iterate velocity, $\lVert x^{(k)}-x^{(k-1)}\rVert/\lVert x^{(k)}\rVert$, and relaxed step size during the long-run reference reconstruction. The final velocity is $7.285\times10^{-8}$ per epoch while the step size remains $0.2174$.}
-    \label{fig:app_baseline_velocity}
-\end{figure}
-
-The final \gls{pet} and \gls{spect} iterates of this run are shown in Figure~\ref{fig:optim_reference_pair} of Chapter~\ref{chapter:optimisation}, alongside the regions over which the \gls{nrmse} curves are evaluated.
-
-Together, the vanishing objective gap, relative objective change, and iterate velocity indicate that the reference was effectively stationary relative to the best observed iterate. The appreciable final step size makes step-size starvation an unlikely explanation for the plateau. These diagnostics support its use as a numerical reference for the short-run \gls{nrmse} comparisons, without asserting convergence to a global minimiser.
+The small objective change and iterate velocity support effective stationarity; the appreciable final step size argues against step-size starvation. This is a numerical reference, not ground truth or a proven global minimiser. Figure~\ref{fig:optim_reference_pair} shows the final images and evaluation regions.

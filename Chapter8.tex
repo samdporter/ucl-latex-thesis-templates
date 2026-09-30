@@ -388,7 +388,8 @@ radial-gradient method based on Mikell \textit{et al.}
 \cite{mikellImpact90YPET2018}. Candidate seed voxels were processed in
 descending order of intensity, with a minimum seed separation of
 \SI{30}{\milli\metre}. From each seed, the lesion boundary was estimated along
-radial rays after Gaussian smoothing ($\sigma=0.1$); each ray was limited to a
+radial rays by the maximum image-gradient magnitude after Gaussian smoothing
+($\sigma=0.1$); each ray was limited to a
 maximum length of \SI{25}{\milli\metre} and a background-adjusted intensity
 floor $I_{\mathrm{bkg}}+0.42(I_{\mathrm{seed}}-I_{\mathrm{bkg}})$, where
 $I_{\mathrm{bkg}}$ is the mean intensity in the manually defined homogeneous
@@ -399,9 +400,10 @@ were discarded, and the five highest-ranked non-overlapping masks were
 retained; where candidate masks overlapped, the mask originating from the
 hotter seed took precedence. These \glspl{voi} were propagated unchanged
 across all reconstructions so that measured differences reflected
-reconstruction effects rather than \glsentryshort{voi} definition. Further
-implementation details are provided in
-Appendix~\ref{app:lesion_voi_delineation}.
+reconstruction effects rather than \glsentryshort{voi} definition. The intensity
+floor was a pragmatic search bound, not a validated threshold for
+post-\glsentryshort{sirt} liver lesions; no delineation-accuracy or
+parameter-sensitivity study was performed.
 
 A homogeneous liver background \glsentryshort{voi} was drawn manually,
 avoiding motion and visible artefacts. The training-patient lesion and

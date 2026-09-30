@@ -1,78 +1,22 @@
 \phantomsection
 \addcontentsline{toc}{chapter}{Appendices}
-
-% The \appendix command resets the chapter counter, and changes the chapter numbering scheme to capital letters.
 \appendix
+
 \chapter{Software Contributions}
 \label{app:software}
 
-This appendix documents the software developed or substantially adapted for the work in this thesis. The largest contribution, \texttt{simind-python-connector}, is described first; two smaller packages --- a \glsentryshort{sirf}-adapted deep-learning scatter estimator and a kernelised Richardson--Lucy deconvolution package built on the Core Imaging Library (CIL) --- are described briefly thereafter.
+The software developed or adapted for this thesis comprises a Python interface to \glsentryshort{simind}, a \glsentryshort{sirf} integration of a published scatter estimator, and an anatomy-guided deconvolution package. Their roles and availability are summarised below.
 
-\section[\texttt{simind-python-connector}]{\texttt{simind-python-connector}: Python Workflows for SIMIND Simulations}
+\section[\texttt{simind-python-connector}]{\texttt{simind-python-connector}}
 \label{app:simind_python_connector}
 
-This section documents the \texttt{simind-python-connector} package used to support reproducible \glsentryshort{simind}-based simulation workflows in this thesis. The inspected package version was \texttt{1.0.1}, released on 16 April 2026 and archived on Zenodo with DOI \href{https://doi.org/10.5281/zenodo.19605413}{10.5281/zenodo.19605413}. The public repository is available at \href{https://github.com/samdporter/simind-python-connector}{GitHub}.
+\texttt{simind-python-connector} connects \gls{simind} Monte Carlo simulations \cite{ljungberg_monte_1989,ljungbergSIMINDMonteCarlo2012} to the reconstruction workflows of Chapters~\ref{chapterlabel3} and~\ref{chapter:paper}. It configures voxel phantoms, energy windows and runtime switches, writes SIMIND input files, executes the simulation, and loads Interfile projections as NumPy arrays. Adaptors provide native data representations for \gls{stir}, \gls{sirf} and PyTomography \cite{thielemansSTIRSoftwareTomographic2012a,ovtchinnikovSIRFSynergisticImage2020,polson_pytomography_2025}.
 
-\TODO{Replace the DOI URL above with the Zenodo-managed citation key for DOI 10.5281/zenodo.19605413 once the automatic bibliography import has added it.}
+The main integration task is reconciling geometry conventions: \glsentryshort{stir}/\glsentryshort{sirf} image arrays use \texttt{(z, y, x)}, PyTomography uses \texttt{(x, y, z)}, and raw Interfile projections use \texttt{(views, bins, axial)}. The connector also converts millimetre voxel sizes to the centimetre-based SIMIND geometry. Pure-Python tests cover configuration, parsing and density conversion; backend-dependent tests and Docker examples exercise the reconstruction interfaces.
 
-\subsection{Purpose and Scope}
-\label{appsec:simind_connector_scope}
-
-\gls{simind} is a Monte Carlo code for simulating clinical \glsentryshort{spect} scintillation-camera imaging and related system effects \cite{ljungberg_monte_1989,ljungbergSIMINDMonteCarlo2012}, and is used throughout this thesis because \isotope[90]{Y} bremsstrahlung \glsentryshort{spect} requires careful modelling of scatter, attenuation, collimator response, and septal penetration (Chapters~\ref{chapterlabel3} and~\ref{chapter:paper}). The role of \texttt{simind-python-connector} is not to replace \glsentryshort{simind}, but to make it easier to drive from Python and easier to connect to reconstruction software. The package is independent of, and not affiliated with, the SIMIND project or Lund University: SIMIND is not distributed with the Python package, and a separately licensed installation must be available on the local machine or inside the configured container environment. This separation aids reproducibility, since the open Python workflow can be version controlled while the licensed simulation executable remains an external dependency.
-
-The package provides two main capabilities. First, \texttt{SimindPythonConnector} offers a direct Python interface for configuring voxel phantoms, writing \glsentryshort{simind} input files, setting runtime switches, running \glsentryshort{simind}, and loading projection outputs as NumPy arrays. Second, adaptor classes translate the resulting data into reconstruction-library-native representations for \gls{stir}, \gls{sirf}, and PyTomography workflows \cite{thielemansSTIRSoftwareTomographic2012a,ovtchinnikovSIRFSynergisticImage2020,polson_pytomography_2025}. The package therefore sits between simulation and reconstruction: \glsentryshort{simind} produces projection data, while reconstruction is performed by the target framework.
-
-
-
-\subsection{Workflow and Interfaces}
-\label{appsec:simind_connector_workflow}
-
-The core workflow is deliberately explicit: a user constructs a connector from a base SIMIND configuration, output directory, and output prefix; supplies a source image and attenuation or density information; specifies energy windows; applies runtime switches such as radionuclide, collimator, photon multiplier, and random seed; and calls \texttt{run()}. The connector writes SIMIND-compatible source and density files, saves the generated configuration, executes SIMIND, and loads the resulting Interfile projection data. The main interfaces are summarised in Table~\ref{tab:simind_connector_interfaces}.
-
-\begin{table}[htbp]
-\centering
-\caption{Main \texttt{simind-python-connector} interfaces relevant to thesis workflows.}
-\label{tab:simind_connector_interfaces}
-\begin{tabular}{p{0.34\textwidth}p{0.58\textwidth}}
-\toprule
-Interface & Role\\
-\midrule
-\texttt{SimindPythonConnector} & Backend-agnostic connector that runs SIMIND and returns projection outputs as NumPy arrays with header and data-file paths.\\
-\texttt{RuntimeOperator} & Container for per-run SIMIND runtime switches and optional orbit-file selection.\\
-\texttt{StirSimindAdaptor} & Converts connector inputs and outputs for \glsentryshort{stir}-based reconstruction workflows.\\
-\texttt{SirfSimindAdaptor} & Provides the analogous adaptor path for \glsentryshort{sirf}, which builds on \glsentryshort{stir} for PET/SPECT reconstruction.\\
-\texttt{PyTomography}\newline\texttt{SimindAdaptor} & Accepts torch tensors, executes the SIMIND connector path, and returns PyTomography-compatible projection tensors and headers.\\
-\texttt{hu\_to\_density}\newline\texttt{\_schneider} & Converts CT Hounsfield units to material density using the packaged Schneider-style tissue lookup.\\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The package can be installed from PyPI with \texttt{pip install simind-python-connector} and depends only on standard Python scientific and medical-image utilities such as NumPy, pydicom, and PyYAML; \gls{stir}, \glsentryshort{sirf}, PyTomography, and \glsentryshort{simind} itself are optional or external dependencies needed only for the corresponding adaptor or simulation paths.
-
-\subsection{Conventions and Validation}
-\label{appsec:simind_connector_geometry}
-
-A central difficulty in connecting simulation and reconstruction software is that array-order, projection-axis, and unit conventions differ between packages, and an apparently small axis flip or millimetre-to-centimetre error would change the simulated collimator response, attenuation path lengths, or reconstructed orientation. The connector documentation therefore makes these conventions explicit --- \gls{stir}/\glsentryshort{sirf} image arrays are handled as \texttt{(z, y, x)}, PyTomography object-space tensors as \texttt{(x, y, z)}, and raw Interfile projections as \texttt{(views, bins, axial)} --- and the connector derives the centimetre-based \glsentryshort{simind} geometry switches automatically from the millimetre voxel sizes used by reconstruction libraries.
-
-Validation separates lightweight pure-Python unit tests (configuration handling, connector behaviour, Interfile parsing, density conversion, and optional-backend guards) from backend-dependent tests, which are marked per framework and skipped automatically when the corresponding dependency is unavailable --- important for continuous integration, since public CI runners cannot include a licensed \glsentryshort{simind} executable. Dedicated Docker environments are supplied for \glsentryshort{stir}, \glsentryshort{sirf}, and PyTomography, and the included examples cover basic NumPy simulations, runtime-switch comparisons, multi-window simulations, SCATTWIN/PENETRATE scoring comparisons, Schneider-style density conversion, adaptor-based OSEM reconstructions, and DICOM-driven setup paths. These workflows support \glsentryshort{simind} runs that are scriptable, recordable, and portable across reconstruction frameworks.
+Version \texttt{1.0.1} is archived at \href{https://doi.org/10.5281/zenodo.19605413}{doi:10.5281/zenodo.19605413}; source code and usage instructions are available in the \href{https://github.com/samdporter/simind-python-connector}{public repository}. SIMIND remains a separately licensed external dependency and is not distributed with the package, which is independent of the SIMIND project.
+% TODO: Replace the DOI link with the Zenodo-managed bibliography entry once imported.
 
 \input{AppendixScatterDL}
-
 \input{AppendixKernelRL}
-
 \input{AppendixBaselineConvergence}
-
-%\input{AppendixDePierro}
-
-\input{AppendixLesionDelineation}
-
-\chapter{Colophon}
-\label{appendixlabel3}
-\textit{This is a description of the tools you used to make your thesis. It helps people make future documents, reminds you, and looks good.}
-
-\textit{(example)} This document was set in the Times Roman typeface using \LaTeX\ and Bib\TeX , composed with a text editor. 
- % description of document, e.g. type faces, TeX used, TeXmaker, packages and things used for figures. Like a computational details section.
-% e.g. http://tex.stackexchange.com/questions/63468/what-is-best-way-to-mention-that-a-document-has-been-typeset-with-tex#63503
-
-% Side note:
-%http://tex.stackexchange.com/questions/1319/showcase-of-beautiful-typography-done-in-tex-friends

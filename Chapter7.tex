@@ -32,7 +32,7 @@ A common practical alternative is to reconstruct each \gls{pet} bed independentl
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.72\linewidth]{figures/PiW/comparison.png}
-    \caption{Qualitative comparison of separately reconstructed and fused \gls{pet} bed positions with a joint multi-bed reconstruction using \gls{ct}-guided edge-preserving regularisation (from \cite{porterSimultaneousMultiBedMAP2025}}). The shaded region marks the bed overlap and the cyan lines mark the displayed profiles. This example illustrates overlap-region behaviour only; no quantitative comparison was performed.}
+    \caption{Qualitative comparison of separately reconstructed and fused \gls{pet} bed positions with a joint multi-bed reconstruction using \gls{ct}-guided edge-preserving regularisation (from \cite{porterSimultaneousMultiBedMAP2025}). The shaded region marks the bed overlap and the cyan lines mark the displayed profiles. This example illustrates overlap-region behaviour only; no quantitative comparison was performed.}
     \label{fig:optim_multibed_qualitative}
 \end{figure}
 
@@ -399,7 +399,7 @@ This diagonal also dominates the voxel block it diagonalises. At each target, th
 \end{equation*}
 at every voxel. The three \glsentryshort{mm}-derived operands therefore share one exact spatial reduction and differ only in the within-voxel treatment: the coupling is retained exactly by the voxel block, dropped by the Jacobi diagonal, and bounded by the Gershgorin inflation. All three coincide at voxels whose incident targets carry no cross-modal weight, $c_{12,r}=0$ for every $r\in\mathcal{N}(n)$. The same extraction-versus-bounding choice recurs at the spatial level.
 
-Simply extracting a diagonal from the non-separable Hessian does not preserve the bound~\eqref{eq:jacobian_majoriser}. The Gershgorin construction~\eqref{eq:diag_gersh_preconditioner} inflates along the modality index only and does not close the spatial majorisation gap. De Pierro's convexity construction instead gives a separable upper bound \cite{depierroModifiedExpectationMaximization1995a}, potentially at the cost of a more conservative step. Appendix~\ref{app:depierro_majorisation} describes its relationship to diagonal extraction. No De Pierro model was implemented here.
+Simply extracting a diagonal from the non-separable Hessian does not preserve the bound~\eqref{eq:jacobian_majoriser}. The Gershgorin construction~\eqref{eq:diag_gersh_preconditioner} inflates along the modality index only and does not close the spatial majorisation gap. De Pierro's convexity construction instead gives a separable upper bound \cite{depierroModifiedExpectationMaximization1995a}, potentially at the cost of a more conservative step. No De Pierro model was implemented here.
 
 \subsubsection{Lewis--Sendov block curvature}
 
@@ -660,7 +660,7 @@ The three \glsentryshort{mm}-derived operands originate from the same frozen cur
 
 \subsection{Separable majorisation as future work}
 
-The implemented Jacobi diagonal is the exact diagonal of the chosen frozen surrogate; the outstanding theoretical gap is majorisation. A De Pierro separable construction could provide an upper bound, although the bound may be more conservative. Appendix~\ref{app:depierro_majorisation} gives the construction and outlines a controlled comparison; no such benchmark was performed here.
+The implemented Jacobi diagonal is the exact diagonal of the chosen frozen surrogate; the outstanding theoretical gap is majorisation. A De Pierro separable construction could provide an upper bound, although the bound may be more conservative. A controlled comparison should assess majorisation slack, reconstruction convergence and computational cost under a common stopping criterion; no such benchmark was performed here.
 
 \subsection{Modality-dependent prior/data curvature balance}
 \label{subsec:modality_curvature_balance}
