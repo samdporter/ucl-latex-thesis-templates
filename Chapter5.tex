@@ -221,7 +221,7 @@ Two datasets are used to characterise behaviour under controlled and realistic c
     \label{fig:brain_overview}
 \end{figure}
 
-In both cases, the anatomical image $u$ is registered to the \gls{pet} grid and resampled to the reconstruction voxel size. The registered anatomy is used either to define the kernel $K$ (\gls{krl}/\gls{hkrl}) or the directional field $\{\xi_j\}$ (\gls{rldtv}).
+In both cases, the anatomical image $u$ is registered to the \gls{pet} grid and resampled to the reconstruction voxel size. The registered anatomical image is used either to define the kernel $K$ (\gls{krl}/\gls{hkrl}) or the directional field $\{\xi_j\}$ (\gls{rldtv}).
 
 To obtain a controlled test case with known truth while retaining a realistic resolution/noise regime, the sphere dataset is simulated from a digital activity distribution by forward projecting with an isotropic Gaussian resolution model of $\mathrm{FWHM}=\SI{6}{\milli\metre}$ embedded in the forward projector, adding Poisson noise to the resulting sinograms, and then reconstructing using an operator without additional blurring. This deliberately introduces a resolution-modelling mismatch between simulation and reconstruction. The deconvolution operator used in the subsequent image-domain correction was the same $\SI{6}{\milli\metre}$ Gaussian model, implemented with the same boundary handling as the simulation blur.
 
@@ -246,7 +246,7 @@ Finally, overall fidelity to the truth is summarised by the \gls{nrmse} over the
 {\sqrt{\frac{1}{|\Omega|}\sum_{i\in \Omega}\left(x^\star_i\right)^2}}.
 \end{equation}
 
-The in vivo dataset is a $\tau$-\gls{pet} scan acquired on a healthy volunteer using the tracer \textsuperscript{18}F-MK-6240, with a co-registered anatomical \glsentryshort{mri} serving as guidance. This dataset is used to qualitatively illustrate how the different priors behave in the presence of heterogeneous uptake patterns and fine anatomical structure, where over-regularisation can lead to anatomical ``imprinting''. The FWHM of the deconvolution operator was estimated from a Hoffman brain phantom scan acquired on the same Siemens Vision scanner, giving $\mathrm{FWHM}=(\SI{4.6}{\milli\metre},\SI{4.6}{\milli\metre},\SI{6.4}{\milli\metre})$. 
+The in vivo dataset is a $\tau$-\gls{pet} scan acquired on a healthy volunteer using the tracer \textsuperscript{18}F-MK-6240, with a co-registered anatomical \glsentryshort{mri} serving as guidance. This dataset is used to qualitatively illustrate how the different priors behave in the presence of heterogeneous uptake patterns and fine anatomical structure, where over-regularisation can lead to anatomical ``imprinting''. The FWHM of the deconvolution operator was estimated from a Hoffman brain phantom scan acquired on the same Siemens Vision 600 scanner, giving $\mathrm{FWHM}=(\SI{4.6}{\milli\metre},\SI{4.6}{\milli\metre},\SI{6.4}{\milli\metre})$. 
 
 \subsection{Hyperparameter tuning}
 \label{subsec:hyperparameter_tuning}
