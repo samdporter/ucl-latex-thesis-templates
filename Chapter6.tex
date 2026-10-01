@@ -103,6 +103,14 @@ In practice, it is unnecessary to form the left singular vectors, $U$, if we exp
 G := \mathcal{G}^\top \mathcal{G}\in\mathbb{R}^{M\times M},
 \qquad G\succeq 0.
 \end{equation}
+The penalty itself is a function of the eigenvalues of this symmetric matrix:
+\begin{equation}
+    \phi(\mathcal{G})
+    =\sum_{i=1}^{M}\left(\sqrt{\lambda_i(G)+\epsilon^2}-\epsilon\right)
+    =\operatorname{tr}\!\left((G+\epsilon^2\mathbb{I}_M)^{1/2}\right)-M\epsilon.
+    \label{eq:phi_gram_spectral}
+\end{equation}
+Any additional zero eigenvalues when $M>d$ contribute zero. This representation also connects the prior to the calculus of spectral functions of symmetric matrices used for its Hessian in Chapter~\ref{chapter:optimisation}.
 Now, $G=V\Lambda V^\top$\ is a real-valued Hermitian matrix with $\Lambda=\mathrm{diag}(\lambda_1,\dots,\lambda_M)$. It has eigenvalues $\lambda_\ell=\sigma_\ell^2$ and $V$ coincides with the right singular vectors of $\mathcal{G}$. Substituting $U=\mathcal{G}V\Sigma^{-1}$\footnote{This follows from right-multiplying the singular value decomposition of $\mathcal{G}$ by $V \Sigma^{-1}$.} into~\eqref{eq:phi_grad_svd} gives
 \begin{equation}\label{eq:phi_grad_gram}
 \nabla_{\mathcal{G}} \phi(\mathcal{G})

@@ -6,6 +6,28 @@
 
 The block approximation used in Chapter~\ref{chapter:optimisation} retains PET/SPECT coupling within each voxel and omits coupling between voxels. The following construction specifies how the local derivatives are assembled into those approximate blocks.
 
+For a local weighted directional Jacobian $Y\in\mathbb{R}^{d\times M}$, write $G=Y^\top Y=V\operatorname{diag}(\lambda_i)V^\top$ and $s_i=\sqrt{\lambda_i+\epsilon^2}$. Equation~\eqref{eq:phi_gram_spectral} expresses $\phi$ as a spectral function of $G$, to which the Lewis--Sendov Hessian formula applies \cite[Theorem~3.3]{doi:10.1137/S089547980036838X}. Applying the chain rule gives the following equivalent expression for the Jacobian-space Hessian acting on a perturbation $E\in\mathbb{R}^{d\times M}$:
+\begin{equation}
+    \begin{aligned}
+    \nabla^2\phi(Y)[E]
+    &=E\,\Omegaeps{Y}
+    +YV\left[K\circ\left(V^\top(Y^\top E+E^\top Y)V\right)\right]V^\top,\\
+    K_{ij}&=-\frac{1}{s_i s_j(s_i+s_j)}.
+    \end{aligned}
+    \label{eq:ls_local_hessian_action}
+\end{equation}
+Here $\circ$ denotes the Hadamard product. The first term differentiates the explicit factor $Y$ in $\nabla\phi(Y)=Y\Omegaeps{Y}$; the second accounts for the change in the diffusivity matrix. For distinct eigenvalues, $K_{ij}$ is the divided difference $(s_i^{-1}-s_j^{-1})/(\lambda_i-\lambda_j)$. The displayed form also covers repeated eigenvalues, where $K_{ij}=-1/(2s_i^3)$, and zero eigenvalues, since $\epsilon>0$.
+
+Let $E_{\ell m}$ be the $d\times M$ matrix with a single unit entry in difference channel $\ell$ and modality $m$. The direction-diagonal local block retained at target $r$ is
+\begin{equation}
+    [\Theta_{r,\ell}]_{mm'}
+    =\left\langle E_{\ell m},\,
+    \nabla^2\phi(\tilde{\mathcal G}_r)[E_{\ell m'}]\right\rangle_F,
+    \qquad m,m'=1,\ldots,M,
+    \label{eq:ls_local_direction_block}
+\end{equation}
+where $\langle A,B\rangle_F=\operatorname{tr}(A^\top B)$. For PET/SPECT, $M=2$, so this is a $2\times2$ block.
+
 In practice each voxel block is assembled per neighbourhood target: the Lewis--Sendov calculus is evaluated in local Jacobian coordinates, and the retained direction-diagonal blocks are mapped into modality space by the diagonal congruence
 \begin{equation}
     T_{r,\ell}
