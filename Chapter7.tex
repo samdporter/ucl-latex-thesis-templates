@@ -6,7 +6,7 @@ Chapter~\ref{chapter:wdtnv} defined the smoothed weighted directional total nucl
 \section{Reconstruction Framework}
 \label{sec:optimisation_framework}
 
-As in section&\ref{subsec:synergistic_recon}, let $\bm z=(z_1,z_2)$ again denote the \gls{pet} and \gls{spect} images represented on a common reconstruction grid. For $N_{\mathrm d}$ subset data functions, define $\mathcal D(\bm z)=\sum_{i=1}^{N_{\mathrm d}}\mathcal D_i(\bm z)$. The objective is
+As in Section~\ref{subsec:synergistic_recon}, let $\bm z=(z_1,z_2)$ again denote the \gls{pet} and \gls{spect} images represented on a common reconstruction grid. For $N_{\mathrm d}$ subset data functions, define $\mathcal D(\bm z)=\sum_{i=1}^{N_{\mathrm d}}\mathcal D_i(\bm z)$. The objective is
 \begin{equation}
     \mathcal{O}(\bm z)
     =
@@ -27,7 +27,7 @@ Whole-liver \gls{pet} commonly requires multiple partially overlapping bed posit
 \subsubsection{Why Not Stitch Independent Reconstructions?}
 \label{subsec:stitching_failure}
 
-A common practical alternative is to reconstruct each \gls{pet} bed independently and fuse the images using sensitivity-weighted stitching in the overlap. With an edge-preserving prior, however, each reconstruction makes its own noise-suppression and edge decisions before fusion. We performed a qualitative comparison between this post-reconstsruction fusing and the joint multi-bed formulation described below \cite{porterSimultaneousMultiBedMAP2025}.  Figure~\ref{fig:optim_multibed_qualitative} shows overlap-region noise and discontinuities after separate reconstruction and fusion. 
+A common practical alternative is to reconstruct each \gls{pet} bed independently and fuse the images using sensitivity-weighted stitching in the overlap. With an edge-preserving prior, however, each reconstruction makes its own noise-suppression and edge decisions before fusion. We performed a qualitative comparison between this post-reconstruction fusing and the joint multi-bed formulation described below \cite{porterSimultaneousMultiBedMAP2025}.  Figure~\ref{fig:optim_multibed_qualitative} shows overlap-region noise and discontinuities after separate reconstruction and fusion. 
 
 \begin{figure}[htbp]
     \centering
@@ -85,7 +85,7 @@ Each bed contributes its own data term and sensitivity to a single combined imag
 \section{Stochastic \gls{map} Optimisation}
 \label{sec:optimisation_svrg}
 
-Section \ref{sec:optimisation} introduced stochastic optimisation as a promising method for fast and convergent image reconstruction. The stochastic experiments in this chapter use \gls{svrg} \cite{johnsonAcceleratingStochasticGradient2013,twyman_investigation_2023,ehrhardtFastPETReconstruction2025a}. Writing $\mathcal R=\mathcal{R}_{\mathrm{w\text{-}dTNV}}$, define the smooth objective $\mathcal{O}=\mathcal D+\mathcal R$. A component list $\{O_j\}_{j=1}^{n}$ satisfying $\sum_{j=1}^{n}O_j=\mathcal{O}$ is sampled uniformly with replacement, giving an\gls{svrg} estimator at anchor point $\widetilde{\bm z}$,
+Section \ref{sec:optimisation} introduced stochastic optimisation as a promising method for fast and convergent image reconstruction. The stochastic experiments in this chapter use \gls{svrg} \cite{johnsonAcceleratingStochasticGradient2013,twyman_investigation_2023,ehrhardtFastPETReconstruction2025a}. Writing $\mathcal R=\mathcal{R}_{\mathrm{w\text{-}dTNV}}$, define the smooth objective $\mathcal{O}=\mathcal D+\mathcal R$. A component list $\{O_j\}_{j=1}^{n}$ satisfying $\sum_{j=1}^{n}O_j=\mathcal{O}$ is sampled uniformly with replacement, giving an \gls{svrg} estimator at anchor point $\widetilde{\bm z}$,
 \[
     g^{(k)}
     =
@@ -155,7 +155,7 @@ Let $N_{\mathrm{PET}}$ and $N_{\mathrm{SPECT}}$ denote the numbers of data subse
 For either data organisation, the prior can enter the component list in many ways, of which three were investigated. Each list sums to $\mathcal{O}$ and therefore preserves the unbiasedness of the estimator above.
 
 \paragraph{Folded.}
-Here $n=N_{\mathrm d}$ and $F_i=\mathcal D_i+\mathcal R/N_{\mathrm d}$. One expected data pass therefore comprises $N_{\mathrm d}$ updates, with the prior gradient difference entering every update. This gives
+Here $n=N_{\mathrm d}$ and $O_i=\mathcal D_i+\mathcal R/N_{\mathrm d}$. One expected data pass therefore comprises $N_{\mathrm d}$ updates, with the prior gradient difference entering every update. This gives
 \begin{equation}
     g^{(k)} = \nabla\mathcal R(\bm z^{(k)})
     + \nabla\mathcal D(\widetilde{\bm z})
@@ -203,7 +203,7 @@ with element-wise division. Here, $\epsilon$ is a small value heuristically chos
     s_m \oslash (z_m+\epsilon_x).
     \label{eq:data_hessian_surrogate}
 \end{equation}
-The implementation used in this chapter optionally smooths the numerator image used in the \gls{em} preconditioner with a Gaussian filter, as suggested in \cite{ehrhardtFastPETReconstruction2025}.
+The implementation used in this chapter optionally smooths the numerator image used in the \gls{em} preconditioner with a Gaussian filter, as suggested in \cite{ehrhardtFastPETReconstruction2025a}.
 
 \subsection{Combining Data and Prior Curvature}
 \label{subsec:optimisation_preconditioner_combination}
@@ -536,7 +536,6 @@ Figure~\ref{fig:optim_subset_organisation} separates the six configurations main
 
 The prior correction gives one precise difference between the schedules. Let $\Delta_{\mathcal R}=\nabla\mathcal R(\bm z^{(k)})-\nabla\mathcal R(\widetilde{\bm z})$. Its contribution is $\Delta_{\mathcal R}$ at every folded update, either zero or $2\Delta_{\mathcal R}$ under sampled scheduling, and either zero or $(N_{\mathrm d}+1)\Delta_{\mathcal R}$ under once-per-epoch scheduling. Although its expectation is $\Delta_{\mathcal R}$ in all cases, the conditional covariance of the prior correction is zero, $\Delta_{\mathcal R}\Delta_{\mathcal R}^{\mathsf T}$, and $N_{\mathrm d}\Delta_{\mathcal R}\Delta_{\mathcal R}^{\mathsf T}$, respectively. The resulting large intermittent correction is therefore a plausible contributor to the poorer finite-interval behaviour of the once-per-epoch schedule, although the experiment does not isolate its effect from the accompanying change in data-component sampling.
 
-The relaxation normalisation rules out different step-size reduction with matched-unit count as the explanation. With the smooth objective, preconditioner, expected data-exposure axis and relaxation history fixed, the observed differences arise from the component and subset organisation, including how the prior correction is scheduled. Total update counts still differ---within the folded schedule, for example, separate organisation performs 36 updates per matched unit and paired organisation 18---so the comparison is not compute-matched and establishes no wall-clock advantage.
 The relaxation normalisation rules out different step-size reduction with matched-unit count as the explanation. With the smooth objective, preconditioner, expected data-exposure axis and relaxation history fixed, the observed differences arise from the component and subset organisation, including how the prior correction is scheduled. Total update counts still differ---within the folded schedule, for example, separate organisation performs 36 updates per matched unit and paired organisation 18---so the comparison is not compute-matched and establishes no wall-clock advantage.
 
 \subsection{Preconditioner Comparison}
