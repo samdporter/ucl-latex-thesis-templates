@@ -1,7 +1,7 @@
 \chapter{Long-Run Reference Diagnostics}
 \label{app:baseline_convergence}
 
-The single reference run in Chapter~\ref{chapter:optimisation} used the same objective as the short-run comparisons: 1000 epochs, 36 stochastic updates per epoch, a Gershgorin-diagonal \glsentryshort{mm} preconditioner and $\eta_{\mathrm{relax}}=10^{-4}$. Here $\mathcal O_k=\mathcal O(\bm z^{(k)})$ and $\mathcal O^\star=\min_{0\leq k\leq1000}\mathcal O_k$ denote the recorded and best observed objectives.
+The single reference run in Chapter~\ref{chapter:optimisation} used the same objective as the short-run comparisons: 1000 epochs, 36 stochastic updates per epoch, a diagonal preconditioner and $\eta_{\mathrm{relax}}=10^{-4}$. Here $\mathcal O_k=\mathcal O(\bm z^{(k)})$ and $\mathcal O^\star=\min_{0\leq k\leq1000}\mathcal O_k$ denote the recorded and best observed objectives.
 
 Table~\ref{tab:app_baseline_stationarity} summarises the convergence diagnostics;
 relative \glsentryshort{pet} iterate velocity is

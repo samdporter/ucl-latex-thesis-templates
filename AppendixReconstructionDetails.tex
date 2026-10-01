@@ -1,0 +1,65 @@
+\chapter{Details of Preconditioning and Statistical Analysis}
+\label{app:reconstruction_details}
+
+\section{Assembly of the Lewis--Sendov Voxel Blocks}
+\label{app:ls_block_assembly}
+
+The block approximation used in Chapter~\ref{chapter:optimisation} retains PET/SPECT coupling within each voxel and omits coupling between voxels. The following construction specifies how the local derivatives are assembled into those approximate blocks.
+
+In practice each voxel block is assembled per neighbourhood target: the Lewis--Sendov calculus is evaluated in local Jacobian coordinates, and the retained direction-diagonal blocks are mapped into modality space by the diagonal congruence
+\begin{equation}
+    T_{r,\ell}
+    =
+    \operatorname{diag}(a_{r,\ell})\,
+    \Theta_{r,\ell}\,
+    \operatorname{diag}(a_{r,\ell})
+    =
+    \bigl(a_{r,\ell}a_{r,\ell}^{\top}\bigr)\circ \Theta_{r,\ell},
+    \label{eq:ls_block_pullback}
+\end{equation}
+where $\Theta_{r,\ell}$ is the local Hessian block for difference channel $\ell$ at target $r$ and the modality scalings $[a_{r,\ell}]_m$ combine the modality weights $\rho_{m,r}$ and the stencil step scaling with the square roots of the channel-$\ell$ diagonal entries of the operator Gram matrices $\Pi_{m,r}^{\top}\Pi_{m,r}$. Each contribution~\eqref{eq:ls_block_pullback} is the Hadamard product of a rank-one Gram matrix with a positive-semidefinite local block---$\Theta_{r,\ell}$ is a principal block of the local Hessian of the convex smoothed spectral penalty---hence positive semidefinite by the Schur product theorem. Accumulated over the targets incident on voxel $n$ and their difference channels, the assembled voxel blocks are therefore positive semidefinite before flooring. Because the scalings compress the cross-operator geometry to its diagonal energies, the assembled blocks approximate the exact voxel blocks $[H_{\mathcal R}]_{nn}$ rather than reproducing them exactly.
+
+\section{Statistical Models for the Phantom and Clinical Comparisons}
+\label{app:90y_statistical_models}
+
+These are the full model specifications for the comparisons in Chapter~\ref{chapter:paper}. In the phantom model, $c$ identifies the reconstruction method, $v$ the sphere, and $\mathrm{bs}$ the bootstrap replicate. In the clinical models, $p$ identifies the patient and $l$ the lesion. The reference method is \wdtnv. The symbols $\beta_0$ and $\alpha_c$ denote the intercept and method effects within each model; parameters are estimated separately for each endpoint. Random effects and residual errors are assumed mutually independent, with the Gaussian distributions specified below.
+
+\subsection{Phantom Recovery Coefficients}
+
+Inference for RC uses a linear mixed model on
+\begin{equation}
+y_{\mathrm{bs},c,v} := \log\!\left(\mathrm{RC}^{(c)}_{\mathrm{bs},v}\right),
+\qquad \mathrm{bs}=1,\ldots,N_{\mathrm{bs}},
+\end{equation}
+with a random intercept for bootstrap replicate and fixed effects for method, sphere, and their interaction:
+\begin{align}
+y_{\mathrm{bs},c,v} &= \beta_0 + \alpha_c + \gamma_v + (\alpha\gamma)_{c,v} + u_{\mathrm{bs}} + \varepsilon_{\mathrm{bs},c,v}, \nonumber \\
+u_{\mathrm{bs}} &\overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau_{\mathrm{bs}}^2),
+\qquad
+\varepsilon_{\mathrm{bs},c,v} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2).
+\end{align}
+
+\subsection{Clinical Contrast and Background Noise}
+
+We analyse $\log(\mathrm{TBR})$ using a linear mixed-effects model with fixed method effects and random intercepts for patient and lesion-within-patient:
+\begin{equation}
+\begin{aligned}
+y_{p,l,c} &:= \log\!\left(\mathrm{TBR}_{p,l,c}\right)
+= \beta_0 + \alpha_c + u_p + v_{p,l} + \varepsilon_{p,l,c},\\
+u_p &\overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2_{\mathrm{p}}),
+\qquad
+v_{p,l} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2_{\mathrm{l}}),
+\qquad
+\varepsilon_{p,l,c} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2).
+\end{aligned}
+\end{equation}
+Background noise is analysed analogously at the patient level using
+\begin{equation}
+\begin{aligned}
+y^{\mathrm{CoV}}_{p,c} &:= \log\!\left(\mathrm{CoV}_{p,c}(\%)\right)
+= \beta_0 + \alpha_c + u_p + \varepsilon_{p,c},\\
+u_p &\overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2_{\mathrm{p,CoV}}),
+\qquad
+\varepsilon_{p,c} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\psi^2).
+\end{aligned}
+\end{equation}
