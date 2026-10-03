@@ -1,62 +1,31 @@
 \chapter{Introduction to Weighted Directional Total Nuclear Variation}
 \label{chapter:wdtnv}
-In this chapter, we introduce a smoothed \acrfull{wdtnv} prior for synergistic emission tomography. The chapter focuses on the regulariser itself: its relationship to total nuclear variation, its differentiability after singular-value smoothing, the use of anatomical information through directional operators, and the modality-wise weighting needed when coupling heterogeneous emission images.
+In this chapter, we introduce a smoothed \acrfull{wdtnv} prior for synergistic emission tomography. The chapter focuses on the regulariser itself: its relationship to total nuclear variation, its smooth Gram-matrix formulation, the use of anatomical information through directional operators, and the modality-wise weighting needed when coupling heterogeneous emission images.
 
 The optimisation machinery used to apply this prior in large-scale \gls{pet}/\gls{spect} reconstruction, including prior-aware preconditioning and subset selection, is developed and tested on a single-bed phantom in Chapter~\ref{chapter:optimisation}. The extension to multi-bed \gls{pet} patient acquisitions is introduced in Chapter~\ref{chapter:paper}.
 
-\section{Total Nuclear Variation Revisited}
+\section{A Gram-matrix formulation of Total Nuclear Variation}
 \label{sec:tv_to_tnv}
-This section builds on the definitions in Section~\ref{subsec:synergistic_recon}. For convenience, we restate the key definitions here:
-\begin{itemize}
-    \item Registered images: $\bm{z} \coloneqq (z_1,\dots,z_M)\in\mathbb{R}_+^{N\times M}$, where the matrix-space identification stacks the images as columns, $z_m \coloneqq W_m x_m$, and
-    $W_m : \mathbb{R}_+^{J_m} \to \mathbb{R}_+^{N}$.
-    \item Finite-difference operator: for $\ell=1,\dots,d$,
-    \[
-        \big((D x)_n\big)^{(\ell)} \coloneqq \frac{x_{n+\delta_\ell} - x_{n}}{\Delta_{\ell}} .
-    \]
-    \item Voxel-wise Jacobian:
-    \[
-        \mathcal{G}_n(\bm{z})
-        \coloneqq
-        \begin{bmatrix}
-        (D z_1)_n & (D z_2)_n & \cdots & (D z_M)_n
-        \end{bmatrix}
-        \in \mathbb{R}^{d\times M}.
-    \]
-    \item Nuclear norm: for a matrix $Y\in\mathbb{R}^{d\times M}$ with singular values $\{\sigma_k(Y)\}_{k=1}^{r}$ and $r=\min\{d,M\}$,
-    \[
-        \|Y\|_* \coloneqq \sum_{k=1}^{r}\sigma_k(Y).
-    \]
-    \item Total nuclear variation:
-    \[
-        \mathcal{R}_{\mathrm{TNV}}(\bm{z}) \coloneqq \sum_{n=1}^N  \|\mathcal{G}_n(\bm{z})\|_* .
-    \]
-\end{itemize}
+We use the registered images $\bm{z}$ and voxel-wise Jacobian $\mathcal{G}_n(\bm{z})\in\mathbb{R}^{d\times M}$ introduced in Section~\ref{subsec:synergistic_recon}. For each voxel, define the Gram matrix
+\begin{equation}
+    G_n := \mathcal{G}_n(\bm{z})^\top\mathcal{G}_n(\bm{z})
+    \in\mathbb{R}^{M\times M},
+    \qquad G_n\succeq0.
+    \label{eq:tnv_gram}
+\end{equation}
+Its eigenvalues are the squared singular values of the Jacobian: $\lambda_i(G_n)=\sigma_i(\mathcal{G}_n)^2$ for $i=1,\ldots,\min\{d,M\}$, with additional zero eigenvalues if $M>d$. Thus TNV from~\eqref{eq:tnv} has the equivalent representation
+\begin{equation}
+    \mathcal{R}_{\mathrm{TNV}}(\bm{z})
+    =\sum_{n=1}^N\|\mathcal{G}_n(\bm{z})\|_*
+    =\sum_{n=1}^N\sum_{i=1}^{M}\sqrt{\lambda_i(G_n)}.
+    \label{eq:tnv_gram_spectral}
+\end{equation}
+The singular-value and Gram-eigenvalue expressions describe the same penalty. The former explains the low-rank coupling discussed in Chapter~\ref{chapter:reconstruction}; the latter provides a convenient form for evaluating the penalty and its derivatives. For two emission modalities, the Gram matrix is only $2\times2$, regardless of the number of finite-difference directions $d$.
 
 \subsection{Mathematical properties and differentiability}
 \label{subsec:tnv_differentiability}
 
-Briefly revisiting total variation, $\mathcal{R}_{\mathrm{TV}}$ (cf.\ \eqref{eq:tv}) is not differentiable when a voxel gradient $(D x_m)_j$ vanishes. For gradient-based optimisation, we use a Charbonnier smoothing with $\epsilon>0$.
-
-If we define
-\begin{equation}
-\tilde{\mathcal{R}}_{\mathrm{TV}}(x_m)
-\;:=\;
-\sum_{j=1}^{J_m} \|(D x_m)_j\|_{2,\epsilon},
-\qquad
-\|v\|_{2,\epsilon}:=\sqrt{\|v\|_2^2+\epsilon^2}-\epsilon,
-\end{equation}
-then the image-space gradient is
-\begin{equation}
-\nabla_{x_m}\tilde{\mathcal{R}}_{\mathrm{TV}}(x_m)
-\;=\;
--\,\operatorname{div}\!\left(\frac{D x_m}{\sqrt{\|D x_m\|_2^2+\epsilon^2}}\right),
-\end{equation}
-where the division is understood pointwise over voxels.
-
-The nuclear norm used by \gls{tnv} is a particular orthogonally invariant penalty: $\|UYV^\top\|_*=\|Y\|_*$ for orthogonal $U\in\mathbb{R}^{d\times d}$ and $V\in\mathbb{R}^{M\times M}$. More generally, an orthogonally invariant scalar function of $Y\in\mathbb{R}^{d\times M}$ can be written as $F(Y)=f(\sigma(Y))$, where $\sigma(Y)$ lists its $r=\min\{d,M\}$ singular values and $f$ is \emph{absolutely symmetric}, i.e. it is invariant under permutations and sign changes of its arguments \cite{lewisConvexAnalysisUnitarily1995}.  This is obviously the case for a sum of non-negative singular values.
-
-We can smooth TNV by applying the same Charbonnier function used for \gls{tv} to each singular value \cite{charbonnier_deterministic_1997,fessler_image_2017}:
+Like \gls{tv}, TNV is not differentiable everywhere; in particular, the nuclear norm is non-differentiable at rank-deficient Jacobians. We use the Charbonnier smoothing discussed for \gls{tv} in Chapter~\ref{chapter:reconstruction}, applied to each singular value \cite{charbonnier_deterministic_1997,fessler_image_2017}:
 \begin{equation}\label{eq:charbonnier_g}
 g(s)=\sqrt{s^2+\epsilon^2}-\epsilon,
 \qquad
@@ -66,70 +35,37 @@ g''(s)=\frac{\epsilon^2}{(s^2+\epsilon^2)^{3/2}},
 \end{equation}
 where $\epsilon>0$ controls the degree of smoothing.
 
-For the smoothed penalty, define
+For a local Jacobian $Y\in\mathbb{R}^{d\times M}$, write $G=Y^\top Y$. Using the equivalence above, the smoothed local penalty is
 \begin{equation}
-    \phi(Y):=f_\epsilon(\sigma(Y)),
-    \qquad
-    f_\epsilon(s):=\sum_{\ell=1}^{r}g(s_\ell).
+    \begin{aligned}
+        \phi(Y)
+        &:=\sum_{i=1}^{M}\left(\sqrt{\lambda_i(G)+\epsilon^2}-\epsilon\right)\\
+        &=\operatorname{tr}\!\left((G+\epsilon^2\mathbb{I}_M)^{1/2}\right)-M\epsilon.
+    \end{aligned}
+    \label{eq:phi_gram_spectral}
 \end{equation}
-The Charbonnier function $g$ in \eqref{eq:charbonnier_g} is even, convex and smooth across zero, so $f_\epsilon$ is convex, absolutely symmetric and differentiable on all of $\mathbb{R}^r$. Lewis's gradient formula for convex orthogonally invariant functions therefore shows that $\phi$ is differentiable even when $Y$ is rank deficient \cite[Theorem~3.1]{lewisConvexAnalysisUnitarily1995}. This is the matrix analogue of smoothing the corner of the absolute value in scalar \gls{tv}.
-
+Equivalently, $\phi(Y)=\sum_{\ell=1}^{r}g(\sigma_\ell(Y))$ with $r=\min\{d,M\}$; any additional zero Gram eigenvalues contribute zero because $g(0)=0$. This representation also connects the prior to the calculus of spectral functions of symmetric matrices used for its Hessian in Chapter~\ref{chapter:optimisation}.
 
 \paragraph{Convexity.}
-Since $f_\epsilon$ is convex and absolutely symmetric, $\phi=f_\epsilon\circ\sigma$ is convex on $\mathbb{R}^{d\times M}$ \cite[Corollary~2.6]{lewisConvexAnalysisUnitarily1995}. The finite-difference operator $D$, directional operators $\Pi_{m,n}$ of Section~\ref{subsec:directional_from_guidance}, and weight matrices $B_n$ of Section~\ref{subsec:modality_weighting} are fixed linear maps. Composing $\phi$ with these maps and summing over voxels preserves convexity, so
+The singular-value representation gives a direct convexity argument. Define $f_\epsilon(s)=\sum_{\ell=1}^{r}g(s_\ell)$ on $\mathbb{R}^r$, so that $\phi=f_\epsilon\circ\sigma$. Since $g$ is even and convex, $f_\epsilon$ is convex and \emph{absolutely symmetric}, meaning invariant under permutations and sign changes of its arguments. Hence $\phi$ is convex on $\mathbb{R}^{d\times M}$ \cite[Corollary~2.6]{lewisConvexAnalysisUnitarily1995}. Smoothness of $f_\epsilon$ also ensures that $\phi$ is differentiable even when $Y$ is rank deficient \cite[Theorem~3.1]{lewisConvexAnalysisUnitarily1995}. The finite-difference operator $D$, directional operators $\Pi_{m,n}$ of Section~\ref{subsec:directional_from_guidance}, and weight matrices $B_n$ of Section~\ref{subsec:modality_weighting} are fixed linear maps. Composing $\phi$ with these maps and summing over voxels preserves convexity, so
 \begin{equation}
     \mathcal{R}_{\mathrm{w\text{-}dTNV}} \ \text{is convex on}\ \mathbb{R}^{N\times M}.
     \label{eq:wdtnv_convex}
 \end{equation}
 
 \paragraph{Jacobian-space gradient.}
-For a voxel-wise Jacobian $\mathcal{G}\in\mathbb{R}^{d\times M}$, a thin \gls{svd}
+Differentiating the trace representation in~\eqref{eq:phi_gram_spectral} directly avoids forming singular vectors. For a perturbation $E\in\mathbb{R}^{d\times M}$,
 \begin{equation}
-\mathcal{G} \;=\; U\,\Sigma\,V^\top,
-\qquad
-U\in\mathbb{R}^{d\times r},\ \Sigma=\mathrm{diag}(\sigma)\in\mathbb{R}^{r\times r},\ V\in\mathbb{R}^{M\times r},
+    \begin{aligned}
+        \mathrm{d}\phi(Y)[E]
+        &=\frac12\operatorname{tr}\!\left((G+\epsilon^2\mathbb{I}_M)^{-1/2}
+        (Y^\top E+E^\top Y)\right)\\
+        &=\left\langle Y(G+\epsilon^2\mathbb{I}_M)^{-1/2},E\right\rangle_F,
+    \end{aligned}
 \end{equation}
-with $r=\min\{d,M\}$ gives
-\begin{equation}\label{eq:phi_grad_svd}
-\nabla_{\mathcal{G}} \phi(\mathcal{G})
-\;=\;
-U\,\mathrm{diag}\!\bigl(g'(\sigma)\bigr)\,V^\top,
-\qquad
-g'(\sigma_\ell)=\frac{\sigma_\ell}{\sqrt{\sigma_\ell^2+\epsilon^2}}.
-\end{equation}
-
-In practice, it is unnecessary to form the left singular vectors, $U$, if we exploit the small Gram matrix
-\begin{equation}
-G := \mathcal{G}^\top \mathcal{G}\in\mathbb{R}^{M\times M},
-\qquad G\succeq 0.
-\end{equation}
-The penalty itself is a function of the eigenvalues of this symmetric matrix:
-\begin{equation}
-    \phi(\mathcal{G})
-    =\sum_{i=1}^{M}\left(\sqrt{\lambda_i(G)+\epsilon^2}-\epsilon\right)
-    =\operatorname{tr}\!\left((G+\epsilon^2\mathbb{I}_M)^{1/2}\right)-M\epsilon.
-    \label{eq:phi_gram_spectral}
-\end{equation}
-Any additional zero eigenvalues when $M>d$ contribute zero. This representation also connects the prior to the calculus of spectral functions of symmetric matrices used for its Hessian in Chapter~\ref{chapter:optimisation}.
-Now, $G=V\Lambda V^\top$\ is a real-valued Hermitian matrix with $\Lambda=\mathrm{diag}(\lambda_1,\dots,\lambda_M)$. It has eigenvalues $\lambda_\ell=\sigma_\ell^2$ and $V$ coincides with the right singular vectors of $\mathcal{G}$. Substituting $U=\mathcal{G}V\Sigma^{-1}$\footnote{This follows from right-multiplying the singular value decomposition of $\mathcal{G}$ by $V \Sigma^{-1}$.} into~\eqref{eq:phi_grad_svd} gives
-\begin{equation}\label{eq:phi_grad_gram}
-\nabla_{\mathcal{G}} \phi(\mathcal{G})
-\;=\;
-\mathcal{G}\,V\,\mathrm{diag}\!\left(\frac{g'(\sigma_\ell)}{\sigma_\ell}\right)\,V^\top,
-\end{equation}
-with the continuous extension at $\sigma_\ell=0$. For Charbonnier smoothing,
-\begin{equation}
-\frac{g'(\sigma_\ell)}{\sigma_\ell}
-=
-\frac{1}{\sqrt{\sigma_\ell^2+\epsilon^2}}
-=
-\frac{1}{\sqrt{\lambda_\ell+\epsilon^2}},
-\end{equation}
-hence
+where $\langle\cdot,\cdot\rangle_F$ is the Frobenius inner product. Therefore, for a voxel-wise Jacobian $\mathcal{G}$ with $G=\mathcal{G}^\top\mathcal{G}$,
 \begin{equation}\label{eq:phi_grad_inv_sqrt}
 \nabla_{\mathcal{G}} \phi(\mathcal{G})
-\;=\;
-\mathcal{G}\,V\,\mathrm{diag}\!\left(\frac{1}{\sqrt{\lambda_\ell+\epsilon^2}}\right)\,V^\top
 \;=\;
 \mathcal{G}\,(G+\epsilon^2 \mathbb{I})^{-1/2}.
 \end{equation}
@@ -181,41 +117,25 @@ so that~\eqref{eq:phi_grad_inv_sqrt} reads $\nabla_{\mathcal{G}}\phi(\mathcal{G}
         using only dot products and scalar square-roots per voxel.
         
 \paragraph{Image-space gradient.}
-Define the voxel-wise gradient
+Writing the voxel-wise gradient as
 \begin{equation}
 Q_n
 :=
 \nabla_{\mathcal{G}}
 \phi\!\left(\mathcal{G}_n(\bm{z})\right)
-\in \mathbb{R}^{d \times M},
+ =\mathcal{G}_n(\bm{z})\,\Omegaeps{\mathcal{G}_n(\bm{z})},
 \qquad n=1,\ldots,N,
 \end{equation}
-and let \(Q = \{Q_n\}_{n=1}^N\).
-
-Since the spatial-gradient field depends linearly on the image through
-\begin{equation}
-\mathcal{G}(\bm{z}) = D\bm{z},
-\end{equation}
-the chain rule maps the gradient \(Q\) back to image space using the
-adjoint \(D^\ast\):
+and $Q=\{Q_n\}_{n=1}^N$, the chain rule through the finite-difference operator gives
 \begin{equation}
 \nabla_{\bm{z}}
 \tilde{\mathcal{R}}_{\mathrm{TNV}}(\bm{z})
 =
-D^\ast Q.
-\end{equation}
-Defining the discrete divergence by
-\begin{equation}
-\operatorname{div} := -D^\ast,
-\end{equation}
-we obtain
-\begin{equation}
-\nabla_{\bm{z}}
-\tilde{\mathcal{R}}_{\mathrm{TNV}}(\bm{z})
+D^\ast Q
 =
 -\,\operatorname{div} Q,
 \end{equation}
-where the divergence is applied independently to each column of \(Q\).
+where $\operatorname{div}:=-D^\ast$ is applied independently to each column of $Q$ and $\tilde{\mathcal{R}}_{\mathrm{TNV}}(\bm{z})=\sum_n\phi(\mathcal{G}_n(\bm{z}))$.
 
 \section{Weighted Directional Total Nuclear Variation ($\wdtnv$)}
 \label{sec:wdtnv}
@@ -283,11 +203,9 @@ The weighted directional Total Nuclear Variation ($\wdtnv$) prior is then
     \mathcal{R}_{\mathrm{w\text{-}dTNV}}(\bm{z})
     :=
     V_{\mathrm{vox}}\sum_{n=1}^{N} \phi\!\left(\tilde{\mathcal{G}}_n(\bm{z})\right),
-    \qquad
-    \phi(Y) := \sum_{\ell=1}^{\min(d,M)} g(\sigma_\ell(Y)),
     \label{eq:wdtnv_prior}
 \end{equation}
-where $V_{\mathrm{vox}}$ is the voxel volume and $g$ is the Charbonnier smoothing from~\eqref{eq:charbonnier_g}. Choosing equal weights $\rho_{m,n}\equiv 1$ recovers unweighted $d$TNV. Choosing $\rho_{m,n}$ proportional to the inverse of a characteristic modality scale brings both channels to a comparable range before the nuclear-norm coupling is evaluated. The \gls{pet}/\gls{spect} normalisation used in the application study is specified in Chapter~\ref{chapter:paper}.
+where $V_{\mathrm{vox}}$ is the voxel volume and $\phi$ is the smoothed Gram-matrix potential from~\eqref{eq:phi_gram_spectral}. Choosing equal weights $\rho_{m,n}\equiv 1$ recovers unweighted $d$TNV. Choosing $\rho_{m,n}$ proportional to the inverse of a characteristic modality scale brings both channels to a comparable range before the nuclear-norm coupling is evaluated. The \gls{pet}/\gls{spect} normalisation used in the application study is specified in Chapter~\ref{chapter:paper}.
 
 \section{Conclusion}
 

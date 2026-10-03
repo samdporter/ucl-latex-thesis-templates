@@ -117,32 +117,17 @@ Each bed contributes its own data term and sensitivity to a single combined imag
 \subsection{Directional guidance from the CTAC-derived $\mu$-map}
 \label{subsec:90y_mu_guidance}
 
-As in Section~\ref{subsec:directional_from_guidance}, we use CT information directionally rather than appending CT as a third coupled channel. Here the guidance image is the CTAC-derived attenuation map $\mu$ resampled to the shared grid (We use the \gls{pet} grid in this work). We pre-smooth $\mu$ with a small blurring kernel ($\mathrm{FWHM}=\SI{2}{\milli\metre}$) to reduce high-frequency CT noise while retaining high guidance edge resolution. We then compute a stabilised direction field in the discrete gradient space,
+We apply the directional construction in~\eqref{eq:wdtnv_directional_operator} using the CTAC-derived attenuation map $\mu$ as the guidance image, resampled to the shared \gls{pet} grid. We pre-smooth $\mu$ with a blurring kernel ($\mathrm{FWHM}=\SI{2}{\milli\metre}$) to reduce high-frequency CT noise while retaining high guidance edge resolution. The direction field $\xi_n$ is computed with the empirical stabiliser
 \begin{equation}
-\xi_n
-=
-\frac{(D\mu)_n}{\sqrt{\|(D\mu)_n\|_2^2 + \eta^2}},
-\qquad
 \eta = 0.05\cdot \max_{n}\|(D\mu)_n\|_2,
 \label{eq:90y_xi_def}
 \end{equation}
-where $D$ is the chosen directional finite-difference operator (specified in Section~\ref{subsec:90y_directional_stencil}). The stabiliser $\eta$ prevents amplification of small-magnitude $\mu$ differences in homogeneous regions and was chosen empirically.
-
-We can then form the modality-wise directional operators $\Pi_{m,n}\in\mathbb{R}^{d\times d}$ using the construction already adopted in Chapter~\ref{chapter:wdtnv}:
-\begin{equation}
-\Pi_{m,n}
-=
-\mathbb{I}_d - \gamma_m\,\xi_n\xi_n^\top,
-\qquad
-\gamma_m\in[0,1].
-\label{eq:90y_Pi_def}
-\end{equation}
-Unless stated otherwise, we set $\gamma_1=\gamma_2=1$.
+where $D$ is specified in Section~\ref{subsec:90y_directional_stencil}. Unless stated otherwise, the directional operators use $\gamma_1=\gamma_2=1$.
 
 \subsection{Global modality normalisation}
 \label{subsec:90y_global_weights}
 
-Chapter~\ref{chapter:wdtnv} introduced a general voxel-wise diagonal modality weighting $B_n=\mathrm{diag}(\rho_{1,n},\ldots,\rho_{M,n})$. In the present study we use a spatially uniform normalisation to mitigate the dominant scale disparity between $^{90}$Y PET and bremsstrahlung SPECT:
+We specialise the modality weighting from~\eqref{eq:Bn_def} to a spatially uniform normalisation to mitigate the dominant scale disparity between $^{90}$Y PET and bremsstrahlung SPECT:
 \begin{equation}
 B_n \equiv B := \mathrm{diag}(\rho_1,\rho_2),
 \qquad \rho_1,\rho_2>0.
@@ -160,7 +145,7 @@ where $q_p(\cdot|_{\Omega'})$ denotes the $p$-quantile (so $q_{0.01}$ and $q_{0.
 \subsection{Directional finite-difference operator for PET/SPECT coupling}
 \label{subsec:90y_directional_stencil}
 
-We use the generic finite-difference definition from Chapter~\ref{chapter:wdtnv} (Section~\ref{sec:tv_to_tnv}) but specify the set of offsets to better accommodate SPECT blur and modest registration error. Let $\Delta=(\Delta_x,\Delta_y,\Delta_z)$ denote the voxel sizes in SI units. We define a nine-direction half-stencil
+We specialise the finite-difference operator from~\eqref{eq:finite_difference} with offsets chosen to better accommodate SPECT blur and modest registration error. Let $\Delta=(\Delta_x,\Delta_y,\Delta_z)$ denote the voxel sizes in SI units. We define a nine-direction half-stencil
 \begin{equation}
 \mathcal{E}_1
 =
@@ -178,38 +163,17 @@ and use both one- and two-voxel steps, $\mathcal{E}=\mathcal{E}_1\cup\{2e:e\in\m
 \end{equation}
 with Neumann boundary conditions. This follows the ``extended Jacobian'' motivation for TNV-type coupling \cite{holtTotalNuclearVariation2014} and empirically improved stability in the present PET/SPECT setting.
 
-\subsection{The $w$-$d$TNV Jacobian and regulariser (two modalities)}
+\subsection{Smoothing parameter}
 \label{subsec:90y_wdtnv_def}
 
-Using the notation of Chapter~\ref{chapter:wdtnv}, we form the guided gradients $\Pi_{m,n}(D z_m)_n\in\mathbb{R}^d$ and define the weighted directional Jacobian
-\begin{equation}
-\tilde{\mathcal{G}}_n := \tilde{\mathcal{G}}^{\mathrm{w\text{-}dTNV}}_n(\bm{z})
-=
-\left[\Pi_{1,n}(D z_1)_n \;\Big|\; \Pi_{2,n}(D z_2)_n\right]\,B
-\in\mathbb{R}^{d\times 2}.
-\label{eq:90y_Yn_def}
-\end{equation}
-The regulariser is the smoothed spectral potential introduced in Chapter~\ref{chapter:wdtnv}, weighted by the voxel volume $V_{\mathrm{vox}}$,
-\begin{equation}
-\mathcal{R}_{\mathrm{w\text{-}dTNV}}(\bm{z})
-=
-V_{\mathrm{vox}}\sum_{n=1}^{N}\phi(\tilde{\mathcal{G}}_n),
-\qquad
-\phi(Y)=\sum_{\ell=1}^{2} g(\sigma_\ell(Y)),
-\label{eq:90y_R_def}
-\end{equation}
-where $g$ is the Charbonnier smoothing (Equation~\ref{eq:charbonnier_g}) and $\sigma_\ell(Y)$ are singular values. We set the smoothing parameter $\epsilon$ relative to initial joint-gradient magnitudes:
+The weighted directional Jacobian and regulariser follow Equations~\eqref{eq:Yn_weighted} and~\eqref{eq:wdtnv_prior}, with $z_1$ representing PET and $z_2$ representing SPECT. We set the smoothing parameter $\epsilon$ relative to initial joint-gradient magnitudes, using the square root of the largest Gram eigenvalue:
 \begin{equation}
 \epsilon
 =
-0.05\cdot \mathrm{median}_{n\in\Omega'}\,\sigma_1\!\left(\tilde{\mathcal{G}}_n^{\mathrm{init}}\right),
-\qquad
-\tilde{\mathcal{G}}_n^{\mathrm{init}}:=\tilde{\mathcal{G}}^{\mathrm{w\text{-}dTNV}}_n(\bm{z}^{\mathrm{init}}),
+0.05\cdot \mathrm{median}_{n\in\Omega'}\,\sqrt{\lambda_{\max}(G_n^{\mathrm{init}})},
 \label{eq:90y_epsilon_def}
 \end{equation}
-with $\bm{z}^{\mathrm{init}}=(W_1 x_1^{\mathrm{init}},W_2 x_2^{\mathrm{init}})$ and $\epsilon$ is chosen empirically.
-
-If $\Pi_{2,n}(D z_2)_n\approx 0$ at some voxel (e.g.\ SPECT locally uniform after guidance), then $\tilde{\mathcal{G}}_n$ has an effectively single nonzero column and $\phi(\tilde{\mathcal{G}}_n)$ reduces to a TV-type penalty on the remaining modality column. This is the same ``no forced edges'' behaviour discussed in Chapter~\ref{chapter:wdtnv}.
+where $G_n^{\mathrm{init}}=\tilde{\mathcal{G}}_n(\bm{z}^{\mathrm{init}})^\top\tilde{\mathcal{G}}_n(\bm{z}^{\mathrm{init}})$ and $\bm{z}^{\mathrm{init}}=(W_1 x_1^{\mathrm{init}},W_2 x_2^{\mathrm{init}})$. This is equivalent to using the largest singular value of the initial weighted directional Jacobian. The factor $0.05$ was chosen empirically.
 
 \subsection{Ablation comparators}
 \label{subsec:90y_ablations}
