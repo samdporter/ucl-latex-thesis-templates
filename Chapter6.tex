@@ -167,7 +167,7 @@ It is useful to locate this construction within the established taxonomy of mult
 \subsection{Directional operators from guidance}
 \label{subsec:directional_from_guidance}
 
-We use the directional total-variation operator (Equation~\ref{eq:directional_op}) to incorporate a higher-resolution anatomical image. The image steers the penalty rather than entering the joint Jacobian as an additional column. This keeps the anatomical channel separate from the emission channels, whose units, resolution, and artefacts differ.
+We use the the directional operator used in \gls{dtv} (Equation~\ref{eq:directional_op}) to incorporate a higher-resolution anatomical image. The image steers the penalty rather than entering the joint Jacobian as an additional column. This keeps the anatomical channel separate from the emission channels, whose units, resolution, and artefacts differ.
 
 If a guidance image were appended as an additional modality, then a single global scaling would have data-dependent and spatially non-uniform consequences. Where emission gradients are weak, even modest guidance gradients could dominate the local Jacobian and hence the singular values; where emission gradients are strong, the same scaling may become negligible. In contrast, a directional operator, $\Pi$, modifies which gradient components are penalised, without forcing the presence of edges where the emission data do not support them (as demonstrated in Chapter~\ref{chapter:deconvolution_pvc}).
 
