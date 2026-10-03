@@ -1,9 +1,85 @@
-\chapter{Majorisation--Minimisation Preconditioners}
+\chapter{Evaluation and Preconditioning of the \texorpdfstring{$\wdtnv$}{w-dTNV} Prior}
+\label{app:wdtnv_details}
+
+\section{Closed-Form Diffusivity Matrix for Two Modalities}
+\label{app:inv_sqrt_2x2}
+
+For $M=2$, the diffusivity matrix $\Omegaeps{Y}$ of~\eqref{eq:spectral_weight} can be evaluated without an eigendecomposition. Let $y_1,y_2$ be the columns of $Y\in\mathbb{R}^{d\times2}$ and write
+\begin{equation}
+    G_\epsilon:=Y^\top Y+\epsilon^2\mathbb{I}
+    =
+    \begin{pmatrix}
+    \|y_1\|_2^2+\epsilon^2 & \langle y_1,y_2\rangle\\
+    \langle y_1,y_2\rangle & \|y_2\|_2^2+\epsilon^2
+    \end{pmatrix},
+    \qquad
+    t:=\operatorname{tr}(G_\epsilon),
+    \qquad
+    \delta:=\sqrt{\det(G_\epsilon)}.
+\end{equation}
+Since $Y^\top Y\succeq0$ and $\epsilon>0$, $G_\epsilon$ is positive definite and $\delta>0$. The Cayley--Hamilton theorem gives $G_\epsilon^2-tG_\epsilon+\delta^2\mathbb{I}=0$, and hence
+\[
+(G_\epsilon+\delta\mathbb{I})^2=(t+2\delta)\,G_\epsilon.
+\]
+Since $G_\epsilon+\delta\mathbb{I}$ is positive definite, the principal square-root of $G_\epsilon$ is
+\[
+G_\epsilon^{1/2}=\frac{G_\epsilon+\delta\mathbb{I}}{\sqrt{t+2\delta}}.
+\]
+Inverting with the $2\times2$ adjugate formula, using $\det(G_\epsilon+\delta\mathbb{I})=\delta(t+2\delta)$, yields
+\begin{equation}
+    \Omegaeps{Y}
+    =G_\epsilon^{-1/2}
+    =\frac{(t+\delta)\,\mathbb{I}-G_\epsilon}{\delta\sqrt{t+2\delta}}.
+    \label{eq:inv_sqrt_2x2}
+\end{equation}
+Each voxel therefore requires three dot products and two scalar square-roots.
+
+\section{Assembly of the Lewis--Sendov Voxel Blocks}
+\label{app:ls_block_assembly}
+
+The block approximation used in Chapter~\ref{chapter:optimisation} retains PET/SPECT coupling within each voxel and omits coupling between voxels. The following construction specifies how the local derivatives are assembled into those approximate blocks.
+
+For a local weighted directional Jacobian $Y\in\mathbb{R}^{d\times M}$, write $G=Y^\top Y=V\operatorname{diag}(\lambda_i)V^\top$ and $s_i=\sqrt{\lambda_i+\epsilon^2}$. Equation~\eqref{eq:phi_gram_spectral} expresses $\phi$ as a spectral function of $G$, to which the Lewis--Sendov Hessian formula applies \cite[Theorem~3.3]{doi:10.1137/S089547980036838X}. Applying the chain rule gives the following equivalent expression for the Jacobian-space Hessian acting on a perturbation $E\in\mathbb{R}^{d\times M}$:
+\begin{equation}
+    \begin{aligned}
+    \nabla^2\phi(Y)[E]
+    &=E\,\Omegaeps{Y}
+    +YV\left[K\circ\left(V^\top(Y^\top E+E^\top Y)V\right)\right]V^\top,\\
+    K_{ij}&=-\frac{1}{s_i s_j(s_i+s_j)}.
+    \end{aligned}
+    \label{eq:ls_local_hessian_action}
+\end{equation}
+Here $\circ$ denotes the Hadamard product. The first term differentiates the explicit factor $Y$ in $\nabla\phi(Y)=Y\Omegaeps{Y}$; the second accounts for the change in the diffusivity matrix. For distinct eigenvalues, $K_{ij}$ is the divided difference $(s_i^{-1}-s_j^{-1})/(\lambda_i-\lambda_j)$. The displayed form also covers repeated eigenvalues, where $K_{ij}=-1/(2s_i^3)$, and zero eigenvalues, since $\epsilon>0$.
+
+Let $E_{\ell m}$ be the $d\times M$ matrix with a single unit entry in difference channel $\ell$ and modality $m$. The direction-diagonal local block retained at target $r$ is
+\begin{equation}
+    [\Theta_{r,\ell}]_{mm'}
+    =\left\langle E_{\ell m},\,
+    \nabla^2\phi(\tilde{\mathcal G}_r)[E_{\ell m'}]\right\rangle_F,
+    \qquad m,m'=1,\ldots,M,
+    \label{eq:ls_local_direction_block}
+\end{equation}
+where $\langle A,B\rangle_F=\operatorname{tr}(A^\top B)$. For PET/SPECT, $M=2$, so this is a $2\times2$ block.
+
+In practice each voxel block is assembled per neighbourhood target: the Lewis--Sendov calculus is evaluated in local Jacobian coordinates, and the retained direction-diagonal blocks are mapped into modality space by the diagonal congruence
+\begin{equation}
+    T_{r,\ell}
+    =
+    \operatorname{diag}(a_{r,\ell})\,
+    \Theta_{r,\ell}\,
+    \operatorname{diag}(a_{r,\ell})
+    =
+    \bigl(a_{r,\ell}a_{r,\ell}^{\top}\bigr)\circ \Theta_{r,\ell},
+    \label{eq:ls_block_pullback}
+\end{equation}
+where $\Theta_{r,\ell}$ is the local Hessian block for difference channel $\ell$ at target $r$ and the modality scalings $[a_{r,\ell}]_m$ combine the modality weights $\rho_{m,r}$ and the stencil step scaling with the square roots of the channel-$\ell$ diagonal entries of the operator Gram matrices $\Pi_{m,r}^{\top}\Pi_{m,r}$. Each contribution~\eqref{eq:ls_block_pullback} is the Hadamard product of a rank-one Gram matrix with a positive-semidefinite local block---$\Theta_{r,\ell}$ is a principal block of the local Hessian of the convex smoothed spectral penalty---hence positive semidefinite by the Schur product theorem. Accumulated over the targets incident on voxel $n$ and their difference channels, the assembled voxel blocks are therefore positive semidefinite before flooring. Because the scalings compress the cross-operator geometry to its diagonal energies, the assembled blocks approximate the exact voxel blocks $[H_{\mathcal R}]_{nn}$ rather than reproducing them exactly.
+
+\section{Majorisation--Minimisation Preconditioners}
 \label{app:mm_preconditioner}
 
-Chapter~\ref{chapter:optimisation} builds its prior-curvature models from the Lewis--Sendov Hessian of \wdtnv. This appendix describes an alternative built from a quadratic majoriser of the prior. It is not used in Chapter~\ref{chapter:paper}, but its diagonal form was used for the subset experiment (Section~\ref{sec:optimisation_subset_selection}).
+Chapter~\ref{chapter:optimisation} builds its prior-curvature models from the Lewis--Sendov Hessian of \wdtnv. This section describes an alternative built from a quadratic majoriser of the prior. It is not used in Chapter~\ref{chapter:paper}, but its diagonal form was used for the subset experiment (Section~\ref{sec:optimisation_subset_selection}).
 
-\section{Construction}
+\subsection{Construction}
 
 Let $Y,Y_0\in\mathbb{R}^{d\times M}$, let $\phi(Y)=\sum_{i}g(\sigma_i(Y))$ with $g$ the Charbonnier function of Chapter~\ref{chapter:wdtnv}, and let $C_0=\Omegaeps{Y_0}$. Then
 \begin{equation}
@@ -32,7 +108,7 @@ where $\mathcal N(n)$ is the set of target voxels whose finite-difference stenci
 
 If valid data and prior majorisers are built at a common anchor, their curvatures add, and the inverse sum~\eqref{eq:parallel_sum_combination} is the corresponding \gls{mm} step. Extracting voxel blocks or diagonals from the spatially coupled Hessian does not preserve the majorisation, however, so none of these models is a global majoriser and the interpretation is heuristic.
 
-\section{Cost and Comparison}
+\subsection{Cost and Comparison}
 
 Construction and cached application of the two block models were timed on an NVIDIA RTX 3080 using ten repeats after two warm-up evaluations, for the one-bed phantom and two-bed patient configurations (Table~\ref{tab:mm_preconditioner_cost}). Application costs the same for both, but \gls{mm} construction is cheaper: Lewis--Sendov construction took 51\% and 72\% longer for one and two beds. This reflects the work each needs: the \gls{mm} block needs only the $2\times2$ inverse square root $C_r$ at each target, whereas the Lewis--Sendov block needs voxel-wise singular-value decompositions and the spectral Hessian terms built from them. Using the Chapter~\ref{chapter:paper} subset counts (18 PET plus 12 SPECT for one bed, or 36 PET plus 12 SPECT for two beds), with one construction and 30 or 48 applications per epoch, application dominates and the saving is small: approximately $8.2$ versus $8.5\,\mathrm{s}$ per epoch for one bed, and $55.7$ versus $58.3\,\mathrm{s}$ for two beds.
 

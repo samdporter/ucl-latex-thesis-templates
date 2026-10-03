@@ -1,0 +1,44 @@
+\chapter{Statistical Models for the Phantom and Clinical Comparisons}
+\label{app:90y_statistical_models}
+
+These are the full model specifications for the comparisons in Chapter~\ref{chapter:paper}. In the phantom model, $c$ identifies the reconstruction method, $v$ the sphere, and $\mathrm{bs}$ the bootstrap replicate. In the clinical models, $p$ identifies the patient and $l$ the lesion. The reference method is \wdtnv. The symbols $\beta_0$ and $\alpha_c$ denote the intercept and method effects within each model; parameters are estimated separately for each endpoint. Random effects and residual errors are assumed mutually independent, with the Gaussian distributions specified below.
+
+\section{Phantom Recovery Coefficients}
+
+Inference for RC uses a linear mixed model on
+\begin{equation}
+y_{\mathrm{bs},c,v} := \log\!\left(\mathrm{RC}^{(c)}_{\mathrm{bs},v}\right),
+\qquad \mathrm{bs}=1,\ldots,N_{\mathrm{bs}},
+\end{equation}
+with a random intercept for bootstrap replicate and fixed effects for method, sphere, and their interaction:
+\begin{align}
+y_{\mathrm{bs},c,v} &= \beta_0 + \alpha_c + \gamma_v + (\alpha\gamma)_{c,v} + u_{\mathrm{bs}} + \varepsilon_{\mathrm{bs},c,v}, \nonumber \\
+u_{\mathrm{bs}} &\overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau_{\mathrm{bs}}^2),
+\qquad
+\varepsilon_{\mathrm{bs},c,v} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2).
+\end{align}
+
+\section{Clinical Contrast and Background Noise}
+
+We analyse $\log(\mathrm{TBR})$ using a linear mixed-effects model with fixed method effects and random intercepts for patient and lesion-within-patient:
+\begin{equation}
+\begin{aligned}
+y_{p,l,c} &:= \log\!\left(\mathrm{TBR}_{p,l,c}\right)
+= \beta_0 + \alpha_c + u_p + v_{p,l} + \varepsilon_{p,l,c},\\
+u_p &\overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2_{\mathrm{p}}),
+\qquad
+v_{p,l} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2_{\mathrm{l}}),
+\qquad
+\varepsilon_{p,l,c} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2).
+\end{aligned}
+\end{equation}
+Background noise is analysed analogously at the patient level using
+\begin{equation}
+\begin{aligned}
+y^{\mathrm{CoV}}_{p,c} &:= \log\!\left(\mathrm{CoV}_{p,c}(\%)\right)
+= \beta_0 + \alpha_c + u_p + \varepsilon_{p,c},\\
+u_p &\overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\tau^2_{\mathrm{p,CoV}}),
+\qquad
+\varepsilon_{p,c} \overset{\mathrm{iid}}{\sim} \mathcal{N}(0,\psi^2).
+\end{aligned}
+\end{equation}
