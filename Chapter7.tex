@@ -1,7 +1,7 @@
 \chapter{Optimisation for Synergistic Reconstruction}
 \label{chapter:optimisation}
 
-Chapter~\ref{chapter:wdtnv} defined the smoothed weighted directional total nuclear variation prior. This chapter examines how to use that prior in joint \gls{pet}/\gls{spect} reconstruction with reliable updates and practical computational cost. Three questions organise the chapter: how overlapping \gls{pet} beds contribute to a single activity field, how data subsets and the prior enter stochastic updates, and how data and prior curvature should scale those updates. The general formulation and design alternatives are introduced first, followed by controlled one-bed phantom experiments comparing their behaviour and cost.
+Chapter~\ref{chapter:wdtnv} defined the smoothed weighted directional total nuclear variation prior. This chapter examines how to use that prior in joint \gls{pet}/\gls{spect} reconstruction with reliable updates and practical computational cost. Two questions organise the chapter: how data subsets and the prior enter stochastic updates, and how data and prior curvature should scale those updates. The general formulation and design alternatives are introduced first, followed by controlled single-bed phantom experiments comparing their behaviour and cost. Chapter~\ref{chapter:paper} extends this framework to multi-bed patient acquisitions and evaluates reconstruction quality on phantom and clinical data.
 
 \section{Reconstruction Framework}
 \label{sec:optimisation_framework}
@@ -16,69 +16,6 @@ As in Section~\ref{subsec:synergistic_recon}, let $\bm z=(z_1,z_2)$ again denote
     \label{eq:optimisation_objective}
 \end{equation}
 which we minimise subject to $\bm z\geq0$, so all reconstructed voxel values are non-negative. Here $\mathcal{D}_i$ is the Poisson negative log-likelihood for a data subset, including the relevant projector and image-space warping operator, and $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ is the prior from Chapter~\ref{chapter:wdtnv}.
-
-\subsection{Multi-Bed \gls{pet} Acquisition}
-\label{sec:multibed}
-
-Whole-liver \gls{pet} commonly requires multiple partially overlapping bed positions because a single axial field of view does not cover the organ. Structures of interest can therefore extend into the low-sensitivity edge of an individual bed, while two beds contribute measurements of the shared anatomy in their overlap. A coupled edge-preserving prior ideally should act on one activity field spanning the whole acquisition, rather than on images divided by scanner bed boundaries.
-
-\subsubsection{Why Not Stitch Independent Reconstructions?}
-\label{subsec:stitching_failure}
-
-A common practical alternative is to reconstruct each \gls{pet} bed independently and fuse the images using sensitivity-weighted stitching in the overlap. With an edge-preserving prior, however, each reconstruction makes its own noise-suppression and edge decisions before fusion. We performed a qualitative comparison between this post-reconstruction fusing and the joint multi-bed formulation described below \cite{porterSimultaneousMultiBedMAP2025}.  Figure~\ref{fig:optim_multibed_qualitative} shows overlap-region noise and discontinuities after separate reconstruction and fusion. 
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.72\linewidth]{figures/PiW/comparison.png}
-    \caption{Qualitative comparison of separately reconstructed and fused \gls{pet} bed positions with a joint multi-bed reconstruction using \gls{ct}-guided edge-preserving regularisation (from \cite{porterSimultaneousMultiBedMAP2025}). The shaded region marks the bed overlap and the cyan lines mark the displayed profiles.}
-    \label{fig:optim_multibed_qualitative}
-\end{figure}
-
-\subsubsection{Joint Multi-Bed Formulation}
-\label{subsec:multibed_notation}
-\label{subsec:joint_multibed}
-
-Let $x$ be the \gls{pet} activity image on the combined \gls{pet} reconstruction grid. For bed position $\mathrm{p}=1,\ldots,N_{\mathrm{p}}$, let $R_{\mathrm{p}}$ restrict the combined image to the axial support reconstructed by that bed. The expected \gls{pet} data for bed position $\mathrm{p}$ are
-\begin{equation}
-    \bar y_{\mathrm{p}}(x)
-    =
-    A_{\mathrm{p}} R_{\mathrm{p}} x + b_{\mathrm{p}},
-    \label{eq:multibed_forward_model}
-\end{equation}
-where $A_{\mathrm{p}}$ is the bed-specific \gls{pet} system matrix and $b_{\mathrm{p}}$ collects additive corrections. The joint \gls{pet} data term is
-\begin{equation}
-    \mathcal{D}_{\mathrm{PET}}^{\mathrm{multi}}(x)
-    =
-    \sum_{\mathrm{p}=1}^{N_{\mathrm{p}}}
-    \mathcal{D}
-    \left(
-        y_{\mathrm{p}} \mid A_{\mathrm{p}} R_{\mathrm{p}} x + b_{\mathrm{p}}
-    \right),
-    \label{eq:multibed_data_term}
-\end{equation}
-with gradient
-\begin{equation}
-    \nabla \mathcal{D}_{\mathrm{PET}}^{\mathrm{multi}}(x)
-    =
-    \sum_{\mathrm{p}=1}^{N_{\mathrm{p}}}
-    R_{\mathrm{p}}^\top
-    A_{\mathrm{p}}^\top
-    \nabla_{\bar y_{\mathrm{p}}}
-    \mathcal{D}
-    \left(
-        y_{\mathrm{p}} \mid A_{\mathrm{p}} R_{\mathrm{p}} x + b_{\mathrm{p}}
-    \right).
-    \label{eq:multibed_gradient}
-\end{equation}
-The corresponding \gls{pet} sensitivity image on the combined grid is
-\begin{equation}
-    s_{\mathrm{PET}}^{\mathrm{multi}}
-    =
-    \sum_{\mathrm{p}=1}^{N_{\mathrm{p}}}
-    R_{\mathrm{p}}^\top A_{\mathrm{p}}^\top \bm 1.
-    \label{eq:multibed_sensitivity}
-\end{equation}
-Each bed contributes its own data term and sensitivity to a single combined image, while the image-domain prior is evaluated over the complete field of view. The formulation is needed for the dual-bed application in Chapter~\ref{chapter:paper}. The controlled subset and preconditioner studies below use a one-bed phantom to isolate optimisation effects.
 
 \section{Stochastic \gls{map} Optimisation}
 \label{sec:optimisation_svrg}
@@ -436,6 +373,6 @@ The modality dependence in Figure~\ref{fig:optim_preconditioners} plausibly refl
 \section{Conclusion}
 \label{sec:optimisation_conclusion}
 
-Joint multi-bed reconstruction allowed the edge-preserving prior to act across the bed overlap and did not exhibit the overlap artefacts visible in the qualitative stitched example. In the one-bed subset experiment, all schedules used the same smooth objective and an unbiased uniform-sampling \gls{svrg} estimator. We rescaled the relaxation rate from the folded, modality-separated setting $\eta_{\mathrm{relax}}=0.002$, giving every configuration the same step size at a given expected data pass. On that expected data-exposure axis, the folded schedules reduced \gls{nrmse} over 20 expected data passes and the intermittent schedules did not. Since the total update counts differ, this comparison does not establish a wall-clock or compute-efficiency advantage.
+In the single-bed phantom subset experiment, all schedules used the same smooth objective and an unbiased uniform-sampling \gls{svrg} estimator. We rescaled the relaxation rate from the folded, modality-separated setting $\eta_{\mathrm{relax}}=0.002$, giving every configuration the same step size at a given expected data pass. On that expected data-exposure axis, the folded schedules reduced \gls{nrmse} over 20 expected data passes and the intermittent schedules did not. Since the total update counts differ, this comparison does not establish a wall-clock or compute-efficiency advantage.
 
 Prior-aware preconditioning kept count-limited \gls{pet} bounded over the same 20-pass interval, where data-only \gls{bsrem} diverged; for \gls{spect}, data-only scaling remained competitive. Retaining the within-voxel \gls{pet}/\gls{spect} curvature gave modest \gls{pet} gains over the diagonal model. The Lehmer order $p=0.01$ gave similarly modest \gls{pet} gains over the inverse sum, whereas $p=0.1$ was clearly worse. Chapter~\ref{chapter:paper} uses the block model with $p=0.01$.

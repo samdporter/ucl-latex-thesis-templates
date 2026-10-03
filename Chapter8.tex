@@ -3,7 +3,7 @@
 
 This chapter applies the \acrfull{wdtnv} prior developed in Chapter~\ref{chapter:wdtnv} to the clinically relevant problem of post-treatment $^{90}$Y activity imaging after \glsentryshort{sirt}. We consider joint reconstruction of low-count $^{90}$Y \glsentryshort{pet} and bremsstrahlung \glsentryshort{spect}, using \acrfull{ctac} information directionally (via the \glsentryshort{ctac}-derived attenuation map $\mu$).
 
-Relative to Chapter~\ref{chapter:wdtnv}, the focus here is validation and comparison with other methods: we specify modality-dependent forward models, co-registration operators, practical normalisation for heterogeneous \glsentryshort{pet}/\glsentryshort{spect} scales, and a reproducible evaluation protocol on a \acrfull{nema} \acrfull{iec} phantom with \glsentryshort{pet} bootstrapping and on a post-\glsentryshort{sirt} patient cohort.
+Building on the single-bed phantom optimisation study in Chapter~\ref{chapter:optimisation}, we extend the reconstruction framework to multiple PET bed positions for patient imaging. The focus here is validation and comparison with other methods: we specify modality-dependent forward models, co-registration operators, practical normalisation for heterogeneous \glsentryshort{pet}/\glsentryshort{spect} scales, and a reproducible evaluation protocol on a \acrfull{nema} \acrfull{iec} phantom with \glsentryshort{pet} bootstrapping and on a post-\glsentryshort{sirt} patient cohort.
 
 \section{Motivation and clinical context}
 \label{sec:90y_motivation}
@@ -47,6 +47,69 @@ where $\mathcal{D}_m$ is the Poisson negative log-likelihood (up to an additive 
 \mathcal{D}_m(y_m\mid \bar y_m)=\sum_{i=1}^{I_m}\left((\bar y_m)_i - (y_m)_i\log (\bar y_m)_i\right),
 \end{equation}
 and $\mathcal{R}$ is the coupled prior. Throughout this chapter, named variational priors denote their smoothed implementations without an additional tilde. Thus $\mathcal{R}$ is the smoothed $w$-$d$TNV prior $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ defined in Section~\ref{sec:wdtnv} (Chapter~\ref{chapter:wdtnv}). The overall regularisation strength is carried by the modality weights introduced below, so no separate global scalar prior multiplier is used in the implementation.
+
+\subsection{Multi-Bed \gls{pet} Acquisition}
+\label{sec:multibed}
+
+The patient acquisitions in this chapter use two partially overlapping \gls{pet} bed positions to extend the axial coverage beyond a single field of view. Structures of interest can therefore extend into the low-sensitivity edge of an individual bed, while two beds contribute measurements of the shared anatomy in their overlap. A coupled edge-preserving prior ideally should act on one activity field spanning the whole acquisition, rather than on images divided by scanner bed boundaries.
+
+\subsubsection{Why Not Stitch Independent Reconstructions?}
+\label{subsec:stitching_failure}
+
+A common practical alternative is to reconstruct each \gls{pet} bed independently and fuse the images using sensitivity-weighted stitching in the overlap. With an edge-preserving prior, however, each reconstruction makes its own noise-suppression and edge decisions before fusion. We performed a qualitative comparison between this post-reconstruction fusing and the joint multi-bed formulation described below \cite{porterSimultaneousMultiBedMAP2025}. Figure~\ref{fig:optim_multibed_qualitative} shows overlap-region noise and discontinuities after separate reconstruction and fusion.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.72\linewidth]{figures/PiW/comparison.png}
+    \caption{Qualitative comparison of separately reconstructed and fused \gls{pet} bed positions with a joint multi-bed reconstruction using \gls{ct}-guided edge-preserving regularisation (from \cite{porterSimultaneousMultiBedMAP2025}). The shaded region marks the bed overlap and the cyan lines mark the displayed profiles.}
+    \label{fig:optim_multibed_qualitative}
+\end{figure}
+
+\subsubsection{Joint Multi-Bed Formulation}
+\label{subsec:multibed_notation}
+\label{subsec:joint_multibed}
+
+Let $x$ be the \gls{pet} activity image on the combined \gls{pet} reconstruction grid. For bed position $\mathrm{p}=1,\ldots,N_{\mathrm{p}}$, let $R_{\mathrm{p}}$ restrict the combined image to the axial support reconstructed by that bed. The expected \gls{pet} data for bed position $\mathrm{p}$ are
+\begin{equation}
+    \bar y_{\mathrm{p}}(x)
+    =
+    A_{\mathrm{p}} R_{\mathrm{p}} x + b_{\mathrm{p}},
+    \label{eq:multibed_forward_model}
+\end{equation}
+where $A_{\mathrm{p}}$ is the bed-specific \gls{pet} system matrix and $b_{\mathrm{p}}$ collects additive corrections. The joint \gls{pet} data term is
+\begin{equation}
+    \mathcal{D}_{\mathrm{PET}}^{\mathrm{multi}}(x)
+    =
+    \sum_{\mathrm{p}=1}^{N_{\mathrm{p}}}
+    \mathcal{D}
+    \left(
+        y_{\mathrm{p}} \mid A_{\mathrm{p}} R_{\mathrm{p}} x + b_{\mathrm{p}}
+    \right),
+    \label{eq:multibed_data_term}
+\end{equation}
+with gradient
+\begin{equation}
+    \nabla \mathcal{D}_{\mathrm{PET}}^{\mathrm{multi}}(x)
+    =
+    \sum_{\mathrm{p}=1}^{N_{\mathrm{p}}}
+    R_{\mathrm{p}}^\top
+    A_{\mathrm{p}}^\top
+    \nabla_{\bar y_{\mathrm{p}}}
+    \mathcal{D}
+    \left(
+        y_{\mathrm{p}} \mid A_{\mathrm{p}} R_{\mathrm{p}} x + b_{\mathrm{p}}
+    \right).
+    \label{eq:multibed_gradient}
+\end{equation}
+The corresponding \gls{pet} sensitivity image on the combined grid is
+\begin{equation}
+    s_{\mathrm{PET}}^{\mathrm{multi}}
+    =
+    \sum_{\mathrm{p}=1}^{N_{\mathrm{p}}}
+    R_{\mathrm{p}}^\top A_{\mathrm{p}}^\top \bm 1.
+    \label{eq:multibed_sensitivity}
+\end{equation}
+Each bed contributes its own data term and sensitivity to a single combined image, while the image-domain prior is evaluated over the complete field of view. For the joint PET/SPECT objective~\eqref{eq:90y_joint_obj}, $x=z_1$ and $\mathcal{D}_1$ is replaced by the summed multi-bed PET data term~\eqref{eq:multibed_data_term}; the SPECT data term and coupled prior retain their existing form. Likewise, the PET sensitivity used for preconditioning is the combined sensitivity~\eqref{eq:multibed_sensitivity}. This extends the single-bed optimisation framework tested in Chapter~\ref{chapter:optimisation} to the two-bed patient acquisitions evaluated here.
 
 \section{$w$-$d$TNV for $^{90}$Y PET/SPECT with CTAC guidance}
 \label{sec:90y_wdtnv}
@@ -186,7 +249,7 @@ For modality $m$, the data component is the EM-type scaling \cite{depierroFastEM
     z_m \oslash \left(W_m A_m^\top \mathbf{1}\right),
     \label{eq:90y_Pdata}
 \end{equation}
-represented on the shared grid. At each voxel, the PET and SPECT values form the diagonal data preconditioner. The prior preconditioner uses the $2\times2$ voxel blocks described in Section~\ref{subsec:optimisation_prior_preconditioning}, retaining PET/SPECT coupling within a voxel. These prior blocks are recomputed once per epoch.
+represented on the shared grid. For multi-bed PET, the denominator is the combined sensitivity in Equation~\eqref{eq:multibed_sensitivity}. At each voxel, the PET and SPECT values form the diagonal data preconditioner. The prior preconditioner uses the $2\times2$ voxel blocks described in Section~\ref{subsec:optimisation_prior_preconditioning}, retaining PET/SPECT coupling within a voxel. These prior blocks are recomputed once per epoch.
 
 We combine the data and prior preconditioners using the scaled Lehmer rule, $\tfrac12 L_p$, defined in Equation~\eqref{eq:matrix_lehmer_combination}, with $p=0.01$. This adjusts the inverse-sum combination, which is recovered at $p=0$. Before combining them, eigenvalues below $10^{-6}$ in either preconditioner are raised to this value for numerical stability. The block model and $p=0.01$ each gave modest PET gains in the comparisons of Sections~\ref{subsec:optimisation_block_vs_diag} and~\ref{subsec:optimisation_lehmer_results}.
 
@@ -208,7 +271,7 @@ All reconstructions were implemented in the \acrfull{sirf} \cite{ovtchinnikovSIR
 
 PET list-mode data were processed using the vendor toolchains to generate normalisation, attenuation, and additive corrections (randoms and scatter), which were held fixed during reconstruction \cite{stearnsRandomCoincidenceEstimation2003, iatrou3DImplementationScatter2006}. Reconstructions use a voxel size of $3.27\times 2.13\times 2.13~\mathrm{mm}^3$ (z,y,x) on a grid of $83\times 255\times 255$.
 
-Patient PET data were acquired across two partially overlapping bed positions. For all methods, these bed positions were reconstructed jointly in a single combined-bed image space, with separate forward- and back-projections for each bed position; for the variational methods, the image-domain prior is evaluated over the combined volume. This is the multi-bed formulation derived in Chapter~\ref{chapter:optimisation}. It permits one edge-preserving prior to act over the combined field of view and was motivated by the qualitative overlap comparison in Figure~\ref{fig:optim_multibed_qualitative}. Bed positions overlapped by 11 voxels. Phantom PET data were reconstructed using a single bed position.
+Patient PET data were acquired across two partially overlapping bed positions. For all methods, these bed positions were reconstructed jointly in a single combined-bed image space, with separate forward- and back-projections for each bed position; for the variational methods, the image-domain prior is evaluated over the combined volume. This uses the multi-bed formulation in Section~\ref{sec:multibed}. It permits one edge-preserving prior to act over the combined field of view and was motivated by the qualitative overlap comparison in Figure~\ref{fig:optim_multibed_qualitative}. Bed positions overlapped by 11 voxels. Phantom PET data were reconstructed using a single bed position.
 
 Projection data are partitioned into staggered, view-interleaved subsets. For SHKEM we use $S=9$ PET subsets, following the comparator study. For SVRG-based reconstructions we use 18 PET subsets for phantom data and 18 subsets per PET bed position for clinical data, giving 36 PET subsets in total for two-bed patient reconstructions.
 
@@ -616,6 +679,6 @@ More broadly, this chapter focuses on the favourable case in which PET and SPECT
 \section{Conclusion}
 \label{sec:90y_conclusion}
 
-This chapter validated the $w$-$d$TNV prior of Chapter~\ref{chapter:wdtnv} in joint $^{90}$Y PET/SPECT reconstruction with CTAC-derived directional guidance. The key modelling choice is to use CTAC information directionally (via $\Pi_{m,n}$) while preserving a two-modality Jacobian, retaining the computational advantages of the $2\times 2$ Gram structure (Chapter~\ref{chapter:wdtnv}) and avoiding unstable intensity coupling to CT.
+This chapter validated the $w$-$d$TNV prior of Chapter~\ref{chapter:wdtnv} in joint $^{90}$Y PET/SPECT reconstruction with CTAC-derived directional guidance. The single-bed optimisation framework of Chapter~\ref{chapter:optimisation} was extended to reconstruct the patient PET bed positions jointly, allowing the prior to act across the combined field of view. The qualitative comparison in Figure~\ref{fig:optim_multibed_qualitative} showed overlap-region noise and discontinuities after independent reconstruction and fusion that were not apparent in the joint multi-bed example. The key modelling choice is to use CTAC information directionally (via $\Pi_{m,n}$) while preserving a two-modality Jacobian, retaining the computational advantages of the $2\times 2$ Gram structure (Chapter~\ref{chapter:wdtnv}) and avoiding unstable intensity coupling to CT.
 
 On a bootstrapped NEMA IEC phantom, \wdtnv improves small-object recovery relative to \wtnv, \dtv, and a sequential hybrid kernel baseline at a matched noise operating point, with significant gains over the isotropic and non-synergistic variational baselines. Repeatability is better than SHKEM in the background and high-count regions, although it is lower than for the more strongly smoothing \wtnv and \dtv baselines; SHKEM remains most stable in the cold lung insert. In the post-SIRT cohort of 45 lesions across nine patients, \wdtnv yields significantly higher lesion TBR than the comparators at approximately matched background CoV. The response is not uniform across lesions. Those with clear anatomical correlates, such as calcification or liver boundaries, benefit most from synergy and $\mu$-map-informed edge alignment, while lesions without corresponding anatomical structure show less improvement. These findings support CTAC-guided synergistic variational coupling as a way to improve post-SIRT $^{90}$Y activity imaging for personalised dosimetry, but clinical translation will depend on controlling CT artefacts and PET/SPECT/CT registration error.
