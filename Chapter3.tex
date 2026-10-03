@@ -267,11 +267,11 @@ When viewed in this way, \gls{jtv} can be redefined as a Schatten $2$-norm (also
 \end{equation}
 where the Schatten $p$-norm is defined as
 \begin{equation}\label{eq:schatten}
-    \|Y\|_{Sp} \coloneqq \left(\sum_{r=1}^{R}\sigma_r(Y)^p\right)^{1/p}
+    \|Y\|_{Sp} \coloneqq \left(\sum_{i=1}^{R}\sigma_i(Y)^p\right)^{1/p}
 \end{equation}
 for a matrix $Y\in\mathbb{R}^{d\times M}$, where $R=\min\{d,M\}$. The Schatten $1$-norm, also known as the nuclear norm, is the sum of singular values
 \begin{equation}
-    \|Y\|_* = \sum_{r=1}^{R}\sigma_r(Y).
+    \|Y\|_* = \sum_{i=1}^{R}\sigma_i(Y).
 \end{equation}
 On the unit spectral-norm ball, the nuclear norm is the convex envelope of the rank function. Applied to the voxel-wise jacobians, it promotes singular value sparsity and has the effect of either driving functionally misaligned gradients to zero or parallel/anti-parallel, promoting edge-alignment. Applying this nuclear norm to the voxel-wise jacobians is known as \gls{tnv} \cite{holtTotalNuclearVariation2014, rigieJointReconstructionMultichannel2015}.
 \begin{equation}\label{eq:tnv}

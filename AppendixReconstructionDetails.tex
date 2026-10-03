@@ -1,6 +1,39 @@
 \chapter{Details of Preconditioning and Statistical Analysis}
 \label{app:reconstruction_details}
 
+\section{Closed-Form Diffusivity Matrix for Two Modalities}
+\label{app:inv_sqrt_2x2}
+
+For $M=2$, the diffusivity matrix $\Omegaeps{Y}$ of~\eqref{eq:spectral_weight} can be evaluated without an eigendecomposition. Let $y_1,y_2$ be the columns of $Y\in\mathbb{R}^{d\times2}$ and write
+\begin{equation}
+    G_\epsilon:=Y^\top Y+\epsilon^2\mathbb{I}
+    =
+    \begin{pmatrix}
+    \|y_1\|_2^2+\epsilon^2 & \langle y_1,y_2\rangle\\
+    \langle y_1,y_2\rangle & \|y_2\|_2^2+\epsilon^2
+    \end{pmatrix},
+    \qquad
+    t:=\operatorname{tr}(G_\epsilon),
+    \qquad
+    \delta:=\sqrt{\det(G_\epsilon)}.
+\end{equation}
+Since $Y^\top Y\succeq0$ and $\epsilon>0$, $G_\epsilon$ is positive definite and $\delta>0$. The Cayley--Hamilton theorem gives $G_\epsilon^2-tG_\epsilon+\delta^2\mathbb{I}=0$, and hence
+\[
+(G_\epsilon+\delta\mathbb{I})^2=(t+2\delta)\,G_\epsilon.
+\]
+Since $G_\epsilon+\delta\mathbb{I}$ is positive definite, the principal square-root of $G_\epsilon$ is
+\[
+G_\epsilon^{1/2}=\frac{G_\epsilon+\delta\mathbb{I}}{\sqrt{t+2\delta}}.
+\]
+Inverting with the $2\times2$ adjugate formula, using $\det(G_\epsilon+\delta\mathbb{I})=\delta(t+2\delta)$, yields
+\begin{equation}
+    \Omegaeps{Y}
+    =G_\epsilon^{-1/2}
+    =\frac{(t+\delta)\,\mathbb{I}-G_\epsilon}{\delta\sqrt{t+2\delta}}.
+    \label{eq:inv_sqrt_2x2}
+\end{equation}
+Each voxel therefore requires three dot products and two scalar square-roots.
+
 \section{Assembly of the Lewis--Sendov Voxel Blocks}
 \label{app:ls_block_assembly}
 

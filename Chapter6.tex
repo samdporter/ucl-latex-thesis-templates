@@ -44,10 +44,10 @@ For a local Jacobian $Y\in\mathbb{R}^{d\times M}$, write $G=Y^\top Y$. Using the
     \end{aligned}
     \label{eq:phi_gram_spectral}
 \end{equation}
-Equivalently, $\phi(Y)=\sum_{\ell=1}^{r}g(\sigma_\ell(Y))$ with $r=\min\{d,M\}$; any additional zero Gram eigenvalues contribute zero because $g(0)=0$. This representation also connects the prior to the calculus of spectral functions of symmetric matrices used for its Hessian in Chapter~\ref{chapter:optimisation}.
+Equivalently, $\phi(Y)=\sum_{i=1}^{R}g(\sigma_i(Y))$ with $R=\min\{d,M\}$ as in~\eqref{eq:schatten}; any additional zero Gram eigenvalues contribute zero because $g(0)=0$. This representation also connects the prior to the calculus of spectral functions of symmetric matrices used for its Hessian in Chapter~\ref{chapter:optimisation}.
 
 \paragraph{Convexity.}
-The singular-value representation gives a direct convexity argument. Define $f_\epsilon(s)=\sum_{\ell=1}^{r}g(s_\ell)$ on $\mathbb{R}^r$, so that $\phi=f_\epsilon\circ\sigma$. Since $g$ is even and convex, $f_\epsilon$ is convex and \emph{absolutely symmetric}, meaning invariant under permutations and sign changes of its arguments. Hence $\phi$ is convex on $\mathbb{R}^{d\times M}$ \cite[Corollary~2.6]{lewisConvexAnalysisUnitarily1995}. Smoothness of $f_\epsilon$ also ensures that $\phi$ is differentiable even when $Y$ is rank deficient \cite[Theorem~3.1]{lewisConvexAnalysisUnitarily1995}. The finite-difference operator $D$, directional operators $\Pi_{m,n}$ of Section~\ref{subsec:directional_from_guidance}, and weight matrices $B_n$ of Section~\ref{subsec:modality_weighting} are fixed linear maps. Composing $\phi$ with these maps and summing over voxels preserves convexity, so
+The singular-value representation gives a direct convexity argument. Define $f_\epsilon(s)=\sum_{i=1}^{R}g(s_i)$ on $\mathbb{R}^R$, so that $\phi=f_\epsilon\circ\sigma$. Since $g$ is even and convex, $f_\epsilon$ is convex and \emph{absolutely symmetric}, meaning invariant under permutations and sign changes of its arguments. Hence $\phi$ is convex on $\mathbb{R}^{d\times M}$ \cite[Corollary~2.6]{lewisConvexAnalysisUnitarily1995}. Smoothness of $f_\epsilon$ also ensures that $\phi$ is differentiable even when $Y$ is rank deficient \cite[Theorem~3.1]{lewisConvexAnalysisUnitarily1995}. The finite-difference operator $D$, directional operators $\Pi_{m,n}$ of Section~\ref{subsec:directional_from_guidance}, and weight matrices $B_n$ of Section~\ref{subsec:modality_weighting} are fixed linear maps. Composing $\phi$ with these maps and summing over voxels preserves convexity, so
 \begin{equation}
     \mathcal{R}_{\mathrm{w\text{-}dTNV}} \ \text{is convex on}\ \mathbb{R}^{N\times M}.
     \label{eq:wdtnv_convex}
@@ -63,92 +63,17 @@ Differentiating the trace representation in~\eqref{eq:phi_gram_spectral} directl
         &=\left\langle Y(G+\epsilon^2\mathbb{I}_M)^{-1/2},E\right\rangle_F,
     \end{aligned}
 \end{equation}
-where $\langle\cdot,\cdot\rangle_F$ is the Frobenius inner product. Therefore, for a voxel-wise Jacobian $\mathcal{G}$ with $G=\mathcal{G}^\top\mathcal{G}$,
-\begin{equation}\label{eq:phi_grad_inv_sqrt}
-\nabla_{\mathcal{G}} \phi(\mathcal{G})
-\;=\;
-\mathcal{G}\,(G+\epsilon^2 \mathbb{I})^{-1/2}.
-\end{equation}
-Equation~\eqref{eq:phi_grad_inv_sqrt} shows that the Jacobian-space gradient is obtained by applying the inverse square-root of the $M\times M$ \gls{spd} matrix $G+\epsilon^2 \mathbb{I}$ to the columns of $\mathcal{G}$ \footnote{Note that if $d<M$ the same strategy can be applied to $\mathcal{G}\mathcal{G}^\top$}. This object recurs throughout the remainder of this chapter and in Chapters~\ref{chapter:optimisation} and~\ref{discussion}, so it is worth naming. For any $Y\in\mathbb{R}^{d\times M}$ define the diffusivity matrix
+where $\langle\cdot,\cdot\rangle_F$ is the Frobenius inner product. The $M\times M$ matrix in this expression reappears in the image-space gradient below and in the prior-curvature models of Chapter~\ref{chapter:optimisation} (Appendices~\ref{app:mm_preconditioner} and~\ref{app:reconstruction_details}), so we name it the diffusivity matrix
 \begin{equation}
     \Omegaeps{Y} \coloneqq \left(Y^\top Y+\epsilon^2\mathbb{I}\right)^{-1/2}
-    \in\mathbb{R}^{M\times M},
+    \in\mathbb{R}^{M\times M}.
     \label{eq:spectral_weight}
 \end{equation}
-so that~\eqref{eq:phi_grad_inv_sqrt} reads $\nabla_{\mathcal{G}}\phi(\mathcal{G})=\mathcal{G}\,\Omegaeps{\mathcal{G}}$. Because $\epsilon>0$, $\Omegaeps{Y}$ is well defined and \gls{spd} for every $Y$, including rank-deficient ones.
-
-        For $M=2$ modalities, we can even avoid an eigendecomposition of $G$. Writing
-        \begin{equation}
-        G=
-        \begin{pmatrix}
-        a & c\\
-        c & b
-        \end{pmatrix},
-        \qquad
-        a=\|\mathcal{G}_{:,1}\|_2^2,\ \ b=\|\mathcal{G}_{:,2}\|_2^2,\ \ c=\langle \mathcal{G}_{:,1},\mathcal{G}_{:,2}\rangle,
-        \end{equation}
-        define $S:=G+\epsilon^2 \mathbb{I}=\begin{psmallmatrix}s_{11} & s_{12}\\ s_{12} & s_{22}\end{psmallmatrix}$ with $s_{11}=a+\epsilon^2$, $s_{22}=b+\epsilon^2$, $s_{12}=c$, and
-        \begin{equation}
-        t:=\mathrm{tr}(S)=s_{11}+s_{22},
-        \qquad
-        s:=\sqrt{\det(S)}=\sqrt{s_{11}s_{22}-s_{12}^2}.
-        \end{equation}
-        Since $G=\mathcal{G}^\top\mathcal{G}$, for every nonzero $v\in\mathbb{R}^2$,
-        \[
-        v^\top S v
-        =\|\mathcal{G}v\|_2^2+\epsilon^2\|v\|_2^2>0,
-        \]
-        so $S$ is positive definite. To obtain its inverse square-root in closed form, the Cayley--Hamilton theorem gives $S^2-tS+s^2\mathbb{I}=0$, and hence
-        \[
-        (S+s\mathbb{I})^2=(t+2s)S.
-        \]
-        Since $S+s\mathbb{I}$ is positive definite, the principal square-root of $S$ is
-        \[
-        S^{1/2}=\frac{S+s\mathbb{I}}{\sqrt{t+2s}}.
-        \]
-        Taking the inverse therefore yields
-        \begin{equation}\label{eq:inv_sqrt_2x2}
-        S^{-1/2}
-        =
-        \sqrt{t+2s}\,(S+s\mathbb{I})^{-1}
-        =
-        \frac{\sqrt{t+2s}}{2\det(S)+s\,t}
-        \begin{pmatrix}
-        s_{22}+s & -s_{12}\\
-        -s_{12} & s_{11}+s
-        \end{pmatrix}.
-        \end{equation}
-        Therefore, for two modalities the diffusivity matrix is available in closed form, and the Jacobian-space gradient can be evaluated via
-        \begin{equation}\label{eq:2x2_gram}
-        \nabla_{\mathcal{G}} \phi(\mathcal{G})
-        =
-        \mathcal{G}\,\Omegaeps{\mathcal{G}},
-        \qquad
-        \Omegaeps{\mathcal{G}}=S^{-1/2},
-        \quad S=G+\epsilon^2 \mathbb{I},
-        \end{equation}
-        using only dot products and scalar square-roots per voxel.
-        
-\paragraph{Image-space gradient.}
-Writing the voxel-wise gradient as
-\begin{equation}
-Q_n
-:=
-\nabla_{\mathcal{G}}
-\phi\!\left(\mathcal{G}_n(\bm{z})\right)
- =\mathcal{G}_n(\bm{z})\,\Omegaeps{\mathcal{G}_n(\bm{z})},
-\qquad n=1,\ldots,N,
+Because $\epsilon>0$, $\Omegaeps{Y}$ is well defined and \gls{spd} for every $Y$, including rank-deficient ones. The Jacobian-space gradient is therefore
+\begin{equation}\label{eq:phi_grad_inv_sqrt}
+\nabla\phi(Y)=Y\,\Omegaeps{Y},
 \end{equation}
-and $Q=\{Q_n\}_{n=1}^N$, the chain rule through the finite-difference operator gives
-\begin{equation}
-\nabla_{\bm{z}}
-\tilde{\mathcal{R}}_{\mathrm{TNV}}(\bm{z})
-=
-D^\ast Q
-=
--\,\operatorname{div} Q,
-\end{equation}
-where $\operatorname{div}:=-D^\ast$ is applied independently to each column of $Q$ and $\tilde{\mathcal{R}}_{\mathrm{TNV}}(\bm{z})=\sum_n\phi(\mathcal{G}_n(\bm{z}))$.
+obtained by applying the inverse square-root of an $M\times M$ \gls{spd} matrix to the columns of $Y$.\footnote{Note that if $d<M$ the same strategy can be applied to $YY^\top$.} For $M=2$ this inverse square-root has a closed form (Appendix~\ref{app:inv_sqrt_2x2}), so the gradient can be evaluated using only dot products and scalar square-roots per voxel, without an eigendecomposition.
 
 \section{Weighted Directional Total Nuclear Variation ($\wdtnv$)}
 \label{sec:wdtnv}
@@ -171,11 +96,7 @@ We use the the directional operator used in \gls{dtv} (Equation~\ref{eq:directio
 
 If a guidance image were appended as an additional modality, then a single global scaling would have data-dependent and spatially non-uniform consequences. Where emission gradients are weak, even modest guidance gradients could dominate the local Jacobian and hence the singular values; where emission gradients are strong, the same scaling may become negligible. In contrast, a directional operator, $\Pi$, modifies which gradient components are penalised, without forcing the presence of edges where the emission data do not support them (as demonstrated in Chapter~\ref{chapter:deconvolution_pvc}).
 
-Applying a directional operator to each modality gradient defines the directional multi-modality Jacobian
-\begin{equation}
-\mathcal{G}^{\mathrm{dir}}_n(\bm{z})= \bigl[\Pi_{1,n}(D z_1)_n \;|\; \cdots \;|\; \Pi_{M,n}(D z_M)_n\bigr]\in\mathbb{R}^{d\times M}.
-\end{equation}
-Here $D$ denotes the chosen discrete directional-difference operator and each $\Pi_{m,n}\in\mathbb{R}^{d\times d}$ is constructed from the guidance field at voxel $n$
+Each modality gradient $(D z_m)_n$ is replaced by its directional counterpart $\Pi_{m,n}(D z_m)_n$. Here $D$ denotes the chosen discrete directional-difference operator and each $\Pi_{m,n}\in\mathbb{R}^{d\times d}$ is constructed from the guidance field at voxel $n$
 \begin{equation}
 \xi_n
 =
@@ -202,9 +123,7 @@ To compensate, we introduce voxel-wise, modality-wise diagonal weight matrices
 \end{equation}
 The weighted directional Jacobian is then
 \begin{equation}
-    \tilde{\mathcal{G}}_n(\bm{z}) := \mathcal{G}_n^{\mathrm{dir}}(\bm{z})\,B_n
-    = \bigl[\Pi_{1,n}(D z_1)_n \;\big|\; \Pi_{2,n}(D z_2)_n\bigr]\,
-    \mathrm{diag}(\rho_{1,n},\rho_{2,n})
+    \tilde{\mathcal{G}}_n(\bm{z}) := \bigl[\Pi_{1,n}(D z_1)_n \;\big|\; \Pi_{2,n}(D z_2)_n\bigr]\,B_n
     \in \mathbb{R}^{d\times 2}.
     \label{eq:Yn_weighted}
 \end{equation}
@@ -219,6 +138,18 @@ The weighted directional Total Nuclear Variation ($\wdtnv$) prior is then
     \label{eq:wdtnv_prior}
 \end{equation}
 where $V_{\mathrm{vox}}$ is the voxel volume and $\phi$ is the smoothed Gram-matrix potential from~\eqref{eq:phi_gram_spectral}. Choosing equal weights $\rho_{m,n}\equiv 1$ recovers unweighted $d$TNV. Choosing $\rho_{m,n}$ proportional to the inverse of a characteristic modality scale brings both channels to a comparable range before the nuclear-norm coupling is evaluated. The \gls{pet}/\gls{spect} normalisation used in the application study is specified in Chapter~\ref{chapter:paper}.
+
+\paragraph{Image-space gradient.}
+By~\eqref{eq:phi_grad_inv_sqrt} and the chain rule through the linear map $\bm{z}\mapsto\tilde{\mathcal{G}}_n(\bm{z})$, the gradient of the prior with respect to each modality image is
+\begin{equation}
+    \nabla_{z_m}\mathcal{R}_{\mathrm{w\text{-}dTNV}}(\bm{z})
+    =
+    V_{\mathrm{vox}}\,D^\ast\!\left(\rho_{m,n}\,\Pi_{m,n}^\top
+    \bigl[\tilde{\mathcal{G}}_n\,\Omegaeps{\tilde{\mathcal{G}}_n}\bigr]_{:,m}\right)_{n=1}^{N},
+    \qquad m=1,2,
+    \label{eq:wdtnv_gradient}
+\end{equation}
+where $\tilde{\mathcal{G}}_n=\tilde{\mathcal{G}}_n(\bm{z})$, $[\cdot]_{:,m}$ denotes the $m$-th column, and the adjoint $D^\ast$ acts on the field of $d$-vectors indexed by $n$.
 
 \section{Conclusion}
 

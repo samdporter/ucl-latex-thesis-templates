@@ -139,10 +139,8 @@
 % ---- (c) Operators ------------------------------------------------------
 \newglossaryentry{sym:D}{type=symbols, sort=c01, name={$D$},
   description={Discrete (directional) finite-difference operator, $(Dx)_n\in\mathbb{R}^{d}$}}
-\newglossaryentry{sym:div}{type=symbols, sort=c02, name={$\operatorname{div}$},
-  description={Discrete divergence, the negative adjoint of $D$}}
 \newglossaryentry{sym:grad}{type=symbols, sort=c03, name={$\nabla$},
-  description={Gradient of a functional (e.g.\ $\nabla_x\mathcal{L}$, $\nabla_{\mathcal G}\phi$)}}
+  description={Gradient of a functional (e.g.\ $\nabla_x\mathcal{L}$, $\nabla\phi$)}}
 \newglossaryentry{sym:Pi}{type=symbols, sort=c04, name={$\Pi_{m,n}$},
   description={Anisotropic directional projection operator built from the guidance field}}
 \newglossaryentry{sym:W}{type=symbols, sort=c05, name={$W_m$},
@@ -192,13 +190,13 @@
 \newglossaryentry{sym:G}{type=symbols, sort=d15, name={$\mathcal{G}_n$},
   description={Voxel-wise multi-modality Jacobian (columns are modality gradients)}}
 \newglossaryentry{sym:Gtilde}{type=symbols, sort=d16, name={$\tilde{\mathcal{G}}_n$},
-  description={Weighted directional Jacobian, $\tilde{\mathcal{G}}_n=\mathcal{G}_n^{\mathrm{dir}}B_n$}}
+  description={Weighted directional Jacobian, $\tilde{\mathcal{G}}_n=[\Pi_{1,n}(Dz_1)_n\,|\,\Pi_{2,n}(Dz_2)_n]\,B_n$}}
 \newglossaryentry{sym:phi}{type=symbols, sort=d17, name={$\phi$},
-  description={Smoothed spectral potential applied to the Jacobian, $\phi(Y)=\sum_\ell g(\sigma_\ell(Y))$}}
+  description={Smoothed spectral potential applied to the Jacobian, $\phi(Y)=\sum_i g(\sigma_i(Y))$}}
 \newglossaryentry{sym:g}{type=symbols, sort=d18, name={$g$},
   description={Charbonnier smoothing function of a singular value}}
-\newglossaryentry{sym:sigma}{type=symbols, sort=d19, name={$\sigma_\ell$},
-  description={$\ell$-th singular value}}
+\newglossaryentry{sym:sigma}{type=symbols, sort=d19, name={$\sigma_i$},
+  description={$i$-th singular value}}
 \newglossaryentry{sym:nucnorm}{type=symbols, sort=d20, name={$\|\cdot\|_*$},
   description={Nuclear norm (sum of singular values)}}
 \newglossaryentry{sym:Omegaeps}{type=symbols, sort=d20a, name={$\bm{\Omega}_\epsilon$},
