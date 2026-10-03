@@ -93,7 +93,20 @@ so that~\eqref{eq:phi_grad_inv_sqrt} reads $\nabla_{\mathcal{G}}\phi(\mathcal{G}
         \qquad
         s:=\sqrt{\det(S)}=\sqrt{s_{11}s_{22}-s_{12}^2}.
         \end{equation}
-        Since $\epsilon>0$,  $S\succ 0$. The following identity holds for a $2\times2$ \glsentryshort{spd} matrix:
+        Since $G=\mathcal{G}^\top\mathcal{G}$, for every nonzero $v\in\mathbb{R}^2$,
+        \[
+        v^\top S v
+        =\|\mathcal{G}v\|_2^2+\epsilon^2\|v\|_2^2>0,
+        \]
+        so $S$ is positive definite. To obtain its inverse square-root in closed form, the Cayley--Hamilton theorem gives $S^2-tS+s^2\mathbb{I}=0$, and hence
+        \[
+        (S+s\mathbb{I})^2=(t+2s)S.
+        \]
+        Since $S+s\mathbb{I}$ is positive definite, the principal square-root of $S$ is
+        \[
+        S^{1/2}=\frac{S+s\mathbb{I}}{\sqrt{t+2s}}.
+        \]
+        Taking the inverse therefore yields
         \begin{equation}\label{eq:inv_sqrt_2x2}
         S^{-1/2}
         =
