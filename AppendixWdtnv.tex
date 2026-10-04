@@ -72,7 +72,7 @@ In practice each voxel block is assembled per neighbourhood target: the Lewis--S
     \bigl(a_{r,\ell}a_{r,\ell}^{\top}\bigr)\circ \Theta_{r,\ell},
     \label{eq:ls_block_pullback}
 \end{equation}
-where $\Theta_{r,\ell}$ is the local Hessian block for difference channel $\ell$ at target $r$ and the modality scalings $[a_{r,\ell}]_m$ combine the modality weights $\rho_{m,r}$ and the stencil step scaling with the square roots of the channel-$\ell$ diagonal entries of the operator Gram matrices $\Pi_{m,r}^{\top}\Pi_{m,r}$. Each contribution~\eqref{eq:ls_block_pullback} is the Hadamard product of a rank-one Gram matrix with a positive-semidefinite local block---$\Theta_{r,\ell}$ is a principal block of the local Hessian of the convex smoothed spectral penalty---hence positive semidefinite by the Schur product theorem. Accumulated over the targets incident on voxel $n$ and their difference channels, the assembled voxel blocks are therefore positive semidefinite before flooring. Because the scalings compress the cross-operator geometry to its diagonal energies, the assembled blocks approximate the exact voxel blocks $[H_{\mathcal R}]_{nn}$ rather than reproducing them exactly.
+where $\Theta_{r,\ell}$ is the local Hessian block for difference channel $\ell$ at target $r$ and the modality scalings $[a_{r,\ell}]_m$ combine the modality weights $\rho_{m,r}$ and the stencil step scaling with the square roots of the channel-$\ell$ diagonal entries of the operator Gram matrices $\Pi_{m,r}^{\top}\Pi_{m,r}$. Each contribution~\eqref{eq:ls_block_pullback} is the Hadamard product of a rank-one Gram matrix with a positive-semidefinite local block---$\Theta_{r,\ell}$ is a principal block of the local Hessian of the convex smoothed spectral penalty---hence positive semidefinite by the Schur product theorem. Accumulated over the targets incident on voxel $n$ and their difference channels, the assembled voxel blocks are therefore positive semidefinite before flooring. Because the scalings compress the cross-operator geometry to its diagonal energies, the assembled blocks approximate the exact voxel blocks $[H_{\widetilde{\mathcal R}}]_{nn}$ rather than reproducing them exactly.
 
 \section{Majorisation--Minimisation Preconditioners}
 \label{app:mm_preconditioner}
@@ -93,7 +93,7 @@ with equality at $Y=Y_0$. Since $\phi(Y)=\operatorname{tr}((Y^\top Y+\epsilon^2\
 
 Summing~\eqref{eq:jacobian_majoriser} over voxels, with $Y_0$ the weighted directional Jacobian $\tilde{\mathcal G}_n$ at a preconditioner refresh, gives a quadratic majoriser of the prior. Its Hessian couples neighbouring voxels, so, as for the Lewis--Sendov models, only voxel blocks are retained. Writing $C_r=\Omegaeps{\tilde{\mathcal G}_r}$ at target voxel $r$, the voxel block of this Hessian is
 \begin{equation}
-    \widehat H_{\mathcal R,n}^{\mathrm{MM\text{-}block}}
+    \widehat H_{\widetilde{\mathcal R},n}^{\mathrm{MM\text{-}block}}
     =
     V_{\mathrm{vox}}
     \sum_{r\in\mathcal N(n)}
@@ -142,7 +142,7 @@ Construction and cached application of the two block models were timed on an NVI
         \includegraphics[width=\linewidth]{figures/preconditioning/ls_vs_mm_blk/exp3_best_precond_1bpos_SPECT.png}
         \caption{\gls{spect}.}
     \end{subfigure}
-    \caption{\gls{nrmse} trajectories for the inverse-sum combinations of data-only scaling with the Lewis--Sendov ($\mathcal P_{\mathrm{blk,LS}}$) and \gls{mm} ($\mathcal P_{\mathrm{blk,MM}}$) block prior models, with data-only \gls{bsrem} ($\mathcal P_D$) for reference. Lines and shading show the five-run mean and pointwise minimum--maximum over 20 matched expected data-draw units.}
+    \caption{\gls{nrmse} trajectories for the inverse-sum combinations of data-only scaling with the Lewis--Sendov ($\mathcal P_{\mathrm{blk,LS}}$) and \gls{mm} ($\mathcal P_{\mathrm{blk,MM}}$) block prior models, with data-only \gls{bsrem} ($\mathcal P_{\mathcal D}$, labelled $\mathcal P_D$ in the panels) for reference. Lines and shading show the five-run mean and pointwise minimum--maximum over 20 matched expected data-draw units.}
     \label{fig:mm_vs_ls_block}
 \end{figure}
 

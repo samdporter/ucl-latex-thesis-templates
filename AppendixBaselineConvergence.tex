@@ -1,11 +1,11 @@
 \chapter{Long-Run Reference Diagnostics}
 \label{app:baseline_convergence}
 
-The single reference run in Chapter~\ref{chapter:optimisation} used the same objective as the short-run comparisons: 1000 epochs, 36 stochastic updates per epoch, a diagonal preconditioner and $\eta_{\mathrm{relax}}=10^{-4}$. Here $\mathcal O_k=\mathcal O(\bm z^{(k)})$ and $\mathcal O^\star=\min_{0\leq k\leq1000}\mathcal O_k$ denote the recorded and best observed objectives.
+The single reference run in Chapter~\ref{chapter:optimisation} used the same objective as the short-run comparisons: 1000 epochs, 36 stochastic updates per epoch, a diagonal preconditioner and $\eta_{\mathrm{relax}}=10^{-4}$. Let $e=0,\ldots,1000$ index the saved epochs and $k_e=36e$ denote the corresponding stochastic update index. Here $\mathcal O^{(k_e)}=\mathcal O(\bm z^{(k_e)})$ and $\mathcal O^\star=\min_{0\leq e\leq1000}\mathcal O^{(k_e)}$ denote the recorded and best observed objectives.
 
 Table~\ref{tab:app_baseline_stationarity} summarises the convergence diagnostics;
 relative \glsentryshort{pet} iterate velocity is
-$\lVert x^{(k)}-x^{(k-1)}\rVert/\lVert x^{(k)}\rVert$.
+$\lVert z_1^{(k_e)}-z_1^{(k_{e-1})}\rVert/\lVert z_1^{(k_e)}\rVert$, for $e\geq1$.
 
 \begin{table}[htbp]
     \centering

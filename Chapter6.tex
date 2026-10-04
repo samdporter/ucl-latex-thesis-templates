@@ -13,7 +13,7 @@ We use the registered images $\bm{z}$ and voxel-wise Jacobian $\mathcal{G}_n(\bm
     \qquad G_n\succeq0.
     \label{eq:tnv_gram}
 \end{equation}
-Its eigenvalues are the squared singular values of the Jacobian: $\lambda_i(G_n)=\sigma_i(\mathcal{G}_n)^2$ for $i=1,\ldots,\min\{d,M\}$\footnote{If \(d>M\), \(G_n=\mathcal G_n^\top\mathcal G_n\in\mathbb R^{d\times d}\) has an additional \(d-M\) zero eigenvalues. In this case, one may instead consider \(G_n:=\mathcal G_n\mathcal G_n^\top\in\mathbb R^{M\times M}\), which has the same nonzero eigenvalues. The subsequent mathematics is essentially identical under this alternative definition of \(G_n\).}. Thus TNV from~\eqref{eq:tnv} has the equivalent representation
+Its eigenvalues are the squared singular values of the Jacobian: $\lambda_i(G_n)=\sigma_i(\mathcal{G}_n)^2$ for $i=1,\ldots,\min\{d,M\}$\footnote{If \(M>d\), the right Gram matrix \(G_n=\mathcal G_n^\top\mathcal G_n\in\mathbb R^{M\times M}\) has \(M-d\) additional zero eigenvalues compared with the smaller left Gram matrix \(\mathcal G_n\mathcal G_n^\top\in\mathbb R^{d\times d}\). Both have the same nonzero eigenvalues, so the penalty and its derivatives may instead be evaluated using the smaller matrix, with left singular vectors \(U\) replacing right singular vectors \(V\) in the corresponding formulas. Matrix dimensions must be adjusted accordingly; in the smoothed trace formulation below, the subtraction \(M\epsilon\) becomes \(d\epsilon\), so additional zero eigenvalues contribute zero.}. Thus TNV from~\eqref{eq:tnv} has the equivalent representation
 \begin{equation}
     \mathcal{R}_{\mathrm{TNV}}(\bm{z})
     =\sum_{n=1}^N\|\mathcal{G}_n(\bm{z})\|_*
@@ -49,7 +49,7 @@ Equivalently, $\phi(Y)=\sum_{i=1}^{R}g(\sigma_i(Y))$ with $R=\min\{d,M\}$ as in~
 \paragraph{Convexity.}
 The singular-value representation gives a direct convexity argument. Define $f_\epsilon(s)=\sum_{i=1}^{R}g(s_i)$ on $\mathbb{R}^R$, so that $\phi=f_\epsilon\circ\sigma$. Since $g$ is even and convex, $f_\epsilon$ is convex and absolutely symmetric, meaning invariant under permutations and sign changes of its arguments. Hence $\phi$ is convex on $\mathbb{R}^{d\times M}$ \cite[Corollary~2.6]{lewisConvexAnalysisUnitarily1995}. Smoothness of $f_\epsilon$ also ensures that $\phi$ is differentiable even when $Y$ is rank deficient \cite[Theorem~3.1]{lewisConvexAnalysisUnitarily1995}. The finite-difference operator $D$, directional operators $\Pi_{m,n}$ of Section~\ref{subsec:directional_from_guidance}, and weight matrices $B_n$ of Section~\ref{subsec:modality_weighting} are fixed linear maps. Composing $\phi$ with these maps and summing over voxels preserves convexity, so
 \begin{equation}
-    \mathcal{R}_{\mathrm{w\text{-}dTNV}} \ \text{is convex on}\ \mathbb{R}^{N\times M}.
+    \widetilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}} \ \text{is convex on}\ \mathbb{R}^{N\times M}.
     \label{eq:wdtnv_convex}
 \end{equation}
 
@@ -117,6 +117,7 @@ To compensate, we introduce voxel-wise, modality-wise diagonal weight matrices
     \qquad \rho_{m,n} > 0.
     \label{eq:Bn_def}
 \end{equation}
+The entries $\rho_{m,n}$ are the weights applied to the modality gradients and may incorporate both intensity normalisation and regularisation settings. They are distinct from a global scalar $\beta$ multiplying the entire prior and from the user-controlled modality settings $\beta_m$. The application in Chapter~\ref{chapter:paper} uses spatially constant entries $\rho_{m,n}=\rho_m$, obtained by dividing $\beta_m$ by the estimated modality dynamic range.
 The weighted directional Jacobian is then
 \begin{equation}
     \tilde{\mathcal{G}}_n(\bm{z}) := \bigl[\Pi_{1,n}(D z_1)_n \;\big|\; \Pi_{2,n}(D z_2)_n\bigr]\,B_n
@@ -128,7 +129,7 @@ Throughout, $B_n$ is treated as a fixed operator that does not depend on $\bm{z}
 
 The weighted directional Total Nuclear Variation ($\wdtnv$) prior is then
 \begin{equation}
-    \mathcal{R}_{\mathrm{w\text{-}dTNV}}(\bm{z})
+    \widetilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}(\bm{z})
     :=
     V_{\mathrm{vox}}\sum_{n=1}^{N} \phi\!\left(\tilde{\mathcal{G}}_n(\bm{z})\right),
     \label{eq:wdtnv_prior}
@@ -138,7 +139,7 @@ where $V_{\mathrm{vox}}$ is the voxel volume and $\phi$ is the smoothed Gram-mat
 \paragraph{Image-space gradient.}
 By~\eqref{eq:phi_grad_inv_sqrt} and the chain rule through the linear map $\bm{z}\mapsto\tilde{\mathcal{G}}_n(\bm{z})$, the gradient of the prior with respect to each modality image is
 \begin{equation}
-    \nabla_{z_m}\mathcal{R}_{\mathrm{w\text{-}dTNV}}(\bm{z})
+    \nabla_{z_m}\widetilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}(\bm{z})
     =
     V_{\mathrm{vox}}\,D^\ast\!\left(\rho_{m,n}\,\Pi_{m,n}^\top
     \bigl[\tilde{\mathcal{G}}_n\,\Omegaeps{\tilde{\mathcal{G}}_n}\bigr]_{:,m}\right)_{n=1}^{N},

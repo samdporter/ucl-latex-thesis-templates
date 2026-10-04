@@ -38,7 +38,7 @@ The joint objective is
 \left\{
 \sum_{m=1}^{2}\mathcal{D}_m\!\left(y_m \mid A_m W_m^\ast z_m + b_m\right)
 +
-\mathcal{R}(\bm{z})
+\widetilde{\mathcal{R}}(\bm{z})
 \right\},
 \label{eq:90y_joint_obj}
 \end{equation}
@@ -46,7 +46,7 @@ where $\mathcal{D}_m$ is the Poisson negative log-likelihood (up to an additive 
 \begin{equation}
 \mathcal{D}_m(y_m\mid \bar y_m)=\sum_{i=1}^{I_m}\left((\bar y_m)_i - (y_m)_i\log (\bar y_m)_i\right),
 \end{equation}
-and $\mathcal{R}$ is the coupled prior. Throughout this chapter, named variational priors denote their smoothed implementations without an additional tilde. Thus $\mathcal{R}$ is the smoothed $w$-$d$TNV prior $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ defined in Section~\ref{sec:wdtnv} (Chapter~\ref{chapter:wdtnv}). The overall regularisation strength is carried by the modality weights introduced below, so no separate global scalar prior multiplier is used in the implementation.
+and $\widetilde{\mathcal{R}}$ is the coupled prior. Throughout this thesis, a tilde on a TV- or TNV-type regularisation functional denotes its smoothed version. Thus $\widetilde{\mathcal{R}}$ is the smoothed $w$-$d$TNV prior $\widetilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}$ defined in Section~\ref{sec:wdtnv} (Chapter~\ref{chapter:wdtnv}). The overall regularisation strength is carried by the modality weights introduced below, so no separate global scalar prior multiplier is used in the implementation.
 
 \subsection{Multi-Bed \gls{pet} Acquisition}
 \label{sec:multibed}
@@ -69,27 +69,27 @@ A common practical alternative is to reconstruct each \gls{pet} bed independentl
 \label{subsec:multibed_notation}
 \label{subsec:joint_multibed}
 
-Let $x$ be the \gls{pet} activity image on the combined \gls{pet} reconstruction grid. For bed position $\mathrm{p}=1,\ldots,N_{\mathrm{p}}$, let $R_{\mathrm{p}}$ restrict the combined image to the axial support reconstructed by that bed. The expected \gls{pet} data for bed position $\mathrm{p}$ are
+Let $z_1$ be the \gls{pet} activity image on the combined shared reconstruction grid. For bed position $\mathrm{p}=1,\ldots,N_{\mathrm{p}}$, let $R_{\mathrm{p}}$ restrict the combined image to the axial support reconstructed by that bed. The expected \gls{pet} data for bed position $\mathrm{p}$ are
 \begin{equation}
-    \bar y_{\mathrm{p}}(x)
+    \bar y_{\mathrm{p}}(z_1)
     =
-    A_{\mathrm{p}} R_{\mathrm{p}} x + b_{\mathrm{p}},
+    A_{\mathrm{p}} R_{\mathrm{p}} z_1 + b_{\mathrm{p}},
     \label{eq:multibed_forward_model}
 \end{equation}
 where $A_{\mathrm{p}}$ is the bed-specific \gls{pet} system matrix and $b_{\mathrm{p}}$ collects additive corrections. The joint \gls{pet} data term is
 \begin{equation}
-    \mathcal{D}_{\mathrm{PET}}^{\mathrm{multi}}(x)
+    \mathcal{D}_{\mathrm{PET}}^{\mathrm{multi}}(z_1)
     =
     \sum_{\mathrm{p}=1}^{N_{\mathrm{p}}}
     \mathcal{D}
     \left(
-        y_{\mathrm{p}} \mid A_{\mathrm{p}} R_{\mathrm{p}} x + b_{\mathrm{p}}
+        y_{\mathrm{p}} \mid A_{\mathrm{p}} R_{\mathrm{p}} z_1 + b_{\mathrm{p}}
     \right),
     \label{eq:multibed_data_term}
 \end{equation}
 with gradient
 \begin{equation}
-    \nabla \mathcal{D}_{\mathrm{PET}}^{\mathrm{multi}}(x)
+    \nabla \mathcal{D}_{\mathrm{PET}}^{\mathrm{multi}}(z_1)
     =
     \sum_{\mathrm{p}=1}^{N_{\mathrm{p}}}
     R_{\mathrm{p}}^\top
@@ -97,7 +97,7 @@ with gradient
     \nabla_{\bar y_{\mathrm{p}}}
     \mathcal{D}
     \left(
-        y_{\mathrm{p}} \mid A_{\mathrm{p}} R_{\mathrm{p}} x + b_{\mathrm{p}}
+        y_{\mathrm{p}} \mid A_{\mathrm{p}} R_{\mathrm{p}} z_1 + b_{\mathrm{p}}
     \right).
     \label{eq:multibed_gradient}
 \end{equation}
@@ -109,7 +109,7 @@ The corresponding \gls{pet} sensitivity image on the combined grid is
     R_{\mathrm{p}}^\top A_{\mathrm{p}}^\top \bm 1.
     \label{eq:multibed_sensitivity}
 \end{equation}
-Each bed contributes its own data term and sensitivity to a single combined image, while the image-domain prior is evaluated over the complete field of view. For the joint PET/SPECT objective~\eqref{eq:90y_joint_obj}, $x=z_1$ and $\mathcal{D}_1$ is replaced by the summed multi-bed PET data term~\eqref{eq:multibed_data_term}; the SPECT data term and coupled prior retain their existing form. Likewise, the PET sensitivity used for preconditioning is the combined sensitivity~\eqref{eq:multibed_sensitivity}. This extends the single-bed optimisation framework tested in Chapter~\ref{chapter:optimisation} to the two-bed patient acquisitions evaluated here.
+Each bed contributes its own data term and sensitivity to a single combined image, while the image-domain prior is evaluated over the complete field of view. For the joint PET/SPECT objective~\eqref{eq:90y_joint_obj}, $\mathcal{D}_1$ is replaced by the summed multi-bed PET data term~\eqref{eq:multibed_data_term}; the SPECT data term and coupled prior retain their existing form. Likewise, the PET sensitivity used for preconditioning is the combined sensitivity~\eqref{eq:multibed_sensitivity}. This extends the single-bed optimisation framework tested in Chapter~\ref{chapter:optimisation} to the two-bed patient acquisitions evaluated here.
 
 \section{$w$-$d$TNV for $^{90}$Y PET/SPECT with CTAC guidance}
 \label{sec:90y_wdtnv}
@@ -140,7 +140,7 @@ Weights are computed from early-stopped unregularised reconstructions represente
 \qquad m\in\{1,2\},
 \label{eq:90y_rhom_def}
 \end{equation}
-where $q_p(\cdot|_{\Omega'})$ denotes the $p$-quantile (so $q_{0.01}$ and $q_{0.99}$ are the 1st and 99th percentiles) over voxels in $\Omega'$, and $\beta_m$ are user-controlled regularisation weights used for operating-point selection (Section~\ref{subsec:90y_hyperparams}). Percentile scaling provides a robust dynamic-range estimate and reduces sensitivity to outliers. This matches the intent of Section~\ref{subsec:modality_weighting} while avoiding an additional spatially varying weight for this investigation \cite{tsaiBenefitsUsingSpatiallyVariant2020}.
+where $q_p(\cdot|_{\Omega'})$ denotes the $p$-quantile (so $q_{0.01}$ and $q_{0.99}$ are the 1st and 99th percentiles) over voxels in $\Omega'$, and $\beta_m$ are user-controlled regularisation weights used for operating-point selection (Section~\ref{subsec:90y_hyperparams}). Thus $\beta_m$ is the chosen modality-specific regularisation setting, whereas $\rho_m$ is the resulting weight applied to the modality gradient after intensity normalisation. Here $\rho_{m,n}=\rho_m$ for every voxel $n$. The regularisation settings enter the prior through these weights, so the objective uses no additional global multiplier $\beta$. Percentile scaling provides a robust dynamic-range estimate and reduces sensitivity to outliers. This matches the intent of Section~\ref{subsec:modality_weighting} while avoiding an additional spatially varying weight for this investigation \cite{tsaiBenefitsUsingSpatiallyVariant2020}.
 
 \subsection{Directional finite-difference operator for PET/SPECT coupling}
 \label{subsec:90y_directional_stencil}
@@ -188,7 +188,7 @@ This tests PET/SPECT coupling without anatomical anisotropy.
 
 The second is \gls{dtv} (\dtv), which keeps CTAC-derived directional guidance but removes PET/SPECT coupling. It is obtained by applying the same directional operator only to the PET gradient,
 \begin{equation}
-\mathcal{R}_{\mathrm{dTV}}(z_1)
+\widetilde{\mathcal{R}}_{\mathrm{dTV}}(z_1)
 =
 V_{\mathrm{vox}}
 \sum_{n=1}^{N}
@@ -208,12 +208,12 @@ The update and decaying step size follow Equations~\eqref{eq:optimisation_projec
 
 For modality $m$, the data component is the EM-type scaling \cite{depierroFastEMlikeMethods2001,ahn_globally_2003}
 \begin{equation}
-    \mathcal{P}_{\mathrm{data},m}
+    \mathcal{P}_{\mathcal D,m}
     =
-    z_m \oslash \left(W_m A_m^\top \mathbf{1}\right),
+    \operatorname{diag}\!\left((z_m+\epsilon_x) \oslash \left(W_m A_m^\top \mathbf{1}\right)\right),
     \label{eq:90y_Pdata}
 \end{equation}
-represented on the shared grid. For multi-bed PET, the denominator is the combined sensitivity in Equation~\eqref{eq:multibed_sensitivity}. At each voxel, the PET and SPECT values form the diagonal data preconditioner. The prior preconditioner uses the $2\times2$ voxel blocks described in Section~\ref{subsec:optimisation_prior_preconditioning}, retaining PET/SPECT coupling within a voxel. These prior blocks are recomputed once per epoch.
+represented on the shared grid, with the same positive image stabiliser $\epsilon_x$ as in Equation~\eqref{eq:bsrem_preconditioner}. For multi-bed PET, the denominator is the combined sensitivity in Equation~\eqref{eq:multibed_sensitivity}. At each voxel $n$, the diagonal entries $[\mathcal P_{\mathcal D,1}]_{nn}$ and $[\mathcal P_{\mathcal D,2}]_{nn}$ form the $2\times2$ diagonal data-preconditioner block. The prior preconditioner uses the $2\times2$ voxel blocks described in Section~\ref{subsec:optimisation_prior_preconditioning}, retaining PET/SPECT coupling within a voxel. These prior blocks are recomputed once per epoch.
 
 We combine the data and prior preconditioners using the scaled Lehmer rule, $\tfrac12 L_p$, defined in Equation~\eqref{eq:matrix_lehmer_combination}, with $p=0.01$. This adjusts the inverse-sum combination, which is recovered at $p=0$. Before combining them, eigenvalues below $10^{-6}$ in either preconditioner are raised to this value for numerical stability. The block model and $p=0.01$ each gave modest PET gains in the comparisons of Sections~\ref{subsec:optimisation_block_vs_diag} and~\ref{subsec:optimisation_lehmer_results}.
 
@@ -237,7 +237,7 @@ PET list-mode data were processed using the vendor toolchains to generate normal
 
 Patient PET data were acquired across two partially overlapping bed positions. For all methods, these bed positions were reconstructed jointly in a single combined-bed image space, with separate forward- and back-projections for each bed position; for the variational methods, the image-domain prior is evaluated over the combined volume. This uses the multi-bed formulation in Section~\ref{sec:multibed}. It permits one edge-preserving prior to act over the combined field of view and was motivated by the qualitative overlap comparison in Figure~\ref{fig:optim_multibed_qualitative}. Bed positions overlapped by 11 voxels. Phantom PET data were reconstructed using a single bed position.
 
-Projection data are partitioned into staggered, view-interleaved subsets. For SHKEM we use $S=9$ PET subsets, following the comparator study. For SVRG-based reconstructions we use 18 PET subsets for phantom data and 18 subsets per PET bed position for clinical data, giving 36 PET subsets in total for two-bed patient reconstructions.
+Projection data are partitioned into staggered, view-interleaved subsets. For SHKEM we use $N_{\mathrm{PET}}=9$ PET subsets, following the comparator study. For SVRG-based reconstructions we use 18 PET subsets for phantom data and 18 subsets per PET bed position for clinical data, giving 36 PET subsets in total for two-bed patient reconstructions.
 
 \subsection{SPECT forward model}
 \label{subsec:90y_spect_forward}
@@ -299,20 +299,20 @@ We quantify \glsentryshort{pet} reproducibility across bootstraps via voxel-wise
     \label{fig:90y_nema_bootstrap_overview}
 \end{figure}
 
-Let $x^{(c)}_{\mathrm{bs},j}$ be the reconstructed PET intensity at voxel $j$ for method $c$ in bootstrap realisation $\mathrm{bs}\in\{1,\dots,N_{\mathrm{bs}}\}$. Define the inter-bootstrap mean and standard deviation
+Let $z^{(c)}_{1,\mathrm{bs},n}$ be the reconstructed PET intensity at shared-grid voxel $n$ for method $c$ in bootstrap realisation $\mathrm{bs}\in\{1,\dots,N_{\mathrm{bs}}\}$. Define the inter-bootstrap mean and standard deviation
 \begin{equation}
-\bar x^{(c)}_j := \frac{1}{N_{\mathrm{bs}}}\sum_{\mathrm{bs}=1}^{N_{\mathrm{bs}}} x^{(c)}_{\mathrm{bs},j},
+\bar z^{(c)}_{1,n} := \frac{1}{N_{\mathrm{bs}}}\sum_{\mathrm{bs}=1}^{N_{\mathrm{bs}}} z^{(c)}_{1,\mathrm{bs},n},
 \qquad
-\mathrm{SD}^{(c)}_j := \sqrt{\frac{\sum_{\mathrm{bs}=1}^{N_{\mathrm{bs}}}\left(x^{(c)}_{\mathrm{bs},j}-\bar x^{(c)}_j\right)^2}{N_{\mathrm{bs}}-1}},
+\mathrm{SD}^{(c)}_n := \sqrt{\frac{\sum_{\mathrm{bs}=1}^{N_{\mathrm{bs}}}\left(z^{(c)}_{1,\mathrm{bs},n}-\bar z^{(c)}_{1,n}\right)^2}{N_{\mathrm{bs}}-1}},
 \end{equation}
 and voxel-wise
 \begin{equation}
-\mathrm{CoV}^{(c)}_j = \frac{\mathrm{SD}^{(c)}_j}{\bar x^{(c)}_j}.
+\mathrm{CoV}^{(c)}_n = \frac{\mathrm{SD}^{(c)}_n}{\bar z^{(c)}_{1,n}}.
 \end{equation}
 For a \glsentryshort{voi} $\mathcal{V}$ we report the \glsentryshort{voi}-averaged statistic
 \begin{equation}
 \overline{\mathrm{CoV}}^{(c)}_{\mathcal{V}}
-=\frac{1}{|\mathcal{V}|}\sum_{j\in \mathcal{V}} \mathrm{CoV}^{(c)}_{j}.
+=\frac{1}{|\mathcal{V}|}\sum_{n\in \mathcal{V}} \mathrm{CoV}^{(c)}_{n}.
 \end{equation}
 
 For sphere $v$, let $\bar{C}^{(c)}_{\mathrm{bs},v}$ denote the mean reconstructed intensity within the sphere and $\bar{C}^{(c)}_{\mathrm{bs},\mathrm{bkg}}$ the mean within BG for the same $(c,\mathrm{bs})$. With true ratio $R_{\mathrm{true}}=8$, define
@@ -515,7 +515,7 @@ Figure~\ref{fig:90y_phantom_cov} summarises voxel-wise reproducibility across bo
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\linewidth]{figures/Chapter6/phantoms/manc_nema/bootstrap_voxelwise_cov.png}
-    \caption{Mean voxel-wise coefficient of variation (CoV) across 20 bootstrapped PET realisations within each VOI\@. Statistical significance is reported for paired comparisons versus \wdtnv (BH-adjusted): $^*$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$.}
+    \caption{VOI-mean inter-bootstrap voxel coefficient of variation (CoV, dimensionless ratio) across 20 bootstrapped PET realisations within each VOI\@. Statistical significance is reported for paired comparisons versus \wdtnv (BH-adjusted): $^*$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$.}
     \label{fig:90y_phantom_cov}
 \end{figure}
 
@@ -554,7 +554,7 @@ Across the test cohort, \wdtnv yields higher lesion TBR than \dtv, \wtnv, and SH
         \centering
         \includegraphics[width=\linewidth]{figures/Chapter6/patients/all_lesions_bg_cov.png}
     \end{subfigure}%
-    \caption{Clinical cohort summary: lesion-wise mean TBR (left) and patient-wise background CoV (right). Statistical significance is reported for comparisons versus \wdtnv (BH-adjusted): $^*$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$.}
+    \caption{Clinical cohort summary: lesion-wise mean TBR (left) and patient-wise spatial background CoV (percentage, right). Statistical significance is reported for comparisons versus \wdtnv (BH-adjusted): $^*$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$.}
     \label{fig:90y_patient_summary}
 \end{figure}
 

@@ -29,7 +29,7 @@ where $C\in\mathbb{R}_+^{J\times J}$ is a discretised convolution operator repre
 
 Within this approximation, where we assume independence across voxels, the Poisson negative log-likelihood is
 \begin{equation}
-    \mathcal{L}(x)
+    \mathcal{D}(x)
     =
     \sum_{j=1}^{J}
     \left(
@@ -47,7 +47,7 @@ A \acrfull{map} deconvolution estimate is then
     \in
     \arg\min_{x\in\mathcal{C}}
     \left\{
-        \mathcal{L}(x) + \beta \mathcal{R}(x)
+        \mathcal{D}(x) + \beta \mathcal{R}(x)
     \right\},
     \qquad
     \mathcal{C}=\mathbb{R}_+^J,
@@ -75,7 +75,7 @@ As with \glsentryshort{mlem}/\glsentryshort{osem} under the full forward model, 
 
 To connect with Chapter~\ref{chapter:reconstruction}, we rewrite \eqref{eq:rl_update} as an additive scaled-gradient step. The gradient of the Poisson negative log-likelihood \eqref{eq:deconv_nll} (with $b=0$) is
 \begin{equation}
-    \nabla_x \mathcal{L}(x)
+    \nabla_x \mathcal{D}(x)
     =
     C^{\mathsf T}\!\left(
         \mathbf{1} - y \oslash (Cx)
@@ -88,10 +88,10 @@ Using the same rearrangement as for \glsentryshort{mlem} in Chapter~\ref{chapter
     =
     x^{(k)}\odot\left(\mathbf{1}
     -
-    \nabla_x\mathcal{L}(x^{(k)})\right).
+    \nabla_x\mathcal{D}(x^{(k)})\right).
     \label{eq:deconv_scaled_grad}
 \end{equation}
-This corresponds to an EM-type diagonal preconditioner analogous to $\mathcal{P}_{\mathrm{EM}}^{(k)}=\operatorname{diag}(x^{(k)}/(A^{\mathsf T}\mathbf{1}))$ in the full reconstruction problem.
+This corresponds to an EM-type diagonal preconditioner analogous to $\mathcal{P}_{\mathcal D}^{(k)}=\operatorname{diag}(x^{(k)}/(A^{\mathsf T}\mathbf{1}))$ in the full reconstruction problem.
 
 \section{Kernelised Richardson--Lucy deconvolution}
 \label{sec:deconv_krl}
@@ -160,29 +160,29 @@ The penalised-likelihood deconvolution objective is
     \in
     \arg\min_{x\in\mathbb{R}^J_+}
     \left\{
-        \mathcal{L}(x) + \beta R_{\mathrm{sDTV}}(x;u)
+        \mathcal{D}(x) + \beta \widetilde{\mathcal{R}}_{\mathrm{dTV}}(x;u)
     \right\},
     \qquad
-    \mathcal{L}(x)=\sum_{j}\left((Cx+b)_j-y_j\log(Cx+b)_j\right).
+    \mathcal{D}(x)=\sum_{j}\left((Cx+b)_j-y_j\log(Cx+b)_j\right).
     \label{eq:deconv_map_dtv}
 \end{equation}
-$R_{\mathrm{sDTV}}$ is a Charbonnier-smoothed \gls{dtv} penalty. A natural baseline solver extends Equation~\ref{eq:deconv_scaled_grad},
+$\widetilde{\mathcal{R}}_{\mathrm{dTV}}$ is a Charbonnier-smoothed \gls{dtv} penalty. A natural baseline solver extends Equation~\ref{eq:deconv_scaled_grad},
 \begin{equation}
     x^{(k+1)}
     =
     \left\{
         x^{(k)}\odot\left(\mathbf{1}
         -
-        \varsigma_k
+        \varsigma^{(k)}
         \left[
-            \nabla_x\mathcal{L}(x^{(k)}) + \beta\,\nabla_x R_{\mathrm{sDTV}}(x^{(k)};u)
+            \nabla_x\mathcal{D}(x^{(k)}) + \beta\,\nabla_x \widetilde{\mathcal{R}}_{\mathrm{dTV}}(x^{(k)};u)
         \right]\right)
     \right\}_{\geq 0},
     \label{eq:rldtv_update}
 \end{equation}
 where $\{\}_{\geq0}$ denotes projection onto non-negativity. This update is the image-domain analogue of the scaled-gradient \gls{map} schemes discussed in Chapter~\ref{chapter:reconstruction}, but without subsets.
 
-In contrast to kernelised \gls{rl} variants, \gls{rldtv} is typically numerically stable once $\beta$ is chosen, and the objective in \eqref{eq:deconv_map_dtv} is smooth with simple bound constraints. This makes it well suited to a quasi-Newton solver: in the experiments of this chapter we therefore accelerate convergence by optimising \eqref{eq:deconv_map_dtv} with the L-BFGS-B algorithm reviewed in Section~\ref{sec:optimisation}, using bound constraints to enforce non-negativity. In this setting, L-BFGS-B replaces the hand-tuned step-size sequence $\{\varsigma_k\}$ by an automatic line search and curvature-informed scaling, often reaching a stationary point of \eqref{eq:deconv_map_dtv} in substantially fewer iterations than the scaled-gradient \gls{rldtv} update \eqref{eq:rldtv_update}.
+In contrast to kernelised \gls{rl} variants, \gls{rldtv} is typically numerically stable once $\beta$ is chosen, and the data-plus-prior part $\mathcal F$ in \eqref{eq:deconv_map_dtv} is smooth, with simple bound constraints. This makes it well suited to a quasi-Newton solver: in the experiments of this chapter we therefore accelerate convergence by optimising \eqref{eq:deconv_map_dtv} with the L-BFGS-B algorithm reviewed in Section~\ref{sec:optimisation}, using bound constraints to enforce non-negativity. In this setting, L-BFGS-B replaces the hand-tuned step-size sequence $\{\varsigma^{(k)}\}$ by an automatic line search and curvature-informed scaling, often reaching a stationary point of \eqref{eq:deconv_map_dtv} in substantially fewer iterations than the scaled-gradient \gls{rldtv} update \eqref{eq:rldtv_update}.
 
 For \gls{rl} and \gls{krl}/\gls{hkrl}, early stopping is essential and is treated as part of the regularisation. In experiments we report results across iteration counts and select a stopping point based on \gls{nrmse} (Equation~\ref{eq:nrmse_krl}) for the phantom and qualitative assessment for the brain example. For \gls{rldtv}, iteration sensitivity is reduced, but a stopping point is still selected to avoid unnecessary computation once the relative objective decrease satisfies
 \begin{equation}
@@ -192,11 +192,9 @@ For \gls{rl} and \gls{krl}/\gls{hkrl}, early stopping is essential and is treate
         \max\left\{\left|\mathcal{O}(x^{(k)})\right|,
         \left|\mathcal{O}(x^{(k+1)})\right|,1\right\}
     }
-    \leq f_{\mathrm{tol}},
-    \qquad
-    \mathcal{O}(x)=\mathcal{L}(x)+\beta R_{\mathrm{sDTV}}(x;u).
+    \leq f_{\mathrm{tol}}.
 \end{equation}
-Here $f_{\mathrm{tol}}$ is chosen to be $10^{-6}\epsilon_{\mathrm{mach}}$. SciPy's \texttt{minimize(..., method='L-BFGS-B')} option calls this parameter \texttt{ftol}; the lower-level \texttt{fmin\_l\_bfgs\_b} interface exposes the equivalent \texttt{factr} relation $f_{\mathrm{tol}}=\texttt{factr}\,\epsilon_{\mathrm{mach}}$.
+Here $\mathcal F(x)=\mathcal D(x)+\beta \widetilde{\mathcal{R}}_{\mathrm{dTV}}(x;u)$ and $\mathcal O(x)=\mathcal F(x)+\iota_{\mathcal C}(x)$. The iterates lie in $\mathcal C=\mathbb R_+^J$, so the indicator is zero and the stopping criterion uses the finite data-plus-prior values. Here $f_{\mathrm{tol}}$ is chosen to be $10^{-6}\epsilon_{\mathrm{mach}}$. SciPy's \texttt{minimize(..., method='L-BFGS-B')} option calls this parameter \texttt{ftol}; the lower-level \texttt{fmin\_l\_bfgs\_b} interface exposes the equivalent \texttt{factr} relation $f_{\mathrm{tol}}=\texttt{factr}\,\epsilon_{\mathrm{mach}}$.
 
 \section{Data and experimental setup} \label{sec:deconv_data}
 Two datasets are used to characterise behaviour under controlled and realistic conditions.
@@ -227,23 +225,25 @@ To obtain a controlled test case with known truth while retaining a realistic re
 
 Let $x^\star$ denote the digital ground-truth activity image and $\hat{x}$ the reconstructed image. For each sphere $v$, let $\mathcal{S}_v$ be the set of voxel indices belonging to that sphere, and let $\mathcal{S}=\bigcup_v \mathcal{S}_v$ denote the union over all spheres. We report an aggregate \gls{rc} computed by pooling all sphere voxels,
 \begin{equation}
-\mathrm{RC} \;=\; \frac{\frac{1}{|\mathcal{S}|}\sum_{i\in \mathcal{S}}\hat{x}_i}{\frac{1}{|\mathcal{S}|}\sum_{i\in \mathcal{S}}x^\star_i}.
+\mathrm{RC} \;=\; \frac{\frac{1}{|\mathcal{S}|}\sum_{j\in \mathcal{S}}\hat{x}_j}{\frac{1}{|\mathcal{S}|}\sum_{j\in \mathcal{S}}x^\star_j}.
 \end{equation}
 
-To quantify background noise, let $\mathcal{B}$ denote the set of voxel indices in a warm background region. We compute the \gls{cov} within $\mathcal{B}$ as
+To quantify background noise, let $\mathcal{B}$ denote the set of voxel indices in a warm background region. We compute the spatial background \gls{cov} within $\mathcal{B}$ as
 \begin{equation}
 \mathrm{CoV}_{\mathcal{B}} \;=\; \frac{\sigma_{\mathcal{B}}}{\bar x_{\mathcal{B}}},
 \qquad
-\bar x_{\mathcal{B}} \;=\; \frac{1}{|\mathcal{B}|}\sum_{i\in \mathcal{B}}\hat{x}_i,
+\bar x_{\mathcal{B}} \;=\; \frac{1}{|\mathcal{B}|}\sum_{j\in \mathcal{B}}\hat{x}_j,
 \qquad
-\sigma_{\mathcal{B}} \;=\; \sqrt{\frac{1}{|\mathcal{B}|-1}\sum_{i\in \mathcal{B}}\left(\hat{x}_i-\bar x_{\mathcal{B}}\right)^2}.
+\sigma_{\mathcal{B}} \;=\; \sqrt{\frac{1}{|\mathcal{B}|-1}\sum_{j\in \mathcal{B}}\left(\hat{x}_j-\bar x_{\mathcal{B}}\right)^2}.
 \end{equation}
+
+This CoV measures variation between voxels within one reconstructed image and is reported as a dimensionless ratio.
 
 Finally, overall fidelity to the truth is summarised by the \gls{nrmse} over the full image grid $\Omega$,
 \begin{equation}\label{eq:nrmse_krl}
 \mathrm{NRMSE} \;=\; 
-\frac{\sqrt{\frac{1}{|\Omega|}\sum_{i\in \Omega}\left(\hat{x}_i-x^\star_i\right)^2}}
-{\sqrt{\frac{1}{|\Omega|}\sum_{i\in \Omega}\left(x^\star_i\right)^2}}.
+\frac{\sqrt{\frac{1}{|\Omega|}\sum_{j\in \Omega}\left(\hat{x}_j-x^\star_j\right)^2}}
+{\sqrt{\frac{1}{|\Omega|}\sum_{j\in \Omega}\left(x^\star_j\right)^2}}.
 \end{equation}
 
 The in vivo dataset is a $\tau$-\gls{pet} scan acquired on a healthy volunteer using the tracer \textsuperscript{18}F-MK-6240, with a co-registered anatomical \glsentryshort{mri} serving as guidance. This dataset is used to qualitatively illustrate how the different priors behave in the presence of heterogeneous uptake patterns and fine anatomical structure, where over-regularisation can lead to anatomical ``imprinting''. The FWHM of the deconvolution operator was estimated from a Hoffman brain phantom scan acquired on the same Siemens Vision 600 scanner, giving $\mathrm{FWHM}=(\SI{4.6}{\milli\metre},\SI{4.6}{\milli\metre},\SI{6.4}{\milli\metre})$. 
@@ -350,7 +350,7 @@ Figure~\ref{fig:deconv_rc_cov_selected} shows the recovery--noise trajectories f
         \centering
         \includegraphics[width=\linewidth]{figures/Chapter5/curves/fig4e_spheres_recovery_vs_cov_curves_unif_fixed.png}
     \end{subfigure}
-    \caption{Recovery coefficient versus background coefficient of variation for the single hyperparameter setting of each method that achieved its minimum NRMSE. The axes are shared between the blurred \protect\gls{pet} initialisation (top) and uniform-image initialisation (bottom). Each line joins successive iterates and the large marker identifies the minimum-NRMSE iterate. For the kernelised methods, the displayed recovery and background coefficient of variation are measured after mapping the coefficient-space iterates to the image domain; their uniform-start positions therefore reflect coefficient normalisation from a uniform image, rather than an intrinsic recovery--noise advantage. The figure illustrates sensitivity to initialisation and stopping; iteration counts and trajectory lengths are method-specific and should not be interpreted as comparisons of convergence speed.}
+    \caption{Recovery coefficient versus spatial background coefficient of variation (dimensionless ratio) for the single hyperparameter setting of each method that achieved its minimum NRMSE. The axes are shared between the blurred \protect\gls{pet} initialisation (top) and uniform-image initialisation (bottom). Each line joins successive iterates and the large marker identifies the minimum-NRMSE iterate. For the kernelised methods, the displayed recovery and background coefficient of variation are measured after mapping the coefficient-space iterates to the image domain; their uniform-start positions therefore reflect coefficient normalisation from a uniform image, rather than an intrinsic recovery--noise advantage. The figure illustrates sensitivity to initialisation and stopping; iteration counts and trajectory lengths are method-specific and should not be interpreted as comparisons of convergence speed.}
     \label{fig:deconv_rc_cov_selected}
 \end{figure}
 

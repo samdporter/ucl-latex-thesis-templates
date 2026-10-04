@@ -40,7 +40,7 @@ Taking logarithms yields the Poisson log-likelihood
 \end{equation}
 Since the term $\sum_{i=1}^I \log(y_i!)$ does not depend on $x$, it can be dropped for optimisation purposes. Thus, maximising the likelihood w.r.t.~$x$ is equivalent to minimising
 \begin{equation}
-\mathcal{L}(x)
+\mathcal{D}(x)
 \coloneqq -\log p(y\mid x) + \mathrm{const}
 = \sum_{i=1}^I \left( \bar{y}_i(x) - y_i \log \bar{y}_i(x) \right).
  \end{equation}
@@ -77,8 +77,21 @@ p(x) \propto \exp\!\left(-\beta\,\mathcal{R}(x)\right),
 where $\mathcal{R}(x)$ is a regularisation functional and $\beta>0$ controls the strength of the prior. Substituting this into the \gls{map} objective yields the penalised-likelihood form
 \begin{equation}
 \hat{x}_{\mathrm{MAP}} \in \arg\min_{x\in\mathcal{C}}
-\left\{\mathcal{L}(x) + \beta\,\mathcal{R}(x)\right\}.
+\left\{\mathcal{D}(x) + \beta\,\mathcal{R}(x)\right\}.
 \end{equation}
+
+
+We write the data-plus-prior part as $\mathcal F(x)=\mathcal D(x)+\beta\mathcal R(x)$ and the full constrained objective as
+\begin{equation}
+    \mathcal O(x)=\mathcal F(x)+\iota_{\mathcal C}(x),
+    \qquad
+    \iota_{\mathcal C}(x)=
+    \begin{cases}
+        0, & x\in\mathcal C,\\
+        +\infty, & x\notin\mathcal C.
+    \end{cases}
+\end{equation}
+Thus minimising $\mathcal O$ is equivalent to minimising $\mathcal F$ over $\mathcal C$. When the data term and prior are differentiable, gradient formulas use $\nabla\mathcal F$; the constraint is handled separately, for example by projection. On feasible images, $\mathcal O$ and $\mathcal F$ have the same value.
 
 
 \section{Regularisation Strategies}
@@ -108,10 +121,10 @@ In much of the imaging literature, \gls{tv} is instead written in terms of a dis
     \qquad \ell=1,\dots,d,
     \label{eq:finite_difference}
 \end{equation}
-where $\Delta_\ell$ denotes the Euclidean distance between voxels $j+\delta_\ell$ and $j$. The discrete TV functional is then
+where $\Delta_\ell$ denotes the Euclidean distance between voxels $j+\delta_\ell$ and $j$. The anisotropic discrete TV functional is then
 \begin{equation}
     \mathcal{R}_{\mathrm{TV}}(x)
-    = \sum_{j=1}^J |(D x)_j|,
+    = \sum_{j=1}^J \|(D x)_j\|_1,
 \end{equation}
 with an isotropic alternative, more common in emission tomography \cite{jonssonTotalVariationRegularization1998, paninTotalVariationRegulated1999},
 \begin{equation}\label{eq:tv}
@@ -121,10 +134,12 @@ with an isotropic alternative, more common in emission tomography \cite{jonssonT
 
 For optimisation, it is common to use a smooth approximation to avoid nondifferentiability at zero, for example
 \begin{equation}
-    \tilde{\mathcal{R}}_{\mathrm{TV}}(x)
+    \widetilde{\mathcal{R}}_{\mathrm{TV}}(x)
     = \sum_{j=1}^J \sqrt{\|(D x)_j\|_2^2 + \epsilon^2},
     \qquad \epsilon>0.
 \end{equation}
+
+Throughout the thesis, a tilde distinguishes a smoothed TV- or TNV-type functional from its unsmoothed counterpart.
 
 In clinical practice, adaptable edge-preserving priors are often preferred. The \gls{rdp} \cite{nuytsConcavePriorPenalizing2002}, the core component of the GE ``Q.Clear'' algorithm, modifies the penalty to depend on the absolute intensity sums, penalising relative differences, as opposed to absolute ones.
 \begin{equation}
@@ -152,7 +167,7 @@ and sets $\mathcal{B}_j(u)$ to be the indices of the $B$ smallest values of $d_{
 
 An even more geometric framework is \gls{pls} \cite{ehrhardtVectorValuedImageProcessing2014}. These methods encourage structural consistency by encouraging the gradient vectors of the emission image and the guidance image to be aligned, i.e.\ $(D x)_j \parallel (D u)_j$. A common formulation (often termed \gls{pls}1) penalises the magnitude of the component of $(D x)_j$ orthogonal to $(D u)_j$, which is proportional to the sine of the enclosed angle $\theta_j$:
 \begin{equation}
-    R_{\mathrm{PLS1}}(x,u)
+    \mathcal{R}_{\mathrm{PLS1}}(x,u)
     = \sum_{j=1}^J \|(D x)_j\|_2\,\|(D u)_j\|_2\,|\sin\theta_j|.
 \end{equation}
 This term vanishes when $(D x)_j$ and $(D u)_j$ are parallel (or when either gradient is zero), and increases with the component of $(D x)_j$ orthogonal to $(D u)_j$. While numerically stable, \gls{pls}1 scales with $\|(D u)_j\|_2$ and therefore inherits the spatially varying gradient magnitude of the anatomical image, which can lead to over-weighting at strong anatomical edges and under-weighting in low-contrast regions.
@@ -168,7 +183,7 @@ where $\eta>0$ is a small stabilisation parameter that  suppresses unreliable di
 \end{equation}
 where $\mathbb{I}$ is the $d\times d$ (number of dimensions, $d$, squared) identity matrix and $\gamma_j\in[0,1]$ controls the strength of directional guidance. The resulting \gls{dtv} prior is
 \begin{equation}\label{eq:dtv_defn}
-    R_{\mathrm{dTV}}(x;u)
+    \mathcal{R}_{\mathrm{dTV}}(x;u)
     = \sum_{j=1}^J \| \Pi_j (D x)_j \|_2,
 \end{equation}
 which penalises predominantly the gradient component orthogonal to the anatomical level-set direction, thereby encouraging edges in $x$ to align with edges in $u$. In regions where $u$ is locally flat (so $\xi_j \approx 0$), $\Pi_j \approx \mathbb{I}$ and \gls{dtv} reduces to standard isotropic \gls{tv}.
@@ -178,12 +193,12 @@ Regularisation strategies also exist outside the standard Bayesian (penalised-li
     x = K\alpha,
     \label{eq:kernel1}
 \end{equation}
-where $\alpha \in \mathbb{R}^J$ is a coefficient image and $K\in\mathbb{R}^{J\times J}$ is a (typically sparse) kernel matrix whose entries encode similarity between voxels based on features extracted from a guidance image \cite{hutchcroftAnatomicallyaidedPETReconstruction2016}. Each voxel $j$ is assigned a feature vector $f_j$ (commonly a patch of intensities in the high-resolution guidance image), and a radial Gaussian kernel is often used,
+where $\alpha \in \mathbb{R}_+^J$ is a non-negative coefficient image and $K\in\mathbb{R}_+^{J\times J}$ is a (typically sparse) kernel matrix whose entries encode similarity between voxels based on features extracted from a guidance image \cite{hutchcroftAnatomicallyaidedPETReconstruction2016}. Each voxel $j$ is assigned a feature vector $\mathbf v_j$ (commonly a patch of intensities in the high-resolution guidance image), and a radial Gaussian kernel is often used,
 \begin{equation} \label{eq:gaussian_kernel}
-    \kappa(f_j,f_k)=
-    \exp\!\left(-\frac{\|f_j-f_k\|_2^2}{2\sigma^2}\right),
+    \kappa(\mathbf v_j,\mathbf v_{j'})=
+    \exp\!\left(-\frac{\|\mathbf v_j-\mathbf v_{j'}\|_2^2}{2\sigma^2}\right),
 \end{equation}
-with $\sigma$ controlling edge sensitivity. The kernel matrix is then defined entrywise by $K_{jk}=\kappa(f_j,f_k)$, with additional sparsification for tractability: for each voxel $j$, only a small set of the most similar neighbours (e.g.\ via a local $k$-nearest-neighbour search within a window) are allowed to contribute, yielding a sparse $K$. Row normalisation preserves constant images; it does not by itself guarantee preservation of total counts.
+with $\sigma$ controlling edge sensitivity. The kernel matrix is then defined entrywise by $K_{j j'}=\kappa(\mathbf v_j,\mathbf v_{j'})$, with additional sparsification for tractability: for each voxel $j$, only a small set of the most similar neighbours (e.g.\ via a local $k$-nearest-neighbour search within a window) are allowed to contribute, yielding a sparse $K$. Row normalisation preserves constant images; it does not by itself guarantee preservation of total counts.
 
 Substituting $x=K\alpha$ into the Poisson forward model gives a kernelised expectation for the data,
 \begin{equation}
@@ -193,16 +208,16 @@ so that reconstruction reduces to maximum-likelihood estimation of $\alpha$ unde
 
 A known limitation of purely anatomy-derived kernels is \gls{pet}-unique feature suppression: structures present in the anatomical image but absent (or weak) in the emission image can be biased towards anatomically plausible but functionally incorrect solutions \cite{deiddaHybridPETMR2019}. To mitigate this, \gls{hkem} augments the kernel with synergistic information from the evolving \gls{pet} estimate itself, yielding an iteration-dependent kernel that combines anatomical and emission-driven similarity. In the \gls{hkem} formulation of Deidda \textit{et al.}, the hybrid kernel entry factorises as
 \begin{equation}
-    k^{(n)}_{fj} = k_m(v_f,v_j)\,k_p(z^{(n)}_f,z^{(n)}_j),
+    k^{(k)}_{j j'} = k_m(\mathbf v_j,\mathbf v_{j'})\,k_p(\mathbf f^{(k)}_j,\mathbf f^{(k)}_{j'}),
 \end{equation}
-where $v_j$ denotes the (fixed) anatomical feature vector at voxel $j$ and $z^{(n)}_j$ is a feature derived from the current \gls{pet} update (updated each iteration) \cite{deiddaHybridPETMR2019}. Both factors are commonly chosen as Gaussian similarities (Equation \ref{eq:gaussian_kernel} extended) modulated by spatial proximity,
+where $\mathbf v_j$ denotes the (fixed) anatomical feature vector at voxel $j$ and $\mathbf f^{(k)}_j$ is a functional feature vector derived from the current \gls{pet} update (updated each iteration) \cite{deiddaHybridPETMR2019}. Both factors are commonly chosen as Gaussian similarities (Equation \ref{eq:gaussian_kernel} extended) modulated by spatial proximity,
 \begin{align}
-    k_m(v_j,v_k) &= \exp\!\left(-\frac{\|v_j-v_k\|_2^2}{2\sigma_a^2}\right)
-                   \exp\!\left(-\frac{\|x_j-x_k\|_2^2}{2\sigma_{da}^2}\right),\\
-    k_p(z^{(n)}_j,z^{(n)}_k) &= \exp\!\left(-\frac{\|z^{(n)}_j-z^{(n)}_k\|_2^2}{2\sigma_p^2}\right)
-                   \exp\!\left(-\frac{\|x_j-x_k\|_2^2}{2\sigma_{df}^2}\right),
+    k_m(\mathbf v_j,\mathbf v_{j'}) &= \exp\!\left(-\frac{\|\mathbf v_j-\mathbf v_{j'}\|_2^2}{2\sigma_a^2}\right)
+                   \exp\!\left(-\frac{\|\mathbf r_j-\mathbf r_{j'}\|_2^2}{2\sigma_{da}^2}\right),\\
+    k_p(\mathbf f^{(k)}_j,\mathbf f^{(k)}_{j'}) &= \exp\!\left(-\frac{\|\mathbf f^{(k)}_j-\mathbf f^{(k)}_{j'}\|_2^2}{2\sigma_f^2}\right)
+                   \exp\!\left(-\frac{\|\mathbf r_j-\mathbf r_{j'}\|_2^2}{2\sigma_{df}^2}\right),
 \end{align}
-where $x_j$ denotes the voxel coordinates and the parameters $\sigma_a,\sigma_f,\sigma_{da},\sigma_{df}$ control the relative influence of anatomical similarity, functional-driven (emission) similarity, and spatial locality. The functional term helps address emission--guidance mismatch and reduces the tendency of anatomy-only kernels to suppress \gls{pet}-unique lesions by allowing the neighbourhood coupling to adapt to features emerging in the emission estimate. Empirically, Deidda \textit{et al.} report that this hybridisation can reduce negative bias under low-count conditions and improve lesion contrast while retaining the denoising benefits of kernelised reconstruction \cite{deiddaHybridPETMR2019}.
+where $\mathbf r_j$ denotes the spatial coordinates of voxel $j$ and the parameters $\sigma_a,\sigma_f,\sigma_{da},\sigma_{df}$ control the relative influence of anatomical similarity, functional-driven (emission) similarity, and spatial locality. The functional term helps address emission--guidance mismatch and reduces the tendency of anatomy-only kernels to suppress \gls{pet}-unique lesions by allowing the neighbourhood coupling to adapt to features emerging in the emission estimate. Empirically, Deidda \textit{et al.} report that this hybridisation can reduce negative bias under low-count conditions and improve lesion contrast while retaining the denoising benefits of kernelised reconstruction \cite{deiddaHybridPETMR2019}.
 
 Kernel approaches extend naturally to multiple guidance sources by enlarging the feature vectors (e.g.\ concatenating features from \gls{ct} and/or additional functional channels \cite{wangPETImageReconstruction2015}) and defining the kernel on the resulting joint feature space. This provides a flexible mechanism for sequential or multi-modality guidance without introducing an explicit Bayesian penalty term. The kernel image model is applied to image-domain deconvolution in Chapter~\ref{chapter:deconvolution_pvc}.
 
@@ -226,7 +241,7 @@ In the Bayesian  setting, a generic multi-modality reconstruction is given by
 \begin{equation}
     \hat{\bm{x}} \in \arg\min_{\bm{x}\in\mathcal{C}}
     \left\{
-        \sum_{m=1}^M \mathcal{L}_m(x_m)
+        \sum_{m=1}^M \mathcal{D}_m(x_m)
         + \beta\,\mathcal{R}(\bm{Wx})
     \right\},
 \end{equation}
@@ -235,17 +250,19 @@ where $\bm{x}\coloneqq(x_1,\dots,x_M)$ and $\bm{W}\coloneqq\mathrm{diag}(W_1,\do
 A practical way to exploit multiple modalities without solving a fully joint inverse problem is sequential reconstruction, in which one modality is first reconstructed, and the resulting image is then used as side-information to guide the reconstruction of another modality. In the Bayesian regime, this is
 \begin{equation}
         \hat{x}_m \in \arg\min_{x_m\in\mathcal{C}}
-\left\{\mathcal{L}_m(x_m) + \beta\,\mathcal{R}(x_m;W_{m\leftarrow(m-1)}x_{m-1})\right\},
+\left\{\mathcal{D}_m(x_m) + \beta\,\mathcal{R}(x_m;W_{m\leftarrow(m-1)}x_{m-1})\right\},
 \end{equation}
 where $W_{m\leftarrow(m-1)}$ maps the image reconstructed in the previous stage, $x_{m-1}$, into the spatial grid of modality $m$.
 
 Deidda et al.~have previously investigated a related method for \isotope[90]{Y} bremsstrahlung \gls{spect}--informed \gls{pet} reconstructions \cite{deiddaTripleModalityImage2023}. Bremsstrahlung \gls{spect} images are first reconstructed using \gls{hkem} with \gls{ct} and \gls{spect} image-update information to obtain an enhanced \gls{spect} estimate. This \gls{spect} image is then resampled to the \gls{pet} grid and used as functional guidance for \gls{pet} reconstruction.
+Registration acts on the previously reconstructed guidance image: $W_{m\leftarrow(m-1)}$ maps from its native grid, $\mathbb R_+^{J_{m-1}}$, to the current modality's native grid, $\mathbb R_+^{J_m}$. Features extracted from $W_{m\leftarrow(m-1)}x_{m-1}$, together with any registered anatomical guidance, are used to construct the current-modality kernel $K_m\in\mathbb R_+^{J_m\times J_m}$. Thus $x_m=K_m\alpha_m$ already lies on the grid expected by the current-modality data term. For a fixed kernel, the coefficient subproblem is
 \begin{equation}
-    \hat{\alpha}_m \in \arg\min_{\alpha_m\in\mathcal{C}}
+    \hat{\alpha}_m \in \arg\min_{\alpha_m\in\mathbb R_+^{J_m}}
     \left\{
-        \mathcal{L}_m\!\left(W_{m\leftarrow(m-1)}\,K_m\alpha_m\right)
+        \mathcal{D}_m\!\left(K_m\alpha_m\right)
     \right\}.
 \end{equation}
+Here the forward model inside $\mathcal D_m$ is $\bar y_m(\alpha_m)=A_mK_m\alpha_m+b_m$. The previous-to-current registration operator therefore enters through the construction of $K_m$, rather than being applied again to $K_m\alpha_m$. In a hybrid kernel method, the kernel can also be refreshed using features from the evolving current-modality estimate; the displayed minimisation describes the coefficient subproblem with the kernel held fixed, rather than a single fixed-kernel objective for the entire adaptive procedure.
 The paper reports that this sequential design is particularly beneficial for low-count \gls{y90} \gls{pet}: \gls{spect} provides complementary denoising/uptake support within \gls{pet}--\gls{spect}-consistent regions, while \glsentryshort{ct} contributes primarily through resolution/edge information injected at the \gls{spect} stage, and the \gls{pet} image-update features reduce suppression of \gls{pet}-unique structures and mitigate inter-modality mismatch.
 
 Sequential guidance is limited by one-way dependency: errors in $u$ may propagate directly to $x$ and the shared information may not be fully utilised. Truly synergistic reconstruction estimates both images simultaneously, allowing information to flow bi-directionally. Perhaps the most obvious way to extend single modality regularisation to achieve a synergistic regulariser is \gls{jtv} \cite{blomgrenColorTVTotal1998}, a simple extension of TV which sums gradient magnitudes:
@@ -316,34 +333,34 @@ This can be rearranged to form the additive update equation
         A^{\mathsf T}\!\left(\frac{y}{\bar{y}\!\left(x^{(k)}\right)} -\mathbf{1}_I \right) \nonumber \\
      & = x^{(k)} -
     \operatorname{diag}\!\left(\frac{x^{(k)}}{A^{\mathsf T}\mathbf{1}_I}\right)
-        \nabla_x \mathcal{L}(x^{(k)}).
+        \nabla_x \mathcal{D}(x^{(k)}).
 \end{align}
-where $\mathbf{1}_J\in\mathbb{R}^{J}$ is an all-ones vector. This form highlights that the \glsentryshort{mlem} update can be interpreted as a preconditioned gradient descent algorithm with preconditioner $\mathcal{P}_{\mathrm{EM}}^{(k)}=\operatorname{diag}\!\left(\frac{x^{(k)}}{A^{\mathsf T}\mathbf{1}_I}\right)$, i.e.
+where $\mathbf{1}_I\in\mathbb{R}^{I}$ is an all-ones vector in measurement space. This form highlights that the \glsentryshort{mlem} update can be interpreted as a preconditioned gradient descent algorithm with preconditioner $\mathcal{P}_{\mathcal D}^{(k)}=\operatorname{diag}\!\left(\frac{x^{(k)}}{A^{\mathsf T}\mathbf{1}_I}\right)$, i.e.
 \begin{align}
-    x^{(k+1)} = x^{(k)} - \varsigma \mathcal{P}_{\mathrm{EM}}^{(k)} \nabla_x \mathcal{L}(x^{(k)}),
+    x^{(k+1)} = x^{(k)} - \varsigma \mathcal{P}_{\mathcal D}^{(k)} \nabla_x \mathcal{D}(x^{(k)}),
 \end{align}
-with a step size $\varsigma=1$.
+with a step size $\varsigma=1$. We use $\mathcal P_{\mathcal D}$ for data-based preconditioning throughout, including the EM construction and versions with an image stabiliser; the local formula specifies the variant.
 
 A preconditioner aims to recondition the reconstruction space so that gradient steps are appropriately scaled across voxels, improving numerical conditioning and convergence. Intuitively, we seek larger steps in poorly sensitive directions and smaller steps in highly sensitive directions, thereby approximating curvature information.
 
-Subsets are commonly used to accelerate early convergence by partitioning the data into $S$ subsets and updating the image using only the contribution from a single subset (or a small batch of subsets) at each iteration. Writing the negative log-likelihood as a sum of subset terms,
+Subsets are commonly used to accelerate early convergence by partitioning the data into $N_{\mathrm d}$ subsets and updating the image using only the contribution from a single subset (or a small batch of subsets) at each iteration. Writing the negative log-likelihood as a sum of subset terms,
 \begin{equation}
-    \mathcal{L}(x)=\sum_{s=1}^S \mathcal{L}_s(x),
+    \mathcal{D}(x)=\sum_{s=1}^{N_{\mathrm d}} \mathcal{D}_s(x),
 \end{equation}
 a generic subset scaled-gradient update takes the form
 \begin{equation}
     x^{(k+1)}
     =
-    x^{(k)} - \varsigma\,\mathcal{P}^{(k)}\,\nabla_x \mathcal{L}_{s}\!\left(x^{(k)}\right).
+    x^{(k)} - \varsigma\,\mathcal{P}^{(k)}\,\nabla_x \mathcal{D}_{s}\!\left(x^{(k)}\right).
 \end{equation}
-If multiple subsets are used per iteration, $\nabla_x \mathcal{L}_{s}$ can be replaced by an average over the chosen subset indices. The most common algorithm found in clinical systems is the \gls{osem} algorithm. For subset $s$ at iteration $k$, a standard \glsentryshort{osem} update can be written as
+If multiple subsets are used per iteration, $\nabla_x \mathcal{D}_{s}$ can be replaced by an average over the chosen subset indices. The most common algorithm found in clinical systems is the \gls{osem} algorithm. For subset $s$ at iteration $k$, a standard \glsentryshort{osem} update can be written as
 \begin{equation}
 x^{(k+1)}
 =
-\operatorname{diag}\!\left(\frac{x^{(k)}}{A_s^{\mathsf T}\mathbf{1}_I}\right)\,
+\operatorname{diag}\!\left(\frac{x^{(k)}}{A_s^{\mathsf T}\mathbf{1}_{I_s}}\right)\,
 A_s^{\mathsf T}\!\left(\frac{y_s}{\bar{y}_s\!\left(x^{(k)}\right)}\right),
 \end{equation}
-where $A_s$ denotes the system matrix and data restricted to subset $s$. \gls{osem} cycles through subsets incrementally.
+Here $I_s$ is the number of measurement bins in subset $s$, $A_s\in\mathbb R_+^{I_s\times J}$ contains the corresponding rows of the system matrix, and $y_s,\bar y_s(x)\in\mathbb R^{I_s}$ are the measured and expected subset data. Thus $\mathbf 1_{I_s}\in\mathbb R^{I_s}$ is the all-ones vector on the subset. \gls{osem} cycles through subsets incrementally.
 
 \glsentryshort{osem} typically shows a marked improvement in early-stage convergence by providing a cheaper approximation of the full-data \glsentryshort{em} update. However, because the subset gradient is only an approximation to the full gradient, \glsentryshort{osem} is not, in general, a convergent algorithm for the maximum-likelihood problem: as the iterates approach a solution, incremental subset-gradient updates can lead to cyclical behaviour. An example illustrating this is shown in  Figure~\ref{fig:osem_limit_cycle}.
 
@@ -358,47 +375,47 @@ We seek a fast and convergent algorithm for \gls{map} reconstruction. A widely u
 \begin{equation}
     x^{(k+1)}
     =
-    x^{(k)} - \varsigma_k\,\mathcal{P}_{\mathrm{EM}}^{(k)}
+    x^{(k)} - \varsigma^{(k)}\,\mathcal{P}_{\mathcal D}^{(k)}
     \left(
-        \nabla_x \mathcal{L}_s(x^{(k)})
-        + \frac{\beta}{S}\,\nabla_x \mathcal{R}(x^{(k)})
+        \nabla_x \mathcal{D}_s(x^{(k)})
+        + \frac{\beta}{N_{\mathrm d}}\,\nabla_x \mathcal{R}(x^{(k)})
     \right),
 \end{equation}
-where $\varsigma_k>0$ is an iteration dependent step size. The $1/S$ factor is specific to this subset-scaled BSREM convention; the full-gradient SVRG formulation below uses the full-data preconditioner convention and scales the estimator to $\nabla\mathcal L$. Convergence is promoted by choosing $\{\varsigma_k\}$ to diminish appropriately (e.g.\ $\varsigma_k\rightarrow 0$ with $\sum_k \varsigma_k=\infty$), which suppresses the subset-induced limit-cycle behaviour while retaining rapid early progress (see Figure~\ref{fig:relaxed_limit_cycle}).
+where $\varsigma^{(k)}>0$ is an iteration dependent step size. The $1/N_{\mathrm d}$ factor is specific to this subset-scaled BSREM convention; the full-gradient SVRG formulation below uses the full-data preconditioner convention and scales the estimator to $\nabla\mathcal D$. Convergence is promoted by choosing $\{\varsigma^{(k)}\}$ to diminish appropriately (e.g.\ $\varsigma^{(k)}\rightarrow 0$ with $\sum_k \varsigma^{(k)}=\infty$), which suppresses the subset-induced limit-cycle behaviour while retaining rapid early progress (see Figure~\ref{fig:relaxed_limit_cycle}).
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\linewidth]{figures/Chapter2/relaxed_limit_cycle.png}
-    \caption{Demonstration of reduction in limit cycle behaviour with step size relaxation $\varsigma_k=\varsigma_0/(1+0.05k)$. Left, full function with subset-gradient steps; centre, zoomed version of the full function demonstrating relaxed limit cycle behaviour; right, likelihood value per iteration, demonstrating relaxed limit cycle precession. }
+    \caption{Demonstration of reduction in limit cycle behaviour with step size relaxation $\varsigma^{(k)}=\varsigma^{(0)}/(1+0.05k)$. Left, full function with subset-gradient steps; centre, zoomed version of the full function demonstrating relaxed limit cycle behaviour; right, likelihood value per iteration, demonstrating relaxed limit cycle precession. }
     \label{fig:relaxed_limit_cycle}
 \end{figure}
 
 Variance-reduced subset methods have become increasingly popular in the \gls{pet} reconstruction literature because they retain the low per-iteration cost of subset updates while substantially reducing the limit cycling observed in \gls{osem}. The key idea is to replace the raw subset gradient, which is a high-variance estimator of the full gradient, with a variance-reduced estimator that is (approximately) unbiased and whose variance decreases as the iterates approach a solution \cite{ehrhardtFastPETReconstruction2025a,twyman_investigation_2023}.
 
-A stochastic subset gradient step uses $g_{s_k}(x^{(k)})$ in place of $\nabla \mathcal{L}(x^{(k)})=\sum_s g_s(x^{(k)})$, i.e.
+A stochastic subset gradient step uses $g_{s_k}(x^{(k)})$ in place of $\nabla \mathcal{D}(x^{(k)})=\sum_s g_s(x^{(k)})$, i.e.
 \begin{equation}
     x^{(k+1)}
-    = x^{(k)} - \varsigma_k\,\mathcal{P}^{(k)}
+    = x^{(k)} - \varsigma^{(k)}\,\mathcal{P}^{(k)}
     g_{s_k}(x^{(k)}),
 \end{equation}
-which is cheap but noisy. Variance reduction augments this step by incorporating additional information (stored gradients or periodic full-gradient computations) to form a corrected estimator $\tilde g_k$ with reduced variance. Two widely used examples are \gls{saga} and \gls{svrg}:
+which is cheap but noisy. Variance reduction augments this step by incorporating additional information (stored gradients or periodic full-gradient computations) to form a corrected estimator $\tilde g^{(k)}$ with reduced variance. Two widely used examples are \gls{saga} and \gls{svrg}:
 
-\gls{saga} \cite{defazio_saga_2014} maintains a table of the most recently computed subset gradients $\{g_s(\cdot)\}_{s=1}^S$ and updates using
+\gls{saga} \cite{defazio_saga_2014} maintains a table of the most recently computed subset gradients $\{g_s(\cdot)\}_{s=1}^{N_{\mathrm d}}$ and updates using
 \begin{equation}
-    \tilde g_k
+    \tilde g^{(k)}
     \;=\;
-    S\!\left[g_{s_k}(x^{(k)}) - g_{s_k}(\tilde x_{s_k})\right] + \sum_{s=1}^{S} g_s(\tilde x_s),
+    N_{\mathrm d}\!\left[g_{s_k}(x^{(k)}) - g_{s_k}(\tilde x_{s_k})\right] + \sum_{s=1}^{N_{\mathrm d}} g_s(\tilde x_s),
 \end{equation}
 where $\tilde x_s$ denotes the iterate at which the stored gradient for subset $s$ was last evaluated.
 
 \gls{svrg} \cite{johnsonAcceleratingStochasticGradient2013} periodically computes a reference full gradient at a snapshot $\tilde x$ and then performs inner iterations using
 \begin{equation}
 \label{eq:SVRG1}
-    \tilde g_k
+    \tilde g^{(k)}
     \;=\;
-    S\!\left[g_{s_k}(x^{(k)}) - g_{s_k}(\tilde x)\right] + \nabla_x \mathcal{L}(\tilde x).
+    N_{\mathrm d}\!\left[g_{s_k}(x^{(k)}) - g_{s_k}(\tilde x)\right] + \nabla_x \mathcal{D}(\tilde x).
 \end{equation}
-With uniform subset sampling, $\mathbb{E}[\tilde g_k]=\nabla_x \mathcal{L}(x^{(k)})$ for SVRG (and up to the stored-gradient approximation for SAGA), while the variance decreases as $x^{(k)}$ approaches a stationary point. This is the full-gradient convention used in the experiments.
+With uniform subset sampling, $\mathbb{E}[\tilde g^{(k)}]=\nabla_x \mathcal{D}(x^{(k)})$ for SVRG (and up to the stored-gradient approximation for SAGA), while the variance decreases as $x^{(k)}$ approaches a stationary point. This is the full-gradient convention used in the experiments.
 
 \begin{figure}[htbp]
     \centering
@@ -411,7 +428,7 @@ A variance-reduced, prior-regularised update can then be written compactly as
 \begin{equation}
     x^{(k+1)}
     = x^{(k)} - \varsigma\,\mathcal{P}^{(k)}
-    \Big(\tilde g_k + \beta \nabla_x\mathcal{R}(x^{(k)})\Big).
+    \Big(\tilde g^{(k)} + \beta \nabla_x\mathcal{R}(x^{(k)})\Big).
 \end{equation}
 Recent work indicates that incorporating the effect of the prior into $\mathcal{P}^{(k)}$ (``prior-aware preconditioning'') can substantially accelerate convergence. Ehrhardt \textit{et al.} \cite{ehrhardtFastPETReconstruction2025a} showed substantially improved convergence rates with \gls{rdp}-regularised \gls{pet} reconstruction when using harmonic averaging of the \gls{em}-type preconditioner and a scaled diagonal estimate of the inverse Hessian of the prior. Using only the diagonal elements of the \gls{rdp} Hessian
 \begin{equation}
@@ -422,9 +439,9 @@ Recent work indicates that incorporating the effect of the prior into $\mathcal{
 \end{equation}
 they constructed a preconditioner as
 \begin{equation}
-    \mathcal{P}^{(k)} = \operatorname{diag}\left( \frac{x^{(k)}+\delta}{A^\top \mathbf{1} + \alpha \;\operatorname{diag}\!\left(\beta \mathcal{H}_{\mathrm{RDP}}\left(x^{(k)}\right)\right)\left(x^{(k)}+\delta\right)}\right)
+    \mathcal{P}^{(k)} = \operatorname{diag}\left( \frac{x^{(k)}+\epsilon_x}{A^\top \mathbf{1} + \alpha \;\operatorname{diag}\!\left(\beta \mathcal{H}_{\mathrm{RDP}}\left(x^{(k)}\right)\right)\left(x^{(k)}+\epsilon_x\right)}\right)
 \end{equation}
-with scalar $\alpha$ tuned to correct for the loss of off-diagonal information. 
+where $\epsilon_x>0$ is the image stabiliser that permits updates from zero-valued voxels, and the scalar $\alpha$ is tuned to correct for the loss of off-diagonal information.
 \begin{comment}
 Although this is not emphasised explicitly in \cite{ehrhardtFastPETReconstruction2025a}, the harmonic averaging viewpoint can also be interpreted as a majorisation-preserving way to combine curvature information from the likelihood and the prior. In particular, the voxel-wise harmonic blend can be rearranged as
 \begin{equation}

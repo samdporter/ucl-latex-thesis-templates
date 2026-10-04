@@ -6,33 +6,35 @@ Chapter~\ref{chapter:wdtnv} defined the smoothed weighted directional total nucl
 \section{Reconstruction Framework}
 \label{sec:optimisation_framework}
 
-As in Section~\ref{subsec:synergistic_recon}, let $\bm z=(z_1,z_2)$ again denote the \gls{pet} and \gls{spect} images represented on a common reconstruction grid. For $N_{\mathrm d}$ subset data functions, define $\mathcal D(\bm z)=\sum_{i=1}^{N_{\mathrm d}}\mathcal D_i(\bm z)$. The objective is
+As in Section~\ref{subsec:synergistic_recon}, let $\bm z=(z_1,z_2)$ again denote the \gls{pet} and \gls{spect} images represented on a common reconstruction grid. Chapter~\ref{chapter:reconstruction} presented a native-grid formulation, with the prior applied to $W_m x_m$. Here we optimise the shared-grid variables $z_m$ directly, using the forward model $A_m W_m^\ast z_m+b_m$ detailed in Chapter~\ref{chapter:paper}. The adjoint $W_m^\ast$ maps to the native projector grid; it is not assumed to be an inverse of $W_m$. For $N_{\mathrm d}$ subset data functions, define $\mathcal D(\bm z)=\sum_{s=1}^{N_{\mathrm d}}\mathcal D_s(\bm z)$. The objective is
 \begin{equation}
     \mathcal{O}(\bm z)
     =
     \mathcal D(\bm z)
     +
-    \mathcal{R}_{\mathrm{w\text{-}dTNV}}(\bm z),
+    \widetilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}(\bm z)
+    +
+    \iota_{\mathcal C}(\bm z),
     \label{eq:optimisation_objective}
 \end{equation}
-which we minimise subject to $\bm z\geq0$, so all reconstructed voxel values are non-negative. Here $\mathcal{D}_i$ is the Poisson negative log-likelihood for a data subset, including the relevant projector and image-space warping operator, and $\mathcal{R}_{\mathrm{w\text{-}dTNV}}$ is the prior from Chapter~\ref{chapter:wdtnv}.
+where $\mathcal C=(\mathbb R_+^N)^2$ enforces $\bm z\geq0$, so all reconstructed voxel values are non-negative. Here $\mathcal{D}_s$ is the Poisson negative log-likelihood for a data subset, including the relevant projector and image-space warping operator, and $\widetilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}$ is the prior from Chapter~\ref{chapter:wdtnv}.
 
 \section{Stochastic \gls{map} Optimisation}
 \label{sec:optimisation_svrg}
 
-Section \ref{sec:optimisation} introduced stochastic optimisation as a promising method for fast and convergent image reconstruction. The stochastic experiments in this chapter use \gls{svrg} \cite{johnsonAcceleratingStochasticGradient2013,twyman_investigation_2023,ehrhardtFastPETReconstruction2025a}. We briefly repeat the main concepts here for convenience. Writing $\mathcal R=\mathcal{R}_{\mathrm{w\text{-}dTNV}}$, define the smooth objective $\mathcal{O}=\mathcal D+\mathcal R$. A component list $\{O_j\}_{j=1}^{n}$ satisfying $\sum_{j=1}^{n}O_j=\mathcal{O}$ is sampled uniformly with replacement, giving an \gls{svrg} estimator at snapshot $\widetilde{\bm z}$,
+Section \ref{sec:optimisation} introduced stochastic optimisation as a promising method for fast and convergent image reconstruction. The stochastic experiments in this chapter use \gls{svrg} \cite{johnsonAcceleratingStochasticGradient2013,twyman_investigation_2023,ehrhardtFastPETReconstruction2025a}. We briefly repeat the main concepts here for convenience. Writing $\widetilde{\mathcal R}=\widetilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}$, define the differentiable part $\mathcal{F}=\mathcal D+\widetilde{\mathcal R}$, so $\mathcal O=\mathcal F+\iota_{\mathcal C}$. Let $N_{\mathrm f}$ denote the total number of sampled functions, including any prior-only components. A component list $\{F_t\}_{t=1}^{N_{\mathrm f}}$ satisfying $\sum_{t=1}^{N_{\mathrm f}}F_t=\mathcal{F}$ is sampled uniformly with replacement, giving an \gls{svrg} estimator at snapshot $\widetilde{\bm z}$,
 \[
     g^{(k)}
     =
-    \nabla\mathcal{O}(\widetilde{\bm z})
-    +n\!\left[
-        \nabla O_{j_k}(\bm z^{(k)})
-        -\nabla O_{j_k}(\widetilde{\bm z})
+    \nabla\mathcal{F}(\widetilde{\bm z})
+    +N_{\mathrm f}\!\left[
+        \nabla F_{t_k}(\bm z^{(k)})
+        -\nabla F_{t_k}(\widetilde{\bm z})
     \right],
-    \qquad j_k\sim\operatorname{Unif}\{1,\ldots,n\},
+    \qquad t_k\sim\operatorname{Unif}\{1,\ldots,N_{\mathrm f}\},
 \]
 %\SA{Compare this to eq\ref{eq:SVRG1} and remind the reader that $\widetilde{\bm z}$ is a "snapshot" (is that the same as "anchor point" ? ) Will do. Yes- the same as anchor point. Do I use both!? Whoops}
-so $\mathbb E[g^{(k)}]=\nabla\mathcal{O}(\bm z^{(k)})$. The full-gradient snapshot is refreshed once per epoch.
+so $\mathbb E[g^{(k)}]=\nabla\mathcal{F}(\bm z^{(k)})$. The full-gradient snapshot is refreshed once per epoch.
 
 The image update is a projected, preconditioned gradient step,
 \begin{equation}
@@ -64,7 +66,7 @@ Let $N_{\mathrm{PET}}$ and $N_{\mathrm{SPECT}}$ denote the numbers of data subse
 \paragraph{Separate subsets.}
 \gls{pet} and \gls{spect} subsets are treated as distinct stochastic functions. This gives $N_{\mathrm d}=N_{\mathrm{PET}}+N_{\mathrm{SPECT}}$ functions,
 \begin{equation}
-    \{\mathcal{D}_i\}_{i=1}^{N_{\mathrm d}}
+    \{\mathcal{D}_s\}_{s=1}^{N_{\mathrm d}}
     =
     \{
     \mathcal{D}_{\mathrm{PET},1},\ldots,\mathcal{D}_{\mathrm{PET},N_{\mathrm{PET}}},
@@ -74,40 +76,40 @@ Let $N_{\mathrm{PET}}$ and $N_{\mathrm{SPECT}}$ denote the numbers of data subse
 \end{equation}
 
 \paragraph{Paired subsets.}
-\gls{pet} and \gls{spect} subsets with matching indices are combined into one subset. When $N_{\mathrm{PET}}=N_{\mathrm{SPECT}}=N$, this gives $N_{\mathrm d}=N$ functions,
+\gls{pet} and \gls{spect} subsets with matching indices are combined into one subset. When the modality counts are equal, this gives $N_{\mathrm d}=N_{\mathrm{PET}}=N_{\mathrm{SPECT}}$ functions,
 \begin{equation}
-    \mathcal{D}^{\mathrm{pair}}_j
+    \mathcal{D}^{\mathrm{pair}}_s
     =
-    \mathcal{D}_{\mathrm{PET},j}
+    \mathcal{D}_{\mathrm{PET},s}
     +
-    \mathcal{D}_{\mathrm{SPECT},j},
-    \qquad j=1,\ldots,N.
+    \mathcal{D}_{\mathrm{SPECT},s},
+    \qquad s=1,\ldots,N_{\mathrm d}.
     \label{eq:paired_subset_functions}
 \end{equation}
 
 \subsection{Prior-Application Schedules}
 \label{subsec:subset_prior_schedules}
 
-For either data organisation, the prior can enter the component list in many ways, of which three were investigated. Each list sums to $\mathcal{O}$ and therefore preserves the unbiasedness of the estimator above.
+For either data organisation, the prior can enter the component list in many ways, of which three were investigated. Each list sums to $\mathcal{F}$ and therefore preserves the unbiasedness of the estimator above.
 
 \paragraph{Folded.}
-Here $n=N_{\mathrm d}$ and $O_i=\mathcal D_i+\mathcal R/N_{\mathrm d}$. One expected data pass therefore comprises $N_{\mathrm d}$ updates, with the prior gradient difference entering every update. This gives
+Here $N_{\mathrm f}=N_{\mathrm d}$, and data subset $s$ corresponds to component $t=s$, with $F_t=\mathcal D_s+\widetilde{\mathcal R}/N_{\mathrm d}$. One expected data pass therefore comprises $N_{\mathrm d}$ updates, with the prior gradient difference entering every update. This gives
 \begin{equation}
-    g^{(k)} = \nabla\mathcal R(\bm z^{(k)})
+    g^{(k)} = \nabla\widetilde{\mathcal R}(\bm z^{(k)})
     + \nabla\mathcal D(\widetilde{\bm z})
     + N_{\mathrm d}\!\left[
-        \nabla\mathcal D_{i_k}(\bm z^{(k)})
-        -\nabla\mathcal D_{i_k}(\widetilde{\bm z})
+        \nabla\mathcal D_{s_k}(\bm z^{(k)})
+        -\nabla\mathcal D_{s_k}(\widetilde{\bm z})
     \right],
-    \qquad i_k\sim\operatorname{Unif}\{1,\ldots,N_{\mathrm d}\}.
+    \qquad s_k\sim\operatorname{Unif}\{1,\ldots,N_{\mathrm d}\}.
     \label{eq:svrg_estimator_general}
 \end{equation}
 
 \paragraph{Prior/half.}
-Here $n=2N_{\mathrm d}$: the list contains the $N_{\mathrm d}$ data components and $N_{\mathrm d}$ copies of $\mathcal R/N_{\mathrm d}$. Uniform sampling selects a prior-only component with probability $1/2$, so an expected data pass comprises $2N_{\mathrm d}$ updates: $N_{\mathrm d}$ data draws and $N_{\mathrm d}$ prior-only draws in expectation.
+Here $N_{\mathrm f}=2N_{\mathrm d}$: the list contains the $N_{\mathrm d}$ data components and $N_{\mathrm d}$ copies of $\widetilde{\mathcal R}/N_{\mathrm d}$. Uniform sampling selects a prior-only component with probability $1/2$, so an expected data pass comprises $2N_{\mathrm d}$ updates: $N_{\mathrm d}$ data draws and $N_{\mathrm d}$ prior-only draws in expectation.
 
 \paragraph{Once per epoch, on average.}
-Here $n=N_{\mathrm d}+1$: one full-prior component $\mathcal R$ is appended to the $N_{\mathrm d}$ data components. Uniform sampling gives $N_{\mathrm d}+1$ updates per expected data pass, comprising $N_{\mathrm d}$ data draws and one prior-only draw in expectation. The actual number varies because sampling is with replacement. In both intermittent schedules, the snapshot still contains the prior gradient; a prior-only draw updates its correction to the current image.
+Here $N_{\mathrm f}=N_{\mathrm d}+1$: one full-prior component $\widetilde{\mathcal R}$ is appended to the $N_{\mathrm d}$ data components. Uniform sampling gives $N_{\mathrm d}+1$ updates per expected data pass, comprising $N_{\mathrm d}$ data draws and one prior-only draw in expectation. The actual number varies because sampling is with replacement. In both intermittent schedules, the snapshot still contains the prior gradient; a prior-only draw updates its correction to the current image.
 
 \section{Prior-Aware Preconditioning}
 \label{sec:optimisation_preconditioners}
@@ -127,30 +129,30 @@ For modality $m$, let $s_m$ denote the sensitivity image on the shared grid,
 \end{equation}
 where $A_m$ is the native-grid system matrix and the warping operator, $W_m$, maps native images to the shared prior grid. The data-only \gls{em}/\gls{bsrem} preconditioner is
 \begin{equation}
-    \mathcal{P}_{\mathrm{BSREM},m}
+    \mathcal{P}_{\mathcal D,m}
     =
-    (z_m+\epsilon_x)\oslash s_m,
+    \operatorname{diag}\!\left((z_m+\epsilon_x)\oslash s_m\right),
     \label{eq:bsrem_preconditioner}
 \end{equation}
-with element-wise division. Here, $\epsilon_x$ is a small value heuristically chosen to maintain stability whilst allowing zero-valued voxels to be updated \SA{What does subscript $x$ refer to ?}. Equivalently, the corresponding diagonal data Hessian surrogate is
+where $\oslash$ denotes element-wise division and $\operatorname{diag}$ forms the diagonal matrix from the resulting voxel-wise scaling values. Here, $\epsilon_x>0$ is a small image stabiliser heuristically chosen to maintain stability whilst allowing zero-valued voxels to be updated. Its subscript identifies image stabilisation, on either a native or a shared grid, and distinguishes it from the prior-smoothing parameter $\epsilon$. Equivalently, the corresponding diagonal data Hessian surrogate is
 \begin{equation}
-    \widehat H_{\mathrm{data},m}
+    \widehat H_{\mathcal D,m}
     =
-    s_m \oslash (z_m+\epsilon_x).
+    \operatorname{diag}\!\left(s_m \oslash (z_m+\epsilon_x)\right).
     \label{eq:data_hessian_surrogate}
 \end{equation}
-The implementation used in this chapter optionally smooths the numerator image used in the \gls{em} preconditioner with a Gaussian filter, as suggested in \cite{ehrhardtFastPETReconstruction2025a}.
+The labels $\mathcal P_D$ in the figure legends are shorthand for $\mathcal P_{\mathcal D}$. The implementation used in this chapter optionally smooths the numerator image used in the \gls{em} preconditioner with a Gaussian filter, as suggested in \cite{ehrhardtFastPETReconstruction2025a}.
 
 \subsection{Combining Data and Prior Curvature}
 \label{subsec:optimisation_preconditioner_combination}
 
-Let $\mathcal{P}_{\mathrm D}=\widehat H_{\mathrm D}^{-1}$ denote the data preconditioner and $\mathcal{P}_{\mathcal R}=\widehat H_{\mathcal R}^{-1}$ a prior preconditioner whose curvature model is developed below. For block methods, $\widehat H_{\mathrm D}$ is the $2\times2$ diagonal matrix containing the modality-specific data curvatures at each voxel. Following \cite{ehrhardtFastPETReconstruction2025a}, these curvatures are combined through an inverse-sum, or parallel-sum,
+Let $\mathcal{P}_{\mathcal D}=\widehat H_{\mathcal D}^{-1}$ denote the data preconditioner and $\mathcal{P}_{\widetilde{\mathcal R}}=\widehat H_{\widetilde{\mathcal R}}^{-1}$ a prior preconditioner whose curvature model is developed below. For block methods, the data-curvature block at voxel $n$ is the $2\times2$ diagonal matrix with entries $[\widehat H_{\mathcal D,1}]_{nn}$ and $[\widehat H_{\mathcal D,2}]_{nn}$; its inverse is the corresponding data-preconditioner block. Following \cite{ehrhardtFastPETReconstruction2025a}, these curvatures are combined through an inverse-sum, or parallel-sum,
 \begin{equation}
     \mathcal{P}_{\parallel}
     =
-    \left(\mathcal{P}_{\mathrm D}^{-1}+\mathcal{P}_{\mathcal R}^{-1}\right)^{-1}
+    \left(\mathcal{P}_{\mathcal D}^{-1}+\mathcal{P}_{\widetilde{\mathcal R}}^{-1}\right)^{-1}
     =
-    \left(\widehat H_{\mathrm D}+\widehat H_{\mathcal R}\right)^{-1}.
+    \left(\widehat H_{\mathcal D}+\widehat H_{\widetilde{\mathcal R}}\right)^{-1}.
     \label{eq:parallel_sum_combination}
 \end{equation}
 Numerical floors are used before inversion.
@@ -163,16 +165,16 @@ Both prior-curvature models start from the exact Hessian of the smoothed spectra
 \subsubsection{Voxel-block curvature}
 \label{subsubsec:block_curvature_model}
 
-At each voxel, a $2\times2$ matrix describes how the prior affects the PET and SPECT updates. Its diagonal entries describe each modality separately, while its off-diagonal entries describe their coupling. We approximate these matrices using local second derivatives of the prior and omit coupling between different voxels. Writing $H_{\mathcal R}=\nabla^2\mathcal R$ for the full image-space Hessian, this gives
+At each voxel, a $2\times2$ matrix describes how the prior affects the PET and SPECT updates. Its diagonal entries describe each modality separately, while its off-diagonal entries describe their coupling. We approximate these matrices using local second derivatives of the prior and omit coupling between different voxels. Writing $H_{\widetilde{\mathcal R}}=\nabla^2\widetilde{\mathcal R}$ for the full image-space Hessian, this gives
 \begin{equation}
-    \widehat H_{\mathcal R}^{\mathrm{LS\text{-}block}}
+    \widehat H_{\widetilde{\mathcal R}}^{\mathrm{LS\text{-}block}}
     =
     \operatorname{blkdiag}
     \left(
         \widehat H_{11}^{\mathrm{LS}},\ldots,\widehat H_{NN}^{\mathrm{LS}}
     \right),
     \qquad
-    \widehat H_{nn}^{\mathrm{LS}}\approx[H_{\mathcal R}]_{nn}\in\mathbb R^{2\times2}.
+    \widehat H_{nn}^{\mathrm{LS}}\approx[H_{\widetilde{\mathcal R}}]_{nn}\in\mathbb R^{2\times2}.
     \label{eq:ls_block_preconditioner}
 \end{equation}
 The local derivatives are exact, but their assembly into voxel blocks is approximate, as detailed in Appendix~\ref{app:ls_block_assembly}. The blocks are positive semidefinite; small eigenvalues are raised to a positive floor before inversion. This avoids singular inverses, but does not by itself guarantee a decrease in the objective. Computing the local derivatives requires voxel-wise singular-value decompositions, so the prior-aware preconditioner is refreshed once per epoch and held fixed between refreshes.
@@ -182,7 +184,7 @@ The local derivatives are exact, but their assembly into voxel blocks is approxi
 
 The diagonal model keeps only the diagonal entries of each voxel block,
 \begin{equation}
-    \widehat H_{\mathcal R,n}^{\mathrm{LS\text{-}diag}}
+    \widehat H_{\widetilde{\mathcal R},n}^{\mathrm{LS\text{-}diag}}
     =
     \operatorname{diag}\!\left(
         \bigl[\widehat H_{nn}^{\mathrm{LS}}\bigr]_{11},\,
@@ -200,12 +202,12 @@ After each update, negative voxel values are set to zero. With coupled PET/SPECT
 \subsection{Alternative Combination: Lehmer Family}
 \label{subsec:optimisation_lehmer}
 
-The inverse sum is dominated by the larger of the two curvatures, so a very large data or prior curvature can leave almost no room to move. The inverse sum belongs to a broader matrix Lehmer family that can relax this. For voxel-wise symmetric positive-definite preconditioners $\mathcal{P}_{\mathcal R}$ and $\mathcal{P}_{\mathrm D}$, define
+The inverse sum is dominated by the larger of the two curvatures, so a very large data or prior curvature can leave almost no room to move. The inverse sum belongs to a broader matrix Lehmer family that can relax this. For voxel-wise symmetric positive-definite preconditioners $\mathcal{P}_{\widetilde{\mathcal R}}$ and $\mathcal{P}_{\mathcal D}$, define
 \begin{equation}
-    T=\mathcal{P}_{\mathrm D}^{-1/2}\mathcal{P}_{\mathcal R}\mathcal{P}_{\mathrm D}^{-1/2},
+    T=\mathcal{P}_{\mathcal D}^{-1/2}\mathcal{P}_{\widetilde{\mathcal R}}\mathcal{P}_{\mathcal D}^{-1/2},
     \qquad
-    L_p(\mathcal{P}_{\mathcal R},\mathcal{P}_{\mathrm D})
-    =\mathcal{P}_{\mathrm D}^{1/2}f_p(T)\mathcal{P}_{\mathrm D}^{1/2},
+    L_p(\mathcal{P}_{\widetilde{\mathcal R}},\mathcal{P}_{\mathcal D})
+    =\mathcal{P}_{\mathcal D}^{1/2}f_p(T)\mathcal{P}_{\mathcal D}^{1/2},
     \qquad
     f_p(t)=\frac{t^p+1}{t^{p-1}+1},
     \label{eq:matrix_lehmer_combination}
@@ -214,9 +216,9 @@ Here $T$ expresses the prior preconditioner relative to the data preconditioner,
 \SA{$T$ is a (symmetric?) matrix, so I think you mean $f_P(T) = U^{\rm T} f_P(W) U$ where $W$ is the diagonal matrix of eigenvalues to which any function can be applied component-wise. Is that right ? That is the normal way to express powers of matrices or other functions like $\exp{T}$. Maybe you can explain this in an appendix if need be.}
 The implemented form is $\tfrac12L_p$; at $p=0$ it reproduces the inverse sum exactly,
 \begin{equation}
-    \tfrac12L_0(\mathcal{P}_{\mathcal R},\mathcal{P}_{\mathrm D})
+    \tfrac12L_0(\mathcal{P}_{\widetilde{\mathcal R}},\mathcal{P}_{\mathcal D})
     =
-    \left(\mathcal{P}_{\mathrm D}^{-1}+\mathcal{P}_{\mathcal R}^{-1}\right)^{-1}.
+    \left(\mathcal{P}_{\mathcal D}^{-1}+\mathcal{P}_{\widetilde{\mathcal R}}^{-1}\right)^{-1}.
     \label{eq:lehmer_parallel_equivalence}
 \end{equation}
 For fixed data and prior preconditioners, $f_p(t)$ is non-decreasing with $p$ for every $t>0$ (and unchanged when $t=1$). Increasing $p$ therefore gives less conservative scaling in the data-normalised coordinates defined by $T$. It can also change the update direction, so it does not guarantee a larger image-space step or faster convergence.
@@ -229,15 +231,14 @@ The experiments compare the alternatives defined above while keeping the reconst
 \subsection{Common Evaluation Protocol}
 \label{subsec:optimisation_evaluation_protocol}
 
-The optimisation experiments used an anthropomorphic phantom scanned on the Mediso AnyScan at the National Physical Laboratory. \gls{pet} and \gls{spect} were each partitioned into 18 subsets. Each candidate configuration was evaluated over 20 expected data passes with five stochastic realisations and initial step $\varsigma^{(0)}=1$. The 20-epoch folded, modality-separated runs used $\eta_{\mathrm{relax}}=0.002$; the subset experiment rescales this rate to match relaxation across schedules. A single 1000-epoch reconstruction of the same objective, using a diagonal preconditioner and slower relaxation decay ($\eta_{\mathrm{relax}}=10^{-4}$), provided the reference image $x^\star$. Appendix~\ref{app:baseline_convergence} reports the objective and iterate diagnostics supporting its effective stationarity relative to the best observed iterate.
+The optimisation experiments used an anthropomorphic phantom scanned on the Mediso AnyScan at the National Physical Laboratory. \gls{pet} and \gls{spect} were each partitioned into 18 subsets. Each candidate configuration was evaluated over 20 expected data passes with five stochastic realisations and initial step $\varsigma^{(0)}=1$. The 20-epoch folded, modality-separated runs used $\eta_{\mathrm{relax}}=0.002$; the subset experiment rescales this rate to match relaxation across schedules. A single 1000-epoch reconstruction of the same objective, using a diagonal preconditioner and slower relaxation decay ($\eta_{\mathrm{relax}}=10^{-4}$), provided the reference image pair $\bm z^\star$. Appendix~\ref{app:baseline_convergence} reports the objective and iterate diagnostics supporting its effective stationarity relative to the best observed iterate.
 
-For each stochastic run and each saved iteration, the \acrfull{nrmse} in region $R$ is
+For each stochastic run and each saved iteration, the \acrfull{nrmse} is evaluated separately for the shared-grid modality images $z_m^{(k)}$ and references $z_m^\star$, with $m=1$ for \gls{pet} and $m=2$ for \gls{spect}. In a shared-grid region $R$, it is
 \begin{equation}
-    \operatorname{NRMSE}(x_k,x^\star;R)
+    \operatorname{NRMSE}(z_m^{(k)},z_m^\star;R)
     =
-    \frac{\sqrt{N^{-1}\sum_{j\in R}(x_{k,j}-x^\star_j)^2}}
-         {\sqrt{N^{-1}\sum_{j\in R}(x^\star_j)^2}},
-    \qquad N=|R|.
+    \frac{\sqrt{|R|^{-1}\sum_{n\in R}(z^{(k)}_{m,n}-z^\star_{m,n})^2}}
+         {\sqrt{|R|^{-1}\sum_{n\in R}(z^\star_{m,n})^2}}.
     \label{eq:optimisation_nrmse}
 \end{equation}
 The regions are evaluated separately over the whole image, the hot-sphere mask, the cold-sphere mask, and the liver compartment, shown in Figure~\ref{fig:optim_voi_overlay}. The whole-image region includes the low-activity background surrounding the phantom, and is therefore the most sensitive of the four to behaviour in voxels that carry no clinical information; the liver is the largest structure of interest and the region over which absorbed dose to normal tissue would be scored. The plotted centre line is the arithmetic mean of the five per-run \gls{nrmse}; the envelope is their pointwise minimum--maximum.
@@ -252,7 +253,7 @@ The regions are evaluated separately over the whole image, the hot-sphere mask, 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.62\linewidth]{figures/preconditioning/baseline/reference_pair_alpha_0.01.png}
-    \caption{Final \gls{pet} and \gls{spect} iterates of the long-run reference reconstruction, shown on a matched slice with independent colour bars. This effectively stationary pair is the reference $x^\star$ against which every \gls{nrmse} trajectory in this chapter is measured; it is the long-run baseline rather than one of the candidate settings compared below. Appendix~\ref{app:baseline_convergence} reports the supporting diagnostics.}
+    \caption{Final \gls{pet} and \gls{spect} iterates of the long-run reference reconstruction, shown on a matched slice with independent colour bars. This effectively stationary pair is the reference $\bm z^\star$ against which every \gls{nrmse} trajectory in this chapter is measured; it is the long-run baseline rather than one of the candidate settings compared below. Appendix~\ref{app:baseline_convergence} reports the supporting diagnostics.}
     \label{fig:optim_reference_pair}
 \end{figure}
 
@@ -322,7 +323,7 @@ The comparison uses modality-separated subsets and the folded prior schedule, wh
 
 The prior-aware preconditioners are updated once per epoch and held fixed between updates. They therefore use curvature evaluated at the start of the epoch.
 
-All methods minimise the same objective, so the long-run reconstruction provides a common reference $x^\star$. Agreement with this reference is assessed experimentally; it is not a convergence guarantee.
+All methods minimise the same objective, so the long-run reconstruction provides a common reference $\bm z^\star$. Agreement with this reference is assessed experimentally; it is not a convergence guarantee.
 
 \subsubsection{Results}
 
@@ -336,7 +337,7 @@ All methods minimise the same objective, so the long-run reconstruction provides
         \includegraphics[width=\linewidth]{figures/preconditioning/exp3_best_precond_1bpos_SPECT.png}
         \caption{\gls{spect}.}
     \end{subfigure}
-    \caption{\gls{nrmse} trajectories for data-only \gls{bsrem} ($\mathcal P_D$) and its inverse-sum combinations with the Lewis--Sendov block ($\mathcal P_{\mathrm{blk}}$) and diagonal ($\mathcal P_{\mathrm{diag}}$) prior models. All methods use the same objective and long-run reference within each modality. Lines show the mean per-run \gls{nrmse} over five stochastic realisations, and shading shows the pointwise minimum--maximum over the first 20 expected data passes. Each panel uses its own vertical scale; for \gls{pet} the whole-image panel spans the full range reached by the data-only trajectory.}
+    \caption{\gls{nrmse} trajectories for data-only \gls{bsrem} ($\mathcal P_{\mathcal D}$, labelled $\mathcal P_D$ in the panels) and its inverse-sum combinations with the Lewis--Sendov block ($\mathcal P_{\mathrm{blk}}$) and diagonal ($\mathcal P_{\mathrm{diag}}$) prior models. All methods use the same objective and long-run reference within each modality. Lines show the mean per-run \gls{nrmse} over five stochastic realisations, and shading shows the pointwise minimum--maximum over the first 20 expected data passes. Each panel uses its own vertical scale; for \gls{pet} the whole-image panel spans the full range reached by the data-only trajectory.}
     \label{fig:optim_preconditioners}
 \end{figure}
 \clearpage
