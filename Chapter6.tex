@@ -47,7 +47,7 @@ For a local Jacobian $Y\in\mathbb{R}^{d\times M}$, write $G=Y^\top Y$. Using the
 Equivalently, $\phi(Y)=\sum_{i=1}^{R}g(\sigma_i(Y))$ with $R=\min\{d,M\}$ as in~\eqref{eq:schatten}; any additional zero Gram eigenvalues contribute zero because $g(0)=0$. This representation also connects the prior to the calculus of spectral functions of symmetric matrices used for its Hessian in Chapter~\ref{chapter:optimisation}.
 
 \paragraph{Convexity.}
-The singular-value representation gives a direct convexity argument. Define $f_\epsilon(s)=\sum_{i=1}^{R}g(s_i)$ on $\mathbb{R}^R$, so that $\phi=f_\epsilon\circ\sigma$. Since $g$ is even and convex, $f_\epsilon$ is convex and \emph{absolutely symmetric}, meaning invariant under permutations and sign changes of its arguments. Hence $\phi$ is convex on $\mathbb{R}^{d\times M}$ \cite[Corollary~2.6]{lewisConvexAnalysisUnitarily1995}. Smoothness of $f_\epsilon$ also ensures that $\phi$ is differentiable even when $Y$ is rank deficient \cite[Theorem~3.1]{lewisConvexAnalysisUnitarily1995}. The finite-difference operator $D$, directional operators $\Pi_{m,n}$ of Section~\ref{subsec:directional_from_guidance}, and weight matrices $B_n$ of Section~\ref{subsec:modality_weighting} are fixed linear maps. Composing $\phi$ with these maps and summing over voxels preserves convexity, so
+The singular-value representation gives a direct convexity argument. Define $f_\epsilon(s)=\sum_{i=1}^{R}g(s_i)$ on $\mathbb{R}^R$, so that $\phi=f_\epsilon\circ\sigma$. Since $g$ is even and convex, $f_\epsilon$ is convex and absolutely symmetric, meaning invariant under permutations and sign changes of its arguments. Hence $\phi$ is convex on $\mathbb{R}^{d\times M}$ \cite[Corollary~2.6]{lewisConvexAnalysisUnitarily1995}. Smoothness of $f_\epsilon$ also ensures that $\phi$ is differentiable even when $Y$ is rank deficient \cite[Theorem~3.1]{lewisConvexAnalysisUnitarily1995}. The finite-difference operator $D$, directional operators $\Pi_{m,n}$ of Section~\ref{subsec:directional_from_guidance}, and weight matrices $B_n$ of Section~\ref{subsec:modality_weighting} are fixed linear maps. Composing $\phi$ with these maps and summing over voxels preserves convexity, so
 \begin{equation}
     \mathcal{R}_{\mathrm{w\text{-}dTNV}} \ \text{is convex on}\ \mathbb{R}^{N\times M}.
     \label{eq:wdtnv_convex}
@@ -78,23 +78,19 @@ obtained by applying the inverse square-root of an $M\times M$ \gls{spd} matrix 
 \section{Weighted Directional Total Nuclear Variation ($\wdtnv$)}
 \label{sec:wdtnv}
 
-This section extends TNV \cite{rigieJointReconstructionMultichannel2015, holtTotalNuclearVariation2014} in two ways:
+This section extends vanilla TNV \cite{rigieJointReconstructionMultichannel2015, holtTotalNuclearVariation2014} in two ways:
 \begin{itemize}
     \item anatomical information is incorporated via a directional operator (similar to \gls{dtv}, Section~\ref{eq:dtv_defn})
     \item  voxel- and modality-specific diagonal weighting can account for differences in scale and allow each modality to be down-weighted in regions where its measurements are less reliable.
 
 \end{itemize}
 
-\begin{comment}
-It is useful to locate this construction within the established taxonomy of multiple-channel regularisation. Channel-separable penalties $\mathcal{R}(\bm{z})=\sum_m \mathcal{R}_0(z_m)$ ignore inter-channel edge correspondence entirely and provide the baseline. Convex multiple-channel penalties couple channels through a mixed norm of the stacked differences, so that an edge present in one channel relaxes the penalty in the others; these are effectively the joint-\gls{tv} family, and correspond to penalising the Frobenius norm of the voxel-wise Jacobian. Rank-based penalties, of which TNV is the canonical example, replace the Frobenius norm by the nuclear norm and so penalise the \emph{number} of distinct edge directions rather than their total magnitude. Line-site and common-sparsity formulations pursue the same goal through auxiliary boundary or support variables, usually at the cost of convexity. The prior developed here sits in the rank-based family and retains its convexity, while drawing anatomical guidance from the separate literature on regularisation with side information, where a co-registered image supplies boundary locations without itself being reconstructed.~\cite[Sections~2.8 and~2.10]{fessler_image_2017}
-\end{comment}
-
 \subsection{Directional operators from guidance}
 \label{subsec:directional_from_guidance}
 
-We use the the directional operator used in \gls{dtv} (Equation~\ref{eq:directional_op}) to incorporate a higher-resolution anatomical image. The image steers the penalty rather than entering the joint Jacobian as an additional column. This keeps the anatomical channel separate from the emission channels, whose units, resolution, and artefacts differ.
+A straightforward way to extend (smoothed) \gls{tv} and TNV is by appending the guidance image as an additional modality. However, this as several disadvantages. A single global scaling would have data-dependent and spatially non-uniform consequences. Where emission gradients are weak, even modest guidance gradients could dominate the local Jacobian and hence the singular values; where emission gradients are strong, the same scaling may become negligible.
 
-If a guidance image were appended as an additional modality, then a single global scaling would have data-dependent and spatially non-uniform consequences. Where emission gradients are weak, even modest guidance gradients could dominate the local Jacobian and hence the singular values; where emission gradients are strong, the same scaling may become negligible. In contrast, a directional operator, $\Pi$, modifies which gradient components are penalised, without forcing the presence of edges where the emission data do not support them (as demonstrated in Chapter~\ref{chapter:deconvolution_pvc}).
+We instead use the the directional operator used in \gls{dtv} (Equation~\ref{eq:directional_op}) to incorporate a higher-resolution anatomical image. The image steers the penalty rather than entering the joint Jacobian as an additional column. This keeps the anatomical channel separate from the emission channels, whose units, resolution, and artefacts differ (as demonstrated in Chapter~\ref{chapter:deconvolution_pvc}).
 
 Each modality gradient $(D z_m)_n$ is replaced by its directional counterpart $\Pi_{m,n}(D z_m)_n$. Here $D$ denotes the chosen discrete directional-difference operator and each $\Pi_{m,n}\in\mathbb{R}^{d\times d}$ is constructed from the guidance field at voxel $n$
 \begin{equation}
@@ -106,14 +102,14 @@ Each modality gradient $(D z_m)_n$ is replaced by its directional counterpart $\
 \qquad \gamma_m\in[0,1].
 \label{eq:wdtnv_directional_operator}
 \end{equation}
-In homogeneous regions of the guidance image, $\xi_n$ is small and $\Pi_{m,n}$ is close to the identity, so the regulariser reduces to an approximately isotropic TNV-type coupling.
+In homogeneous regions of the guidance image, $\xi_n$ is small and $\Pi_{m,n}$ is close to the identity. 
 
 Using \gls{ct}  to construct the directional operator  decouples anatomical steering from emission-to-emission weighting. Modality weights determine how strongly emission gradients are coupled to one another through the nuclear norm, while $\Pi_{m,n}$ determines how strongly the penalty prefers guidance-consistent edge directions. Retaining a two-modality Jacobian also preserves the efficient $2\times2$ Gram-matrix structure derived in Section~\ref{sec:tv_to_tnv}.
 
 \subsection{Modality-wise weighting and the full \texorpdfstring{$\wdtnv$}{w-dTNV} prior}
 \label{subsec:modality_weighting}
 
-\gls{pet} and \gls{spect} images of the same administered \gls{y90} activity differ substantially in dynamic range: the effective count level, sensitivity, and noise characteristics vary by orders of magnitude between the two modalities. If the directional emission gradients $\Pi_{m,n}(D z_m)_n$ are used directly without normalisation, the nuclear-norm coupling is dominated by the modality with the larger gradient magnitudes.
+\gls{pet} and \gls{spect} images of the same administered \gls{y90} activity differ substantially in dynamic range: the effective count level, sensitivity, and noise characteristics vary by orders of magnitude between the two modalities. If the directional emission gradients $\Pi_{m,n}(D z_m)_n$ are used directly without normalisation, the nuclear-norm coupling is dominated by the modality with the largest dynamic range.
 
 To compensate, we introduce voxel-wise, modality-wise diagonal weight matrices
 \begin{equation}

@@ -20,7 +20,7 @@ which we minimise subject to $\bm z\geq0$, so all reconstructed voxel values are
 \section{Stochastic \gls{map} Optimisation}
 \label{sec:optimisation_svrg}
 
-Section \ref{sec:optimisation} introduced stochastic optimisation as a promising method for fast and convergent image reconstruction. The stochastic experiments in this chapter use \gls{svrg} \cite{johnsonAcceleratingStochasticGradient2013,twyman_investigation_2023,ehrhardtFastPETReconstruction2025a}. We briefly repeat the main concepts here for convenience. Writing $\mathcal R=\mathcal{R}_{\mathrm{w\text{-}dTNV}}$, define the smooth objective $\mathcal{O}=\mathcal D+\mathcal R$. A component list $\{O_j\}_{j=1}^{n}$ satisfying $\sum_{j=1}^{n}O_j=\mathcal{O}$ is sampled uniformly with replacement, giving an \gls{svrg} estimator at anchor point $\widetilde{\bm z}$,
+Section \ref{sec:optimisation} introduced stochastic optimisation as a promising method for fast and convergent image reconstruction. The stochastic experiments in this chapter use \gls{svrg} \cite{johnsonAcceleratingStochasticGradient2013,twyman_investigation_2023,ehrhardtFastPETReconstruction2025a}. We briefly repeat the main concepts here for convenience. Writing $\mathcal R=\mathcal{R}_{\mathrm{w\text{-}dTNV}}$, define the smooth objective $\mathcal{O}=\mathcal D+\mathcal R$. A component list $\{O_j\}_{j=1}^{n}$ satisfying $\sum_{j=1}^{n}O_j=\mathcal{O}$ is sampled uniformly with replacement, giving an \gls{svrg} estimator at snapshot $\widetilde{\bm z}$,
 \[
     g^{(k)}
     =
@@ -31,7 +31,7 @@ Section \ref{sec:optimisation} introduced stochastic optimisation as a promising
     \right],
     \qquad j_k\sim\operatorname{Unif}\{1,\ldots,n\},
 \]
-\SA{Compare this to eq\ref{eq:SVRG1} and remind the reader that $\widetilde{\bm z}$ is a "snapshot" (is that the same as "anchor point" ? )}
+%\SA{Compare this to eq\ref{eq:SVRG1} and remind the reader that $\widetilde{\bm z}$ is a "snapshot" (is that the same as "anchor point" ? ) Will do. Yes- the same as anchor point. Do I use both!? Whoops}
 so $\mathbb E[g^{(k)}]=\nabla\mathcal{O}(\bm z^{(k)})$. The full-gradient snapshot is refreshed once per epoch.
 
 The image update is a projected, preconditioned gradient step,
