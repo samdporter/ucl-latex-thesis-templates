@@ -186,7 +186,7 @@ To separate the contributions of PET/SPECT coupling and CTAC-derived directional
 \end{equation}
 This tests PET/SPECT coupling without anatomical anisotropy.
 
-The second is \gls{dtv} (\dtv), which keeps CTAC-derived directional guidance but removes PET/SPECT coupling. It is obtained by applying the same directional operator only to the PET gradient,
+The second is \gls{dtv} (\dtv), \SA{DTV or w-DTV ? } which keeps CTAC-derived directional guidance but removes PET/SPECT coupling. It is obtained by applying the same directional operator only to the PET gradient,
 \begin{equation}
 \widetilde{\mathcal{R}}_{\mathrm{dTV}}(z_1)
 =
@@ -194,6 +194,7 @@ V_{\mathrm{vox}}
 \sum_{n=1}^{N}
 \phi\!\left(\rho_1\Pi_{1,n}(D z_1)_n\right),
 \end{equation}
+\SA{You need to help the reader by referring back e.g.$\mathcal{R}_{\mathrm{dTV}}$ comes in eq\ref{eq:dtv_defn} and $\phi$ comes in eq\ref{eq:phi_gram_spectral} and $V_{\rm vox}$ comes from   \ref{eq:wdtnv_prior}}
 which reduces to a smoothed single-channel directional-TV penalty. This tests anatomical anisotropy without using SPECT as a coupled functional channel. All variational methods use the same forward models, registration, foreground mask, dynamic-range normalisation, and optimisation framework; only the regulariser structure is changed.
 
 \section{Optimisation and implementation}
@@ -646,3 +647,5 @@ More broadly, this chapter focuses on the favourable case in which PET and SPECT
 This chapter validated the $w$-$d$TNV prior of Chapter~\ref{chapter:wdtnv} in joint $^{90}$Y PET/SPECT reconstruction with CTAC-derived directional guidance. The single-bed optimisation framework of Chapter~\ref{chapter:optimisation} was extended to reconstruct the patient PET bed positions jointly, allowing the prior to act across the combined field of view. The qualitative comparison in Figure~\ref{fig:optim_multibed_qualitative} showed overlap-region noise and discontinuities after independent reconstruction and fusion that were not apparent in the joint multi-bed example. The key modelling choice is to use CTAC information directionally (via $\Pi_{m,n}$) while preserving a two-modality Jacobian, retaining the computational advantages of the $2\times 2$ Gram structure (Chapter~\ref{chapter:wdtnv}) and avoiding unstable intensity coupling to CT.
 
 On a bootstrapped NEMA IEC phantom, \wdtnv improves small-object recovery relative to \wtnv, \dtv, and a sequential hybrid kernel baseline at a matched noise operating point, with significant gains over the isotropic and non-synergistic variational baselines. Repeatability is better than SHKEM in the background and high-count regions, although it is lower than for the more strongly smoothing \wtnv and \dtv baselines; SHKEM remains most stable in the cold lung insert. In the post-SIRT cohort of 45 lesions across nine patients, \wdtnv yields significantly higher lesion TBR than the comparators at approximately matched background CoV. The response is not uniform across lesions. Those with clear anatomical correlates, such as calcification or liver boundaries, benefit most from synergy and $\mu$-map-informed edge alignment, while lesions without corresponding anatomical structure show less improvement. These findings support CTAC-guided synergistic variational coupling as a way to improve post-SIRT $^{90}$Y activity imaging for personalised dosimetry, but clinical translation will depend on controlling CT artefacts and PET/SPECT/CT registration error.
+
+\SA{Well done on presenting such a lot of complex information. It's dense but it's followable. I am sure this will be fine in a viva although there might be a lot of questions.}
