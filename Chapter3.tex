@@ -393,6 +393,7 @@ where $\tilde x_s$ denotes the iterate at which the stored gradient for subset $
 
 \gls{svrg} \cite{johnsonAcceleratingStochasticGradient2013} periodically computes a reference full gradient at a snapshot $\tilde x$ and then performs inner iterations using
 \begin{equation}
+\label{eq:SVRG1}
     \tilde g_k
     \;=\;
     S\!\left[g_{s_k}(x^{(k)}) - g_{s_k}(\tilde x)\right] + \nabla_x \mathcal{L}(\tilde x).

@@ -31,6 +31,7 @@ Section \ref{sec:optimisation} introduced stochastic optimisation as a promising
     \right],
     \qquad j_k\sim\operatorname{Unif}\{1,\ldots,n\},
 \]
+\SA{Compare this to eq\ref{eq:SVRG1} and remind the reader that $\widetilde{\bm z}$ is a "snapshot" (is that the same as "anchor point" ? )}
 so $\mathbb E[g^{(k)}]=\nabla\mathcal{O}(\bm z^{(k)})$. The full-gradient snapshot is refreshed once per epoch.
 
 The image update is a projected, preconditioned gradient step,
@@ -131,7 +132,7 @@ where $A_m$ is the native-grid system matrix and the warping operator, $W_m$, ma
     (z_m+\epsilon_x)\oslash s_m,
     \label{eq:bsrem_preconditioner}
 \end{equation}
-with element-wise division. Here, $\epsilon_x$ is a small value heuristically chosen to maintain stability whilst allowing zero-valued voxels to be updated. Equivalently, the corresponding diagonal data Hessian surrogate is
+with element-wise division. Here, $\epsilon_x$ is a small value heuristically chosen to maintain stability whilst allowing zero-valued voxels to be updated \SA{What does subscript $x$ refer to ?}. Equivalently, the corresponding diagonal data Hessian surrogate is
 \begin{equation}
     \widehat H_{\mathrm{data},m}
     =
@@ -209,7 +210,9 @@ The inverse sum is dominated by the larger of the two curvatures, so a very larg
     f_p(t)=\frac{t^p+1}{t^{p-1}+1},
     \label{eq:matrix_lehmer_combination}
 \end{equation}
-Here $T$ expresses the prior preconditioner relative to the data preconditioner, and $f_p(T)$ is calculated by applying $f_p$ to its eigenvalues. The implemented form is $\tfrac12L_p$; at $p=0$ it reproduces the inverse sum exactly,
+Here $T$ expresses the prior preconditioner relative to the data preconditioner, and $f_p(T)$ is calculated by applying $f_p$ to its eigenvalues. 
+\SA{$T$ is a (symmetric?) matrix, so I think you mean $f_P(T) = U^{\rm T} f_P(W) U$ where $W$ is the diagonal matrix of eigenvalues to which any function can be applied component-wise. Is that right ? That is the normal way to express powers of matrices or other functions like $\exp{T}$. Maybe you can explain this in an appendix if need be.}
+The implemented form is $\tfrac12L_p$; at $p=0$ it reproduces the inverse sum exactly,
 \begin{equation}
     \tfrac12L_0(\mathcal{P}_{\mathcal R},\mathcal{P}_{\mathrm D})
     =
@@ -217,7 +220,7 @@ Here $T$ expresses the prior preconditioner relative to the data preconditioner,
     \label{eq:lehmer_parallel_equivalence}
 \end{equation}
 For fixed data and prior preconditioners, $f_p(t)$ is non-decreasing with $p$ for every $t>0$ (and unchanged when $t=1$). Increasing $p$ therefore gives less conservative scaling in the data-normalised coordinates defined by $T$. It can also change the update direction, so it does not guarantee a larger image-space step or faster convergence.
-
+\SA{This is quite interesting but it is hard to follow. If I am right $f_0(t) = \frac{2 t}{t+1}$. I don't see what that is the sames as "inverse sum". Why not show some graphs of $f_p(t)$ for different $p$ ? This could be in an appendix as well.} 
 \section{Experimental Evaluation}
 \label{sec:optimisation_experiments}
 
@@ -376,3 +379,5 @@ The modality dependence in Figure~\ref{fig:optim_preconditioners} plausibly refl
 In the single-bed phantom subset experiment, all schedules used the same smooth objective and an unbiased uniform-sampling \gls{svrg} estimator. We rescaled the relaxation rate from the folded, modality-separated setting $\eta_{\mathrm{relax}}=0.002$, giving every configuration the same step size at a given expected data pass. On that expected data-exposure axis, the folded schedules reduced \gls{nrmse} over 20 expected data passes and the intermittent schedules did not. Since the total update counts differ, this comparison does not establish a wall-clock or compute-efficiency advantage.
 
 Prior-aware preconditioning kept count-limited \gls{pet} bounded over the same 20-pass interval, where data-only \gls{bsrem} diverged; for \gls{spect}, data-only scaling remained competitive. Retaining the within-voxel \gls{pet}/\gls{spect} curvature gave modest \gls{pet} gains over the diagonal model. The Lehmer order $p=0.01$ gave similarly modest \gls{pet} gains over the inverse sum, whereas $p=0.1$ was clearly worse. Chapter~\ref{chapter:paper} uses the block model with $p=0.01$.
+
+\SA{Lots of interesting results, presented quite compactly. If I understand, the Lehmer order thing is a way of controlling away the very small eivenvalues in the preconditioner, is that right ? That is why it is sometimes "better" than inverse sum, even though order $f_{p=0.01}(t)$ is "close to" identity. I can't help thinking there are simpler ways to handle division by small numbers if that is what is going on...}

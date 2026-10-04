@@ -1,6 +1,6 @@
 \chapter{Introduction to Weighted Directional Total Nuclear Variation}
 \label{chapter:wdtnv}
-In this chapter, we introduce a smoothed \acrfull{wdtnv} prior for synergistic emission tomography. The chapter focuses on the regulariser itself: its relationship to total nuclear variation, its smooth Gram-matrix formulation, the use of anatomical information through directional operators, and the modality-wise weighting needed when coupling heterogeneous emission images.
+In this chapter, we introduce a smoothed \acrfull{wdtnv} prior for synergistic emission tomography. The chapter focuses on the regulariser's relationship to total nuclear variation, its smooth Gram-matrix formulation, the use of anatomical information through directional operators, and the modality-wise weighting needed when coupling heterogeneous emission images.
 
 The optimisation machinery used to apply this prior in large-scale \gls{pet}/\gls{spect} reconstruction, including prior-aware preconditioning and subset selection, is developed and tested on a single-bed phantom in Chapter~\ref{chapter:optimisation}. The extension to multi-bed \gls{pet} patient acquisitions is introduced in Chapter~\ref{chapter:paper}.
 
@@ -13,7 +13,7 @@ We use the registered images $\bm{z}$ and voxel-wise Jacobian $\mathcal{G}_n(\bm
     \qquad G_n\succeq0.
     \label{eq:tnv_gram}
 \end{equation}
-Its eigenvalues are the squared singular values of the Jacobian: $\lambda_i(G_n)=\sigma_i(\mathcal{G}_n)^2$ for $i=1,\ldots,\min\{d,M\}$, with additional zero eigenvalues if $M>d$. Thus TNV from~\eqref{eq:tnv} has the equivalent representation
+Its eigenvalues are the squared singular values of the Jacobian: $\lambda_i(G_n)=\sigma_i(\mathcal{G}_n)^2$ for $i=1,\ldots,\min\{d,M\}$\footnote{If \(d>M\), \(G_n=\mathcal G_n^\top\mathcal G_n\in\mathbb R^{d\times d}\) has an additional \(d-M\) zero eigenvalues. In this case, one may instead consider \(G_n:=\mathcal G_n\mathcal G_n^\top\in\mathbb R^{M\times M}\), which has the same nonzero eigenvalues. The subsequent mathematics is essentially identical under this alternative definition of \(G_n\).}. Thus TNV from~\eqref{eq:tnv} has the equivalent representation
 \begin{equation}
     \mathcal{R}_{\mathrm{TNV}}(\bm{z})
     =\sum_{n=1}^N\|\mathcal{G}_n(\bm{z})\|_*
@@ -80,7 +80,7 @@ obtained by applying the inverse square-root of an $M\times M$ \gls{spd} matrix 
 
 This section extends TNV \cite{rigieJointReconstructionMultichannel2015, holtTotalNuclearVariation2014} in two ways:
 \begin{itemize}
-    \item anatomical information is incorporated via a directional operator
+    \item anatomical information is incorporated via a directional operator (similar to \gls{dtv}, Section~\ref{eq:dtv_defn})
     \item  voxel- and modality-specific diagonal weighting can account for differences in scale and allow each modality to be down-weighted in regions where its measurements are less reliable.
 
 \end{itemize}
