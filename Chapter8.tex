@@ -410,7 +410,7 @@ and background noise (percentage CoV)
 where $\mathrm{SD}_{p,c}$ is the within-background-VOI standard deviation.
 
 We analyse log-transformed TBR using a linear mixed-effects model with a fixed effect for reconstruction method and random intercepts for patient and lesion within patient. These account for repeated measurements of the same lesion and for lesions belonging to the same patient. Log-transformed background CoV is analysed at the patient level, with a fixed method effect and a random patient intercept. Full model specifications are given in Appendix~\ref{app:90y_statistical_models}.
-Planned many-to-one contrasts compare \dtv, \wtnv, and SHKEM to \wdtnv, with \glsentryshort{bh} adjustment across the three comparisons within each endpoint. Results are reported as ratios $\exp(\Delta)$ on the original scale, where values below one indicate lower TBR or lower background CoV than \wdtnv.
+Planned many-to-one contrasts compare \dtv, \wtnv, and SHKEM to \wdtnv using two-sided Wald $z$-tests, with \glsentryshort{bh} adjustment across the three comparisons within each endpoint. Results are reported as ratios $\exp(\Delta)$ on the original scale, where values below one indicate lower TBR or lower background CoV than \wdtnv.
 
 \section{Results}
 \label{sec:90y_results}
@@ -450,7 +450,7 @@ Figure~\ref{fig:90y_tradeoff} shows the training-patient trade-off curves for tw
         \centering
         \includegraphics[width=\linewidth]{figures/Chapter6/patients/sirt3/lesion_1_2_constant_spect.png}
     \end{subfigure}
-    \caption{Training-patient hyperparameter sweep. Impact of varying PET weighting while holding SPECT regularisation constant (top row) and varying SPECT weighting while holding PET regularisation constant (bottom row) on TBR and $\mathrm{CoV}_{\mathrm{bkg}}$ for lesions 1 and 2. The first and third columns show \wdtnv; the second and fourth show \wtnv.}
+    \caption{Training-patient hyperparameter sweep. Impact of varying SPECT weighting while holding PET regularisation constant (top row) and varying PET weighting while holding SPECT regularisation constant (bottom row) on TBR and $\mathrm{CoV}_{\mathrm{bkg}}$ for lesions 1 and 2. The first and third columns show \wdtnv; the second and fourth show \wtnv.}
     \label{fig:90y_tradeoff}
 \end{figure*}
 
@@ -516,7 +516,7 @@ Figure~\ref{fig:90y_phantom_cov} summarises voxel-wise reproducibility across bo
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\linewidth]{figures/Chapter6/phantoms/manc_nema/bootstrap_voxelwise_cov.png}
-    \caption{VOI-mean inter-bootstrap voxel coefficient of variation (CoV, dimensionless ratio) across 20 bootstrapped PET realisations within each VOI\@. Statistical significance is reported for paired comparisons versus \wdtnv (BH-adjusted): $^*$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$.}
+    \caption{VOI-mean inter-bootstrap voxel coefficient of variation (CoV, dimensionless ratio) across 20 bootstrapped PET realisations within each VOI\@. The groups from left to right are \wdtnv, \dtv, \wtnv and SHKEM (27). Statistical significance is reported for paired comparisons versus \wdtnv (BH-adjusted): $^*$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$.}
     \label{fig:90y_phantom_cov}
 \end{figure}
 
@@ -555,7 +555,7 @@ Across the test cohort, \wdtnv yields higher lesion TBR than \dtv, \wtnv, and SH
         \centering
         \includegraphics[width=\linewidth]{figures/Chapter6/patients/all_lesions_bg_cov.png}
     \end{subfigure}%
-    \caption{Clinical cohort summary: lesion-wise mean TBR (left) and patient-wise spatial background CoV (percentage, right). Statistical significance is reported for comparisons versus \wdtnv (BH-adjusted): $^*$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$.}
+    \caption{Clinical cohort summary: lesion-wise mean TBR (left) and patient-wise spatial background CoV (percentage, right). In both panels, methods from left to right are \wdtnv, \dtv, \wtnv and SHKEM (27); black lines mark means. Statistical significance is reported for comparisons versus \wdtnv (BH-adjusted): $^*$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$.}
     \label{fig:90y_patient_summary}
 \end{figure}
 
@@ -567,12 +567,12 @@ Across the test cohort, \wdtnv yields higher lesion TBR than \dtv, \wtnv, and SH
 \toprule
 Method & $\exp(\Delta)$ & 95\% CI & $p_{\mathrm{BH}}$ \\
 \midrule
-\dtv        & 0.802 & [0.758,\,0.849] & $<10^{-4}$ \\
-\wtnv       & 0.915 & [0.865,\,0.968] & 0.004 \\
-SHKEM (27)  & 0.935 & [0.884,\,0.990] & 0.020 \\
+\dtv        & 0.803 & [0.763,\,0.845] & $1.26\times10^{-16}$ \\
+\wtnv       & 0.918 & [0.872,\,0.966] & 0.00153 \\
+SHKEM (27)  & 0.930 & [0.884,\,0.979] & 0.00560 \\
 \bottomrule
 \end{tabular}
-\caption{Effect ratios $\exp(\Delta)$ with 95\% confidence intervals and BH-adjusted $p$-values for mean tumour-to-background ratio (TBR), comparing each method to \wdtnv. Values below one indicate lower TBR than \wdtnv.}
+\caption{Effect ratios $\exp(\Delta)$ with 95\% Wald confidence intervals and BH-adjusted $p$-values for mean tumour-to-background ratio (TBR), comparing each method to \wdtnv. Values below one indicate lower TBR than \wdtnv.}
 \label{tab:90y_effect_ratio_tb}
 \end{table}
 
@@ -584,12 +584,12 @@ SHKEM (27)  & 0.935 & [0.884,\,0.990] & 0.020 \\
 \toprule
 Method & $\exp(\Delta)$ & 95\% CI & $p_{\mathrm{BH}}$ \\
 \midrule
-\dtv        & 1.183 & [0.903,\,1.549] & 0.35 \\
-\wtnv       & 1.007 & [0.833,\,1.167] & 0.984 \\
-SHKEM (27)  & 1.339 & [0.933,\,1.913] & 0.093 \\
+\dtv        & 1.183 & [0.903,\,1.549] & 0.334 \\
+\wtnv       & 1.008 & [0.769,\,1.320] & 0.956 \\
+SHKEM (27)  & 1.339 & [1.022,\,1.753] & 0.103 \\
 \bottomrule
 \end{tabular}
-\caption{Effect ratios $\exp(\Delta)$ with 95\% confidence intervals and BH-adjusted $p$-values for background CoV, comparing each method to \wdtnv. Values above one indicate higher background CoV than \wdtnv.}
+\caption{Effect ratios $\exp(\Delta)$ with 95\% Wald confidence intervals and BH-adjusted $p$-values for background CoV, comparing each method to \wdtnv. Values above one indicate higher background CoV than \wdtnv.}
 \label{tab:90y_effect_ratio_cov}
 \end{table}
 
