@@ -1,10 +1,10 @@
 \chapter{Evaluation and Preconditioning of the \texorpdfstring{$\wdtnv$}{w-dTNV} Prior}
 \label{app:wdtnv_details}
 
-\section{Closed-Form Diffusivity Matrix for Two Modalities}
+\section{Closed-Form Inverse Square Root for Two Modalities}
 \label{app:inv_sqrt_2x2}
 
-For $M=2$, the diffusivity matrix $\Omegaeps{Y}$ of~\eqref{eq:spectral_weight} can be evaluated without an eigendecomposition. Let $y_1,y_2$ be the columns of $Y\in\mathbb{R}^{d\times2}$ and write
+For $M=2$, $\Omegaeps{Y}$ of~\eqref{eq:spectral_weight} can be evaluated without an eigendecomposition. Let $y_1,y_2$ be the columns of $Y\in\mathbb{R}^{d\times2}$ and write
 \begin{equation}
     G_\epsilon:=Y^\top Y+\epsilon^2\mathbb{I}
     =
@@ -49,7 +49,7 @@ For a local weighted directional Jacobian $Y\in\mathbb{R}^{d\times M}$, write $G
     \end{aligned}
     \label{eq:ls_local_hessian_action}
 \end{equation}
-Here $\circ$ denotes the Hadamard product. The first term differentiates the explicit factor $Y$ in $\nabla\phi(Y)=Y\Omegaeps{Y}$; the second accounts for the change in the diffusivity matrix. For distinct eigenvalues, $K_{ij}$ is the divided difference $(s_i^{-1}-s_j^{-1})/(\lambda_i-\lambda_j)$. The displayed form also covers repeated eigenvalues, where $K_{ij}=-1/(2s_i^3)$, and zero eigenvalues, since $\epsilon>0$.
+Here $\circ$ denotes the Hadamard product. The first term differentiates the explicit factor $Y$ in $\nabla\phi(Y)=Y\Omegaeps{Y}$; the second accounts for the change in $\Omegaeps{Y}$. For distinct eigenvalues, $K_{ij}$ is the divided difference $(s_i^{-1}-s_j^{-1})/(\lambda_i-\lambda_j)$. The displayed form also covers repeated eigenvalues, where $K_{ij}=-1/(2s_i^3)$, and zero eigenvalues, since $\epsilon>0$.
 
 Let $E_{\ell m}$ be the $d\times M$ matrix with a single unit entry in difference channel $\ell$ and modality $m$. The direction-diagonal local block retained at target $r$ is
 \begin{equation}
