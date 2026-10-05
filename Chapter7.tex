@@ -67,7 +67,7 @@ Here $L=S$ and $F_s=\mathcal D_s+\widetilde{\mathcal R}/S$, $s=1,\ldots,S$. One 
 Here $L=2S$: the list contains the $S$ data components and $S$ copies of $\widetilde{\mathcal R}/S$. Uniform sampling selects a prior-only component with probability $1/2$, so an expected data pass comprises $2S$ updates: $S$ data draws and $S$ prior-only draws in expectation.
 
 \paragraph{Once per epoch, on average.}
-Here $L=S+1$: one full-prior component $\widetilde{\mathcal R}$ is appended to the $S$ data components. Uniform sampling gives $S+1$ updates per expected data pass, comprising $S$ data draws and one prior-only draw in expectation. The actual number varies because sampling is with replacement. In both intermittent schedules, the snapshot still contains the prior gradient; a prior-only draw updates its correction to the current image.
+Here $L=S+1$: one full-prior component $\widetilde{\mathcal R}$ is appended to the $S$ data components. Uniform sampling gives $S+1$ updates per expected data pass, comprising $S$ data draws and one prior-only draw in expectation.
 
 \subsection{SVRG Updates}
 \label{subsec:optimisation_svrg_updates}
@@ -148,7 +148,7 @@ where $\oslash$ denotes element-wise division and $\operatorname{diag}$ forms th
     \operatorname{diag}\!\left(s_m \oslash (z_m+\epsilon_x)\right).
     \label{eq:data_hessian_surrogate}
 \end{equation}
-The labels $\mathcal P_D$ in the figure legends are shorthand for $\mathcal P_{\mathcal D}$. The implementation used in this chapter optionally smooths the numerator image used in the \gls{em} preconditioner with a Gaussian filter, as suggested in \cite{ehrhardtFastPETReconstruction2025a}.
+The implementation used in this chapter optionally smooths the numerator image used in the \gls{em} preconditioner with a Gaussian filter, as suggested in \cite{ehrhardtFastPETReconstruction2025a}.
 
 \subsection{Combining Data and Prior Curvature}
 \label{subsec:optimisation_preconditioner_combination}
