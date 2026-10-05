@@ -47,7 +47,7 @@ The image update is a projected, preconditioned gradient step,
     \right\}_{\geq 0},
     \label{eq:optimisation_projected_update}
 \end{equation}
-where $\mathcal{P}^{(k)}$ is either a diagonal preconditioner or a voxel-wise $2\times2$ block preconditioner coupling the \gls{pet} and \gls{spect} update components. The step size is iteration dependent and follows the decaying relaxation rule
+where $\mathcal{P}^{(k)}$ is a preconditioner that accounts for local curvature. The step size is iteration dependent and follows the decaying relaxation rule
 \begin{equation}
     \varsigma^{(k)}
     =
@@ -56,7 +56,7 @@ where $\mathcal{P}^{(k)}$ is either a diagonal preconditioner or a voxel-wise $2
 \end{equation}
 Here $\varsigma^{(0)}$ is the initial step size and $\eta_{\mathrm{relax}}$ controls its decay; their experimental values are specified in Section~\ref{subsec:optimisation_evaluation_protocol}.
 
-Subset methods accelerate early iterations in emission tomography by replacing full data passes with stochastic or ordered blocks of projection data \cite{hudsonAcceleratedImageReconstruction1994}. Joint \gls{pet}/\gls{spect} reconstruction introduces two further choices: corresponding modality subsets can be paired or treated as separate stochastic functions, and the prior can be scheduled relative to those functions in different ways. The alternatives below comprise two subset organisations and three prior-application schedules motivated by prior subset-selection analysis \cite{porterOptimisingSubsetSelection2024a}.
+Joint \gls{pet}/\gls{spect} reconstruction introduces choices not present in single modality reconstruction: corresponding modality subsets can be paired or treated as separate stochastic functions, and the prior can be scheduled relative to those functions in different ways. The alternatives below comprise two subset organisations and three prior-application schedules motivated by prior subset-selection analysis \cite{porterOptimisingSubsetSelection2024a}.
 
 \subsection{Data-Subset Organisation}
 \label{subsec:subset_data_organisation}
@@ -90,7 +90,7 @@ Let $N_{\mathrm{PET}}$ and $N_{\mathrm{SPECT}}$ denote the numbers of data subse
 \subsection{Prior-Application Schedules}
 \label{subsec:subset_prior_schedules}
 
-For either data organisation, the prior can enter the component list in many ways, of which three were investigated. Each list sums to $\mathcal{F}$ and therefore preserves the unbiasedness of the estimator above.
+For either data organisation, the prior can enter the component list in a number of ways, of which three were investigated. Each list sums to $\mathcal{F}$ and therefore preserves the unbiasedness of the estimator above.
 
 \paragraph{Folded.}
 Here $N_{\mathrm f}=N_{\mathrm d}$, and data subset $s$ corresponds to component $t=s$, with $F_t=\mathcal D_s+\widetilde{\mathcal R}/N_{\mathrm d}$. One expected data pass therefore comprises $N_{\mathrm d}$ updates, with the prior gradient difference entering every update. This gives
