@@ -6,7 +6,7 @@ Chapter~\ref{chapter:wdtnv} defined the smoothed weighted directional total nucl
 \section{Reconstruction Framework}
 \label{sec:optimisation_framework}
 
-As in Section~\ref{subsec:synergistic_recon}, let $\bm z=(z_1,z_2)$ again denote the \gls{pet} and \gls{spect} images represented on a common reconstruction grid. Chapter~\ref{chapter:reconstruction} presented a native-grid formulation, with the prior applied to $W_m x_m$. Here we optimise the shared-grid variables $z_m$ directly, using the forward model $A_m W_m^\ast z_m+b_m$ detailed in Chapter~\ref{chapter:paper}. The adjoint $W_m^\ast$ maps to the native projector grid; it is not assumed to be an inverse of $W_m$. For $N_{\mathrm d}$ subset data functions, define $\mathcal D(\bm z)=\sum_{s=1}^{N_{\mathrm d}}\mathcal D_s(\bm z)$. The objective is
+As in Section~\ref{subsec:synergistic_recon}, let $\bm z=(z_1,z_2)$ again denote the \gls{pet} and \gls{spect} images represented on a common reconstruction grid. Chapter~\ref{chapter:reconstruction} presented a native-grid formulation, with the prior applied to $W_m x_m$. Here we optimise the shared-grid variables $z_m$ directly, using the forward model $A_m W_m^\ast z_m+b_m$ detailed in Chapter~\ref{chapter:paper}. The adjoint $W_m^\ast$ maps to the native projector grid; it is not assumed to be an inverse of $W_m$. For $S$ subset data functions, define $\mathcal D(\bm z)=\sum_{s=1}^{S}\mathcal D_s(\bm z)$. The objective is
 \begin{equation}
     \mathcal{O}(\bm z)
     =
@@ -22,19 +22,81 @@ where $\mathcal C=(\mathbb R_+^N)^2$ enforces $\bm z\geq0$, so all reconstructed
 \section{Stochastic \gls{map} Optimisation}
 \label{sec:optimisation_svrg}
 
-Section \ref{sec:optimisation} introduced stochastic optimisation as a promising method for fast and convergent image reconstruction. The stochastic experiments in this chapter use \gls{svrg} \cite{johnsonAcceleratingStochasticGradient2013,twyman_investigation_2023,ehrhardtFastPETReconstruction2025a}. We briefly repeat the main concepts here for convenience. Writing $\widetilde{\mathcal R}=\widetilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}$, define the differentiable part $\mathcal{F}=\mathcal D+\widetilde{\mathcal R}$, so $\mathcal O=\mathcal F+\iota_{\mathcal C}$. Let $N_{\mathrm f}$ denote the total number of sampled functions, including any prior-only components. A component list $\{F_t\}_{t=1}^{N_{\mathrm f}}$ satisfying $\sum_{t=1}^{N_{\mathrm f}}F_t=\mathcal{F}$ is sampled uniformly with replacement, giving an \gls{svrg} estimator at snapshot $\widetilde{\bm z}$,
+Section \ref{sec:optimisation} introduced stochastic optimisation as a promising method for fast and convergent image reconstruction. The stochastic experiments in this chapter use \gls{svrg} \cite{johnsonAcceleratingStochasticGradient2013,twyman_investigation_2023,ehrhardtFastPETReconstruction2025a}. We briefly repeat the main concepts here for convenience. Writing $\widetilde{\mathcal R}=\widetilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}$, define the differentiable part $\mathcal{F}=\mathcal D+\widetilde{\mathcal R}$, so $\mathcal O=\mathcal F+\iota_{\mathcal C}$. Let $L$ denote the number of sampled components, including any prior-only components, and write them as $F_s$, $s=1,\ldots,L$. Each component list below satisfies $\sum_{s=1}^L F_s=\mathcal F$.
+
+Joint \gls{pet}/\gls{spect} reconstruction introduces choices not present in single modality reconstruction: corresponding modality subsets can be paired or treated as separate stochastic functions, and the prior can be scheduled relative to those functions in different ways. The alternatives below comprise two subset organisations and three prior-application schedules motivated by prior subset-selection analysis \cite{porterOptimisingSubsetSelection2024a}.
+
+\subsection{Data-Subset Organisation}
+\label{subsec:subset_data_organisation}
+
+Let $N_{\mathrm{PET}}$ and $N_{\mathrm{SPECT}}$ denote the numbers of data subsets for the two modalities. Two organisations are considered.
+
+\paragraph{Separate subsets.}
+\gls{pet} and \gls{spect} subsets are treated as distinct stochastic functions. This gives $S=N_{\mathrm{PET}}+N_{\mathrm{SPECT}}$ functions,
+\begin{equation}
+    \{\mathcal{D}_s\}_{s=1}^{S}
+    =
+    \{
+    \mathcal{D}_{\mathrm{PET},1},\ldots,\mathcal{D}_{\mathrm{PET},N_{\mathrm{PET}}},
+    \mathcal{D}_{\mathrm{SPECT},1},\ldots,\mathcal{D}_{\mathrm{SPECT},N_{\mathrm{SPECT}}}
+    \}.
+    \label{eq:separate_subset_functions}
+\end{equation}
+
+\paragraph{Paired subsets.}
+\gls{pet} and \gls{spect} subsets with matching indices are combined into one subset. When the modality counts are equal, this gives $S=N_{\mathrm{PET}}=N_{\mathrm{SPECT}}$ functions,
+\begin{equation}
+    \mathcal{D}^{\mathrm{pair}}_s
+    =
+    \mathcal{D}_{\mathrm{PET},s}
+    +
+    \mathcal{D}_{\mathrm{SPECT},s},
+    \qquad s=1,\ldots,S.
+    \label{eq:paired_subset_functions}
+\end{equation}
+
+\subsection{Prior-Application Schedules}
+\label{subsec:subset_prior_schedules}
+
+For either data organisation, the prior can enter the component list in a number of ways, of which three were investigated. Each list sums to $\mathcal{F}$ and can be used in the \gls{svrg} estimator below.
+
+\paragraph{Folded.}
+Here $L=S$ and $F_s=\mathcal D_s+\widetilde{\mathcal R}/S$, $s=1,\ldots,S$. One expected data pass therefore comprises $S$ updates, with the prior gradient difference entering every update.
+
+\paragraph{Prior/half.}
+Here $L=2S$: the list contains the $S$ data components and $S$ copies of $\widetilde{\mathcal R}/S$. Uniform sampling selects a prior-only component with probability $1/2$, so an expected data pass comprises $2S$ updates: $S$ data draws and $S$ prior-only draws in expectation.
+
+\paragraph{Once per epoch, on average.}
+Here $L=S+1$: one full-prior component $\widetilde{\mathcal R}$ is appended to the $S$ data components. Uniform sampling gives $S+1$ updates per expected data pass, comprising $S$ data draws and one prior-only draw in expectation. The actual number varies because sampling is with replacement. In both intermittent schedules, the snapshot still contains the prior gradient; a prior-only draw updates its correction to the current image.
+
+\subsection{SVRG Updates}
+\label{subsec:optimisation_svrg_updates}
+
+Sampling uniformly with replacement from the selected component list gives an \gls{svrg} estimator at snapshot $\widetilde{\bm z}$,
 \[
     g^{(k)}
     =
     \nabla\mathcal{F}(\widetilde{\bm z})
-    +N_{\mathrm f}\!\left[
-        \nabla F_{t_k}(\bm z^{(k)})
-        -\nabla F_{t_k}(\widetilde{\bm z})
+    +L\!\left[
+        \nabla F_{s_k}(\bm z^{(k)})
+        -\nabla F_{s_k}(\widetilde{\bm z})
     \right],
-    \qquad t_k\sim\operatorname{Unif}\{1,\ldots,N_{\mathrm f}\},
+    \qquad s_k\sim\operatorname{Unif}\{1,\ldots,L\},
 \]
 %\SA{Compare this to eq\ref{eq:SVRG1} and remind the reader that $\widetilde{\bm z}$ is a "snapshot" (is that the same as "anchor point" ? ) Will do. Yes- the same as anchor point. Do I use both!? Whoops}
 so $\mathbb E[g^{(k)}]=\nabla\mathcal{F}(\bm z^{(k)})$. The full-gradient snapshot is refreshed once per epoch.
+
+For the folded schedule, this reduces to
+\begin{equation}
+    g^{(k)} = \nabla\widetilde{\mathcal R}(\bm z^{(k)})
+    + \nabla\mathcal D(\widetilde{\bm z})
+    + S\!\left[
+        \nabla\mathcal D_{s_k}(\bm z^{(k)})
+        -\nabla\mathcal D_{s_k}(\widetilde{\bm z})
+    \right],
+    \qquad s_k\sim\operatorname{Unif}\{1,\ldots,S\}.
+    \label{eq:svrg_estimator_general}
+\end{equation}
 
 The image update is a projected, preconditioned gradient step,
 \begin{equation}
@@ -55,61 +117,6 @@ where $\mathcal{P}^{(k)}$ is a preconditioner that accounts for local curvature.
     \label{eq:optimisation_step_size}
 \end{equation}
 Here $\varsigma^{(0)}$ is the initial step size and $\eta_{\mathrm{relax}}$ controls its decay; their experimental values are specified in Section~\ref{subsec:optimisation_evaluation_protocol}.
-
-Joint \gls{pet}/\gls{spect} reconstruction introduces choices not present in single modality reconstruction: corresponding modality subsets can be paired or treated as separate stochastic functions, and the prior can be scheduled relative to those functions in different ways. The alternatives below comprise two subset organisations and three prior-application schedules motivated by prior subset-selection analysis \cite{porterOptimisingSubsetSelection2024a}.
-
-\subsection{Data-Subset Organisation}
-\label{subsec:subset_data_organisation}
-
-Let $N_{\mathrm{PET}}$ and $N_{\mathrm{SPECT}}$ denote the numbers of data subsets for the two modalities. Two organisations are considered.
-
-\paragraph{Separate subsets.}
-\gls{pet} and \gls{spect} subsets are treated as distinct stochastic functions. This gives $N_{\mathrm d}=N_{\mathrm{PET}}+N_{\mathrm{SPECT}}$ functions,
-\begin{equation}
-    \{\mathcal{D}_s\}_{s=1}^{N_{\mathrm d}}
-    =
-    \{
-    \mathcal{D}_{\mathrm{PET},1},\ldots,\mathcal{D}_{\mathrm{PET},N_{\mathrm{PET}}},
-    \mathcal{D}_{\mathrm{SPECT},1},\ldots,\mathcal{D}_{\mathrm{SPECT},N_{\mathrm{SPECT}}}
-    \}.
-    \label{eq:separate_subset_functions}
-\end{equation}
-
-\paragraph{Paired subsets.}
-\gls{pet} and \gls{spect} subsets with matching indices are combined into one subset. When the modality counts are equal, this gives $N_{\mathrm d}=N_{\mathrm{PET}}=N_{\mathrm{SPECT}}$ functions,
-\begin{equation}
-    \mathcal{D}^{\mathrm{pair}}_s
-    =
-    \mathcal{D}_{\mathrm{PET},s}
-    +
-    \mathcal{D}_{\mathrm{SPECT},s},
-    \qquad s=1,\ldots,N_{\mathrm d}.
-    \label{eq:paired_subset_functions}
-\end{equation}
-
-\subsection{Prior-Application Schedules}
-\label{subsec:subset_prior_schedules}
-
-For either data organisation, the prior can enter the component list in a number of ways, of which three were investigated. Each list sums to $\mathcal{F}$ and therefore preserves the unbiasedness of the estimator above.
-
-\paragraph{Folded.}
-Here $N_{\mathrm f}=N_{\mathrm d}$, and data subset $s$ corresponds to component $t=s$, with $F_t=\mathcal D_s+\widetilde{\mathcal R}/N_{\mathrm d}$. One expected data pass therefore comprises $N_{\mathrm d}$ updates, with the prior gradient difference entering every update. This gives
-\begin{equation}
-    g^{(k)} = \nabla\widetilde{\mathcal R}(\bm z^{(k)})
-    + \nabla\mathcal D(\widetilde{\bm z})
-    + N_{\mathrm d}\!\left[
-        \nabla\mathcal D_{s_k}(\bm z^{(k)})
-        -\nabla\mathcal D_{s_k}(\widetilde{\bm z})
-    \right],
-    \qquad s_k\sim\operatorname{Unif}\{1,\ldots,N_{\mathrm d}\}.
-    \label{eq:svrg_estimator_general}
-\end{equation}
-
-\paragraph{Prior/half.}
-Here $N_{\mathrm f}=2N_{\mathrm d}$: the list contains the $N_{\mathrm d}$ data components and $N_{\mathrm d}$ copies of $\widetilde{\mathcal R}/N_{\mathrm d}$. Uniform sampling selects a prior-only component with probability $1/2$, so an expected data pass comprises $2N_{\mathrm d}$ updates: $N_{\mathrm d}$ data draws and $N_{\mathrm d}$ prior-only draws in expectation.
-
-\paragraph{Once per epoch, on average.}
-Here $N_{\mathrm f}=N_{\mathrm d}+1$: one full-prior component $\widetilde{\mathcal R}$ is appended to the $N_{\mathrm d}$ data components. Uniform sampling gives $N_{\mathrm d}+1$ updates per expected data pass, comprising $N_{\mathrm d}$ data draws and one prior-only draw in expectation. The actual number varies because sampling is with replacement. In both intermittent schedules, the snapshot still contains the prior gradient; a prior-only draw updates its correction to the current image.
 
 \section{Prior-Aware Preconditioning}
 \label{sec:optimisation_preconditioners}
@@ -265,7 +272,7 @@ The first experiment asks how subset organisation and prior scheduling affect pr
 \subsubsection{Experiment design and work accounting}
 \label{subsec:subset_selection_experiment_methods}
 
-With 18 subsets per modality, $N_{\mathrm d}=36$ for separate organisation and $N_{\mathrm d}=18$ for paired organisation. All components were sampled uniformly with replacement. One \emph{expected data pass} corresponds to 36 modality-specific data-subset draws in expectation: enough to cover the data once on average, although individual subsets may be drawn repeatedly or not at all. Full-gradient snapshot evaluations are counted separately. Table~\ref{tab:subset_update_counts} gives the number of stochastic updates per expected data pass. This matches expected data sampling, not execution time.
+With 18 subsets per modality, $S=36$ for separate organisation and $S=18$ for paired organisation. All components were sampled uniformly with replacement. One \emph{expected data pass} corresponds to 36 modality-specific data-subset draws in expectation: enough to cover the data once on average, although individual subsets may be drawn repeatedly or not at all. Full-gradient snapshot evaluations are counted separately. Table~\ref{tab:subset_update_counts} gives the number of stochastic updates per expected data pass. This matches expected data sampling, not execution time.
 
 \begin{table}[htbp]
     \centering

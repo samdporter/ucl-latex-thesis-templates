@@ -132,9 +132,7 @@
 \newglossaryentry{sym:idx_n}{type=symbols, sort=b10, name={$n$},
   description={Voxel index (shared reconstruction grid)}}
 \newglossaryentry{sym:idx_s}{type=symbols, sort=b11, name={$s$},
-  description={Data-subset index}}
-\newglossaryentry{sym:idx_t}{type=symbols, sort=b11a, name={$t$},
-  description={Sampled-function index, $t=1,\dots,N_{\mathrm f}$; components $F_t$ sum to $\mathcal F$}}
+  description={Data-subset index, $s=1,\dots,S$; also the sampled-component index, $s=1,\dots,L$, for the functions $F_s$ in Chapter~\ref{chapter:optimisation}}}
 \newglossaryentry{sym:idx_v}{type=symbols, sort=b12, name={$v$},
   description={Sphere / volume-of-interest index}}
 \newglossaryentry{sym:idx_c}{type=symbols, sort=b13, name={$c$},
@@ -237,12 +235,12 @@
   description={Hessian of the smoothed prior (used for prior-aware preconditioning)}}
 \newglossaryentry{sym:p}{type=symbols, sort=e05, name={$p$},
   description={Matrix-Lehmer combination order ($p=0$ gives the parallel sum)}}
-\newglossaryentry{sym:Nd}{type=symbols, sort=e07, name={$N_{\mathrm{d}}$},
+\newglossaryentry{sym:Nd}{type=symbols, sort=e07, name={$S$},
   description={Number of data-subset functions after modality grouping (equal to the subset count for a single modality)}}
 \newglossaryentry{sym:NmodSubsets}{type=symbols, sort=e07a, name={$N_{\mathrm{PET}}$, $N_{\mathrm{SPECT}}$},
   description={Numbers of PET and SPECT data subsets before modality grouping}}
-\newglossaryentry{sym:Nf}{type=symbols, sort=e07b, name={$N_{\mathrm f}$},
-  description={Total number of sampled functions, including any prior-only components}}
+\newglossaryentry{sym:Nf}{type=symbols, sort=e07b, name={$L$},
+  description={Number of sampled components, including any prior-only components; $L=S$, $2S$ or $S+1$ according to the prior schedule}}
 \newglossaryentry{sym:sens}{type=symbols, sort=e08, name={$s_m$},
   description={Modality-$m$ sensitivity image on the shared reconstruction grid}}
 \newglossaryentry{sym:etarelax}{type=symbols, sort=e09, name={$\eta_{\mathrm{relax}}$},

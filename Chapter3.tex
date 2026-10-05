@@ -343,9 +343,9 @@ with a step size $\varsigma=1$. We use $\mathcal P_{\mathcal D}$ for data-based 
 
 A preconditioner aims to recondition the reconstruction space so that gradient steps are appropriately scaled across voxels, improving numerical conditioning and convergence. Intuitively, we seek larger steps in poorly sensitive directions and smaller steps in highly sensitive directions, thereby approximating curvature information.
 
-Subsets are commonly used to accelerate early convergence by partitioning the data into $N_{\mathrm d}$ subsets and updating the image using only the contribution from a single subset (or a small batch of subsets) at each iteration. Writing the negative log-likelihood as a sum of subset terms,
+Subsets are commonly used to accelerate early convergence by partitioning the data into $S$ subsets and updating the image using only the contribution from a single subset (or a small batch of subsets) at each iteration. Writing the negative log-likelihood as a sum of subset terms,
 \begin{equation}
-    \mathcal{D}(x)=\sum_{s=1}^{N_{\mathrm d}} \mathcal{D}_s(x),
+    \mathcal{D}(x)=\sum_{s=1}^{S} \mathcal{D}_s(x),
 \end{equation}
 a generic subset scaled-gradient update takes the form
 \begin{equation}
@@ -378,10 +378,10 @@ We seek a fast and convergent algorithm for \gls{map} reconstruction. A widely u
     x^{(k)} - \varsigma^{(k)}\,\mathcal{P}_{\mathcal D}^{(k)}
     \left(
         \nabla_x \mathcal{D}_s(x^{(k)})
-        + \frac{\beta}{N_{\mathrm d}}\,\nabla_x \mathcal{R}(x^{(k)})
+        + \frac{\beta}{S}\,\nabla_x \mathcal{R}(x^{(k)})
     \right),
 \end{equation}
-where $\varsigma^{(k)}>0$ is an iteration dependent step size. The $1/N_{\mathrm d}$ factor is specific to this subset-scaled BSREM convention; the full-gradient SVRG formulation below uses the full-data preconditioner convention and scales the estimator to $\nabla\mathcal D$. Convergence is promoted by choosing $\{\varsigma^{(k)}\}$ to diminish appropriately (e.g.\ $\varsigma^{(k)}\rightarrow 0$ with $\sum_k \varsigma^{(k)}=\infty$), which suppresses the subset-induced limit-cycle behaviour while retaining rapid early progress (see Figure~\ref{fig:relaxed_limit_cycle}).
+where $\varsigma^{(k)}>0$ is an iteration dependent step size. The $1/S$ factor is specific to this subset-scaled BSREM convention; the full-gradient SVRG formulation below uses the full-data preconditioner convention and scales the estimator to $\nabla\mathcal D$. Convergence is promoted by choosing $\{\varsigma^{(k)}\}$ to diminish appropriately (e.g.\ $\varsigma^{(k)}\rightarrow 0$ with $\sum_k \varsigma^{(k)}=\infty$), which suppresses the subset-induced limit-cycle behaviour while retaining rapid early progress (see Figure~\ref{fig:relaxed_limit_cycle}).
 
 \begin{figure}[htbp]
     \centering
@@ -400,11 +400,11 @@ A stochastic subset gradient step uses $g_{s_k}(x^{(k)})$ in place of $\nabla \m
 \end{equation}
 which is cheap but noisy. Variance reduction augments this step by incorporating additional information (stored gradients or periodic full-gradient computations) to form a corrected estimator $\tilde g^{(k)}$ with reduced variance. Two widely used examples are \gls{saga} and \gls{svrg}:
 
-\gls{saga} \cite{defazio_saga_2014} maintains a table of the most recently computed subset gradients $\{g_s(\cdot)\}_{s=1}^{N_{\mathrm d}}$ and updates using
+\gls{saga} \cite{defazio_saga_2014} maintains a table of the most recently computed subset gradients $\{g_s(\cdot)\}_{s=1}^{S}$ and updates using
 \begin{equation}
     \tilde g^{(k)}
     \;=\;
-    N_{\mathrm d}\!\left[g_{s_k}(x^{(k)}) - g_{s_k}(\tilde x_{s_k})\right] + \sum_{s=1}^{N_{\mathrm d}} g_s(\tilde x_s),
+    S\!\left[g_{s_k}(x^{(k)}) - g_{s_k}(\tilde x_{s_k})\right] + \sum_{s=1}^{S} g_s(\tilde x_s),
 \end{equation}
 where $\tilde x_s$ denotes the iterate at which the stored gradient for subset $s$ was last evaluated.
 
@@ -413,7 +413,7 @@ where $\tilde x_s$ denotes the iterate at which the stored gradient for subset $
 \label{eq:SVRG1}
     \tilde g^{(k)}
     \;=\;
-    N_{\mathrm d}\!\left[g_{s_k}(x^{(k)}) - g_{s_k}(\tilde x)\right] + \nabla_x \mathcal{D}(\tilde x).
+    S\!\left[g_{s_k}(x^{(k)}) - g_{s_k}(\tilde x)\right] + \nabla_x \mathcal{D}(\tilde x).
 \end{equation}
 With uniform subset sampling, $\mathbb{E}[\tilde g^{(k)}]=\nabla_x \mathcal{D}(x^{(k)})$ for SVRG (and up to the stored-gradient approximation for SAGA), while the variance decreases as $x^{(k)}$ approaches a stationary point. This is the full-gradient convention used in the experiments.
 
