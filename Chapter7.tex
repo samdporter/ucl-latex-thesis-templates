@@ -122,9 +122,9 @@ Here $\varsigma^{(0)}$ is the initial step size and $\eta_{\mathrm{relax}}$ cont
 \label{sec:optimisation_preconditioners}
 \label{subsec:preconditioning}
 
-Preconditioning can materially affect \gls{map} reconstruction because the data term and the edge-preserving prior can have very different local curvature scales \cite{clinthornePreconditioningMethodsImproved1993,ahn_globally_2003,depierroFastEMlikeMethods2001,ehrhardtFastPETReconstruction2025a}. The comparison below includes data-only \gls{bsrem} scaling and two prior-aware curvature models for $\wdtnv$, which differ in whether they retain the \gls{pet}/\gls{spect} coupling within each voxel.
+Preconditioning scales the gradient using an approximation to the inverse local curvature of the smooth objective $\mathcal F=\mathcal D+\widetilde{\mathcal R}$. It can materially affect \gls{map} reconstruction because the data term and the edge-preserving prior can have very different local curvature scales \cite{clinthornePreconditioningMethodsImproved1993,ahn_globally_2003,depierroFastEMlikeMethods2001,ehrhardtFastPETReconstruction2025a}. There are two independent choices: which prior-curvature model to use, and how to combine its preconditioner with the data preconditioner. The comparison below includes data-only \gls{bsrem} scaling, two prior-curvature models for $\wdtnv$ that differ in whether they retain the \gls{pet}/\gls{spect} coupling within each voxel, and inverse-sum and Lehmer combination rules.
 
-\subsection{Data Curvature}
+\subsection{Data Curvature and BSREM Scaling}
 \label{subsec:optimisation_data_preconditioning}
 
 For modality $m$, let $s_m$ denote the sensitivity image on the shared grid,
@@ -150,29 +150,17 @@ where $\oslash$ denotes element-wise division and $\operatorname{diag}$ forms th
 \end{equation}
 The implementation used in this chapter optionally smooths the numerator image used in the \gls{em} preconditioner with a Gaussian filter, as suggested in \cite{ehrhardtFastPETReconstruction2025a}.
 
-\subsection{Combining Data and Prior Curvature}
-\label{subsec:optimisation_preconditioner_combination}
-
-Let $\mathcal{P}_{\mathcal D}=\widehat H_{\mathcal D}^{-1}$ denote the data preconditioner and $\mathcal{P}_{\widetilde{\mathcal R}}=\widehat H_{\widetilde{\mathcal R}}^{-1}$ a prior preconditioner whose curvature model is developed below. For block methods, the data-curvature block at voxel $n$ is the $2\times2$ diagonal matrix with entries $[\widehat H_{\mathcal D,1}]_{nn}$ and $[\widehat H_{\mathcal D,2}]_{nn}$; its inverse is the corresponding data-preconditioner block. Following \cite{ehrhardtFastPETReconstruction2025a}, these curvatures are combined through an inverse-sum, or parallel-sum,
-\begin{equation}
-    \mathcal{P}_{\parallel}
-    =
-    \left(\mathcal{P}_{\mathcal D}^{-1}+\mathcal{P}_{\widetilde{\mathcal R}}^{-1}\right)^{-1}
-    =
-    \left(\widehat H_{\mathcal D}+\widehat H_{\widetilde{\mathcal R}}\right)^{-1}.
-    \label{eq:parallel_sum_combination}
-\end{equation}
-Numerical floors are used before inversion.
-
 \subsection{Prior Curvature Models}
 \label{subsec:optimisation_prior_preconditioning}
 
-Both prior-curvature models start from the exact Hessian of the smoothed spectral penalty. Equation~\eqref{eq:phi_gram_spectral} expresses this penalty as a function of the eigenvalues of the symmetric Gram matrix $\mathcal{G}^\top \mathcal{G}$, where $\mathcal{G}$ denotes the local weighted directional Jacobian with its voxel index and image dependence suppressed. The Lewis--Sendov formula \cite{doi:10.1137/S089547980036838X}, followed by the chain rule through $\mathcal{G}\mapsto \mathcal{G}^\top \mathcal{G}$, therefore gives its local Hessian. This Hessian measures how the penalty gradient changes under perturbations of the local PET and SPECT gradients; its evaluation is given in Appendix~\ref{app:ls_block_assembly}. Both discard curvature between different voxels; they differ in whether the \gls{pet}/\gls{spect} curvature within each voxel is retained. An alternative family, built from a quadratic majoriser of the prior rather than its Hessian, is described in Appendix~\ref{app:mm_preconditioner}.
+Prior curvature measures how the prior gradient changes when the images change. Large curvature calls for a smaller update scale, while cross-modal curvature describes how a perturbation of one modality changes the prior gradient for the other. Both models below start from the exact Hessian of the smoothed spectral penalty and discard curvature between different voxels; they differ in whether the \gls{pet}/\gls{spect} curvature within each voxel is retained.
+
+Equation~\eqref{eq:phi_gram_spectral} expresses the penalty as a function of the eigenvalues of the symmetric Gram matrix $\mathcal{G}^\top \mathcal{G}$, where $\mathcal{G}$ denotes the local weighted directional Jacobian with its voxel index and image dependence suppressed. The Lewis--Sendov formula \cite{doi:10.1137/S089547980036838X}, followed by the chain rule through $\mathcal{G}\mapsto \mathcal{G}^\top \mathcal{G}$, gives its local Hessian. An alternative family, built from a quadratic majoriser of the prior rather than its Hessian, is described in Appendix~\ref{app:mm_preconditioner}.
 
 \subsubsection{Voxel-block curvature}
 \label{subsubsec:block_curvature_model}
 
-At each voxel, a $2\times2$ matrix describes how the prior affects the PET and SPECT updates. Its diagonal entries describe each modality separately, while its off-diagonal entries describe their coupling. We approximate these matrices using local second derivatives of the prior and omit coupling between different voxels. Writing $H_{\widetilde{\mathcal R}}=\nabla^2\widetilde{\mathcal R}$ for the full image-space Hessian, this gives
+At each voxel, a $2\times2$ matrix describes how the prior affects the PET and SPECT updates. Its diagonal entries describe each modality separately, while its off-diagonal entries describe their coupling. Writing $H_{\widetilde{\mathcal R}}=\nabla^2\widetilde{\mathcal R}$ for the full image-space Hessian, the voxel-block approximation is
 \begin{equation}
     \widehat H_{\widetilde{\mathcal R}}^{\mathrm{LS\text{-}block}}
     =
@@ -184,7 +172,7 @@ At each voxel, a $2\times2$ matrix describes how the prior affects the PET and S
     \widehat H_{nn}^{\mathrm{LS}}\approx[H_{\widetilde{\mathcal R}}]_{nn}\in\mathbb R^{2\times2}.
     \label{eq:ls_block_preconditioner}
 \end{equation}
-The local derivatives are exact, but their assembly into voxel blocks is approximate, as detailed in Appendix~\ref{app:ls_block_assembly}. The blocks are positive semidefinite; small eigenvalues are raised to a positive floor before inversion. This avoids singular inverses, but does not by itself guarantee a decrease in the objective. Computing the local derivatives requires voxel-wise singular-value decompositions, so the prior-aware preconditioner is refreshed once per epoch and held fixed between refreshes.
+The local derivatives are exact, but their assembly into voxel blocks is approximate, as detailed in Appendix~\ref{app:ls_block_assembly}. The blocks are positive semidefinite.
 
 \subsubsection{Diagonal curvature}
 \label{subsubsec:diag_curvature_model}
@@ -199,41 +187,89 @@ The diagonal model keeps only the diagonal entries of each voxel block,
     \right),
     \label{eq:ls_diag_preconditioner}
 \end{equation}
-and so discards the cross-modal curvature. These entries are non-negative because each block is positive semidefinite. Combined with the diagonal data curvature, the preconditioner~\eqref{eq:parallel_sum_combination} is then diagonal, so component-wise clipping is the compatible projection (Section~\ref{subsubsec:precond_constraint}).
+and so discards the cross-modal curvature. These entries are non-negative because each block is positive semidefinite.
 
-\subsubsection{Interaction with the non-negativity constraint}
-\label{subsubsec:precond_constraint}
+\subsection{Combining Data and Prior Curvature}
+\label{subsec:optimisation_preconditioner_combination}
 
-After each update, negative voxel values are set to zero. With coupled PET/SPECT blocks, this clipping can spoil a direction that would otherwise reduce the objective, so the usual projected-gradient guarantees do not apply. We did not identify a failure attributable to clipping in these experiments, although its effect was not tested separately.
+At each voxel, the data-curvature block is $\operatorname{diag}([\widehat H_{\mathcal D,1}]_{nn},[\widehat H_{\mathcal D,2}]_{nn})$, paired with the selected prior block. Suppressing the voxel index, let $\mathcal P_{\mathcal D}$ and $\mathcal P_{\widetilde{\mathcal R}}$ denote the component preconditioners after the numerical stabilisation in Section~\ref{subsec:optimisation_preconditioner_implementation}; in the formulas below, $\widehat H_{\mathcal D}=\mathcal P_{\mathcal D}^{-1}$ and $\widehat H_{\widetilde{\mathcal R}}=\mathcal P_{\widetilde{\mathcal R}}^{-1}$.
 
-\subsection{Alternative Combination: Lehmer Family}
+\subsubsection{Inverse-sum combination}
+
+The curvatures of the data term and prior add. This motivates adding their curvature surrogates before inverting the sum. The inverse-sum, or parallel-sum, combination \cite{ehrhardtFastPETReconstruction2025a} is
+\begin{equation}
+    \begin{aligned}
+        \mathcal{P}_{\parallel}
+        &=
+        \left(\widehat H_{\mathcal D}+\widehat H_{\widetilde{\mathcal R}}\right)^{-1}
+        \\
+        &=
+        \left(\mathcal{P}_{\mathcal D}^{-1}+\mathcal{P}_{\widetilde{\mathcal R}}^{-1}\right)^{-1}.
+    \end{aligned}
+    \label{eq:parallel_sum_combination}
+\end{equation}
+
+\subsubsection{Lehmer extension}
 \label{subsec:optimisation_lehmer}
 
-The inverse sum is dominated by the larger of the two curvatures, so a very large data or prior curvature can leave almost no room to move. The inverse sum belongs to a broader matrix Lehmer family that can relax this. For voxel-wise symmetric positive-definite preconditioners $\mathcal{P}_{\widetilde{\mathcal R}}$ and $\mathcal{P}_{\mathcal D}$, define
+The inverse sum is dominated by the larger of the two curvatures, so a very large data or prior curvature produces a small update scale. The Lehmer family extends the inverse sum with an order parameter $p$ that can relax this scaling. For positive scalar data and prior preconditioner entries $d$ and $r$, the unscaled Lehmer mean is
+\[
+    L_p(d,r)
+    =\frac{d^p+r^p}{d^{p-1}+r^{p-1}}
+    =d f_p(r/d),
+    \qquad
+    f_p(t)=\frac{t^p+1}{t^{p-1}+1}.
+\]
+The implemented rule uses $\tfrac12 L_p$. Setting $t=r/d$, its $p=0$ case gives
+\[
+    \tfrac12 d f_0(r/d)
+    =
+    \tfrac12 d\frac{2(r/d)}{1+r/d}
+    =
+    \frac{dr}{d+r}
+    =
+    (d^{-1}+r^{-1})^{-1}.
+\]
+
+For the symmetric positive-definite $2\times2$ preconditioners at each voxel, the matrix extension is
 \begin{equation}
-    T=\mathcal{P}_{\mathcal D}^{-1/2}\mathcal{P}_{\widetilde{\mathcal R}}\mathcal{P}_{\mathcal D}^{-1/2},
-    \qquad
-    L_p(\mathcal{P}_{\widetilde{\mathcal R}},\mathcal{P}_{\mathcal D})
-    =\mathcal{P}_{\mathcal D}^{1/2}f_p(T)\mathcal{P}_{\mathcal D}^{1/2},
-    \qquad
-    f_p(t)=\frac{t^p+1}{t^{p-1}+1},
+    \begin{aligned}
+        T
+        &=\mathcal{P}_{\mathcal D}^{-1/2}\mathcal{P}_{\widetilde{\mathcal R}}\mathcal{P}_{\mathcal D}^{-1/2},
+        \\
+        L_p(\mathcal{P}_{\mathcal D},\mathcal{P}_{\widetilde{\mathcal R}})
+        &=\mathcal{P}_{\mathcal D}^{1/2}f_p(T)\mathcal{P}_{\mathcal D}^{1/2}.
+    \end{aligned}
     \label{eq:matrix_lehmer_combination}
 \end{equation}
-Here $T$ expresses the prior preconditioner relative to the data preconditioner, and $f_p(T)$ is calculated by applying $f_p$ to its eigenvalues. 
+Here $T$ is symmetric positive definite and expresses the prior preconditioner relative to the data preconditioner. The function is applied spectrally: if $T=U\operatorname{diag}(t_1,t_2)U^\top$, where $U$ is orthogonal and $t_i>0$, then
+\[
+    f_p(T)
+    =
+    U\operatorname{diag}\!\left(f_p(t_1),f_p(t_2)\right)U^\top.
+\]
 \SA{$T$ is a (symmetric?) matrix, so I think you mean $f_P(T) = U^{\rm T} f_P(W) U$ where $W$ is the diagonal matrix of eigenvalues to which any function can be applied component-wise. Is that right ? That is the normal way to express powers of matrices or other functions like $\exp{T}$. Maybe you can explain this in an appendix if need be.}
-The implemented form is $\tfrac12L_p$; at $p=0$ it reproduces the inverse sum exactly,
+The same equivalence holds for the matrix rule,
 \begin{equation}
-    \tfrac12L_0(\mathcal{P}_{\widetilde{\mathcal R}},\mathcal{P}_{\mathcal D})
+    \tfrac12L_0(\mathcal{P}_{\mathcal D},\mathcal{P}_{\widetilde{\mathcal R}})
     =
     \left(\mathcal{P}_{\mathcal D}^{-1}+\mathcal{P}_{\widetilde{\mathcal R}}^{-1}\right)^{-1}.
     \label{eq:lehmer_parallel_equivalence}
 \end{equation}
 For fixed data and prior preconditioners, $f_p(t)$ is non-decreasing with $p$ for every $t>0$ (and unchanged when $t=1$). Increasing $p$ therefore gives less conservative scaling in the data-normalised coordinates defined by $T$. It can also change the update direction, so it does not guarantee a larger image-space step or faster convergence.
 \SA{This is quite interesting but it is hard to follow. If I am right $f_0(t) = \frac{2 t}{t+1}$. I don't see what that is the sames as "inverse sum". Why not show some graphs of $f_p(t)$ for different $p$ ? This could be in an appendix as well.} 
+
+\subsection{Implementation Details}
+\label{subsec:optimisation_preconditioner_implementation}
+
+Before inversion, curvature eigenvalues below $10^{-8}$ are raised to $10^{-8}$. Before combination, eigenvalues below $10^{-6}$ in both component preconditioners are raised to $10^{-6}$. Computing the local derivatives requires voxel-wise singular-value decompositions, so the prior blocks are refreshed once per epoch and held fixed between refreshes. They therefore use curvature evaluated at the start of the epoch.
+
+After each update~\eqref{eq:optimisation_projected_update}, negative voxel values are set to zero. When the data and prior curvature models are diagonal, the combined preconditioner is diagonal, so component-wise clipping is the compatible projection. With coupled PET/SPECT blocks, this clipping can spoil a direction that would otherwise reduce the objective, so the usual projected-gradient guarantees do not apply. We did not identify a failure attributable to clipping in these experiments, although its effect was not tested separately.
+
 \section{Experimental Evaluation}
 \label{sec:optimisation_experiments}
 
-The experiments compare the alternatives defined above while keeping the reconstruction objective fixed. Subset scheduling is assessed with one curvature model; preconditioning is then assessed with one subset schedule. These are controlled comparisons, not a joint search over all settings.
+The experiments compare the alternatives defined above while keeping the reconstruction objective fixed. Subset scheduling is assessed with one curvature model; with one subset schedule then fixed, the prior-curvature model is varied first and the combination rule second. These are controlled comparisons, not a joint search over all settings.
 
 \subsection{Common Evaluation Protocol}
 \label{subsec:optimisation_evaluation_protocol}
@@ -328,7 +364,7 @@ The next experiment asks whether incorporating prior curvature improves the upda
 
 The comparison uses modality-separated subsets and the folded prior schedule, which gave the lowest final mean \gls{nrmse} in the subset experiment. All methods use the common protocol above, with the same objective, initialisation and long-run reference. The data component is smoothed with a $5\,\mathrm{mm}$ Gaussian \gls{fwhm}. Three preconditioners are compared: data-only \gls{bsrem} scaling~\eqref{eq:bsrem_preconditioner}, and its inverse-sum combinations~\eqref{eq:parallel_sum_combination} with the block~\eqref{eq:ls_block_preconditioner} and diagonal~\eqref{eq:ls_diag_preconditioner} prior models.
 
-The prior-aware preconditioners are updated once per epoch and held fixed between updates. They therefore use curvature evaluated at the start of the epoch.
+The prior-aware preconditioners follow the numerical stabilisation and epoch refresh procedure described in Section~\ref{subsec:optimisation_preconditioner_implementation}.
 
 All methods minimise the same objective, so the long-run reconstruction provides a common reference $\bm z^\star$. Agreement with this reference is assessed experimentally; it is not a convergence guarantee.
 
@@ -356,6 +392,8 @@ For \gls{spect}, all three trajectories remain bounded, the block and diagonal m
 \subsection{Lehmer Order}
 \label{subsec:optimisation_lehmer_results}
 
+The final experiment asks whether changing the combination rule improves the trajectories. It keeps the Lewis--Sendov block model, modality-separated subsets and folded prior schedule fixed, and varies only the Lehmer order through $p=0$, $p=0.01$ and $p=0.1$. It uses the common evaluation protocol and initial step $\varsigma^{(0)}=1$.
+
 \begin{figure}[htbp]
     \centering
     \begin{subfigure}{0.99\linewidth}
@@ -370,7 +408,7 @@ For \gls{spect}, all three trajectories remain bounded, the block and diagonal m
     \label{fig:optim_lehmer_parallel}
 \end{figure}
 
-Figure~\ref{fig:optim_lehmer_parallel} changes only the combination rule of the block model. The order $p=0.1$ is clearly worse than the inverse sum in every region of both modalities. The order $p=0.01$ is close to the inverse sum. For \gls{pet} it is as good or marginally better in every region, including the hot sphere, and avoids the transient whole-image increase near pass 14, although it shows a smaller one near pass 8. For \gls{spect} it is slightly worse in the hot and cold spheres and slightly better in the liver.
+In Figure~\ref{fig:optim_lehmer_parallel}, the order $p=0.1$ is clearly worse than the inverse sum in every region of both modalities. The order $p=0.01$ is close to the inverse sum. For \gls{pet} it is as good or marginally better in every region, including the hot sphere, and avoids the transient whole-image increase near pass 14, although it shows a smaller one near pass 8. For \gls{spect} it is slightly worse in the hot and cold spheres and slightly better in the liver.
 
 Changing $p$ also changes the effective step scale. The factor $\tfrac12$ is calibrated at $p=0$; for eigenvalues of $T$ of order $10^2$, $p=0.01$ increases the spectral factor by roughly two per cent relative to the inverse sum, rising to a few per cent at $10^3$. A fixed-$\varsigma^{(0)}$ sweep therefore mixes the effect of the Lehmer order with a modest step-size change. Since $p=0.01$ was as good as or marginally better than the inverse sum for \gls{pet}, including the hot sphere, it was retained for Chapter~\ref{chapter:paper}.
 

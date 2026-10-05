@@ -209,7 +209,7 @@ The update and decaying step size follow Equations~\eqref{eq:optimisation_projec
 
 The data component is the EM-type scaling in Equation~\eqref{eq:bsrem_preconditioner} \cite{depierroFastEMlikeMethods2001,ahn_globally_2003}, represented on the shared grid. For multi-bed PET, the denominator is the combined sensitivity in Equation~\eqref{eq:multibed_sensitivity}. The prior preconditioner uses the $2\times2$ voxel blocks described in Section~\ref{subsec:optimisation_prior_preconditioning}, retaining PET/SPECT coupling within a voxel. These prior blocks are recomputed once per epoch.
 
-We combine the data and prior preconditioners using the scaled Lehmer rule, $\tfrac12 L_p$, defined in Equation~\eqref{eq:matrix_lehmer_combination}, with $p=0.01$. Before combining them, eigenvalues below $10^{-6}$ in either preconditioner are raised to this value for numerical stability.
+We combine the data and prior preconditioners using the scaled Lehmer rule, $\tfrac12 L_p$, defined in Equation~\eqref{eq:matrix_lehmer_combination}, with $p=0.01$. Numerical stabilisation follows Section~\ref{subsec:optimisation_preconditioner_implementation}.
 
 \subsection{Comparator: \acrfull{shkem}}
 \label{subsec:90y_shkem}
