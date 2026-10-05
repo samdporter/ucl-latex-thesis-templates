@@ -54,24 +54,21 @@ The singular-value representation gives a direct convexity argument. Define $f_\
 \end{equation}
 
 \paragraph{Jacobian-space gradient.}
-Differentiating the trace representation in~\eqref{eq:phi_gram_spectral} directly avoids forming singular vectors. For a perturbation $E\in\mathbb{R}^{d\times M}$,
+Write $\phi(\mathcal{G})=h(G)$ as in~\eqref{eq:phi_gram_spectral}, with $G=V\operatorname{diag}(\lambda_i)V^\top$ and $V\in\mathbb{R}^{M\times M}$ orthogonal. Lewis's spectral gradient formula \cite[Theorem~1.1]{lewisDerivativesSpectralFunctions1996} gives
 \begin{equation}
-    \begin{aligned}
-        \mathrm{d}\phi(\mathcal{G})[E]
-        &=\frac12\operatorname{tr}\!\left((G+\epsilon^2\mathbb{I}_M)^{-1/2}
-        (\mathcal{G}^\top E+E^\top \mathcal{G})\right)\\
-        &=\left\langle \mathcal{G}(G+\epsilon^2\mathbb{I}_M)^{-1/2},E\right\rangle_F,
-    \end{aligned}
+    \nabla h(G)
+    =\frac12 V\operatorname{diag}\!\left(\frac{1}{\sqrt{\lambda_i+\epsilon^2}}\right)V^\top
+    =\frac12(G+\epsilon^2\mathbb{I}_M)^{-1/2}.
 \end{equation}
-where $\langle\cdot,\cdot\rangle_F$ is the Frobenius inner product. Define
+Define
 \begin{equation}
     \Omegaeps{\mathcal{G}} \coloneqq \left(\mathcal{G}^\top \mathcal{G}+\epsilon^2\mathbb{I}\right)^{-1/2}
     \in\mathbb{R}^{M\times M}.
     \label{eq:spectral_weight}
 \end{equation}
-Because $\epsilon>0$, $\Omegaeps{\mathcal{G}}$ is well defined and \gls{spd} for every $\mathcal{G}$, including rank-deficient ones. The Jacobian-space gradient is therefore
+Because $\epsilon>0$, $\Omegaeps{\mathcal{G}}$ is well defined and \gls{spd} for every $\mathcal{G}$, including rank-deficient ones. The chain rule through $G=\mathcal{G}^\top\mathcal{G}$ then gives the Jacobian-space gradient
 \begin{equation}\label{eq:phi_grad_inv_sqrt}
-\nabla\phi(\mathcal{G})=\mathcal{G}\,\Omegaeps{\mathcal{G}},
+\nabla\phi(\mathcal{G})=2\mathcal{G}\,\nabla h(G)=\mathcal{G}\,\Omegaeps{\mathcal{G}},
 \end{equation}
 obtained by applying the inverse square-root of an $M\times M$ \gls{spd} matrix to the columns of $\mathcal{G}$. For $M=2$ this inverse square-root has a closed form (Appendix~\ref{app:inv_sqrt_2x2}), so the gradient can be evaluated using only dot products and scalar square-roots per voxel, without an eigendecomposition.
 
