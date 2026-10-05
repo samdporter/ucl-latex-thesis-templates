@@ -35,19 +35,19 @@ g''(s)=\frac{\epsilon^2}{(s^2+\epsilon^2)^{3/2}},
 \end{equation}
 where $\epsilon>0$ controls the degree of smoothing.
 
-For a local Jacobian $Y\in\mathbb{R}^{d\times M}$, write $G=Y^\top Y$. Using the equivalence above, the smoothed local penalty is
+For the following local calculations, we suppress the voxel index $n$ and the dependence on $\bm{z}$, writing $\mathcal{G}\in\mathbb{R}^{d\times M}$ for the local Jacobian and $G=\mathcal{G}^\top\mathcal{G}$. The resulting formulas also apply to the weighted directional Jacobian introduced below. Using the equivalence above, the smoothed local penalty is
 \begin{equation}
     \begin{aligned}
-        \phi(Y)
+        \phi(\mathcal{G})
         &:=\sum_{i=1}^{M}\left(\sqrt{\lambda_i(G)+\epsilon^2}-\epsilon\right)\\
         &=\operatorname{tr}\!\left((G+\epsilon^2\mathbb{I}_M)^{1/2}\right)-M\epsilon.
     \end{aligned}
     \label{eq:phi_gram_spectral}
 \end{equation}
-Equivalently, $\phi(Y)=\sum_{i=1}^{R}g(\sigma_i(Y))$ with $R=\min\{d,M\}$ as in~\eqref{eq:schatten}; any additional zero Gram eigenvalues contribute zero because $g(0)=0$. This representation also connects the prior to the calculus of spectral functions of symmetric matrices used for its Hessian in Chapter~\ref{chapter:optimisation}.
+Equivalently, $\phi(\mathcal{G})=\sum_{i=1}^{R}g(\sigma_i(\mathcal{G}))$ with $R=\min\{d,M\}$ as in~\eqref{eq:schatten}; any additional zero Gram eigenvalues contribute zero because $g(0)=0$. This representation also connects the prior to the calculus of spectral functions of symmetric matrices used for its Hessian in Chapter~\ref{chapter:optimisation}.
 
 \paragraph{Convexity.}
-The singular-value representation gives a direct convexity argument. Define $f_\epsilon(s)=\sum_{i=1}^{R}g(s_i)$ on $\mathbb{R}^R$, so that $\phi=f_\epsilon\circ\sigma$. Since $g$ is even and convex, $f_\epsilon$ is convex and absolutely symmetric, meaning invariant under permutations and sign changes of its arguments. Hence $\phi$ is convex on $\mathbb{R}^{d\times M}$ \cite[Corollary~2.6]{lewisConvexAnalysisUnitarily1995}. Smoothness of $f_\epsilon$ also ensures that $\phi$ is differentiable even when $Y$ is rank deficient \cite[Theorem~3.1]{lewisConvexAnalysisUnitarily1995}. The finite-difference operator $D$, directional operators $\Pi_{m,n}$ of Section~\ref{subsec:directional_from_guidance}, and weight matrices $B_n$ of Section~\ref{subsec:modality_weighting} are fixed linear maps. Composing $\phi$ with these maps and summing over voxels preserves convexity, so
+The singular-value representation gives a direct convexity argument. Define $f_\epsilon(s)=\sum_{i=1}^{R}g(s_i)$ on $\mathbb{R}^R$, so that $\phi=f_\epsilon\circ\sigma$. Since $g$ is even and convex, $f_\epsilon$ is convex and absolutely symmetric, meaning invariant under permutations and sign changes of its arguments. Hence $\phi$ is convex on $\mathbb{R}^{d\times M}$ \cite[Corollary~2.6]{lewisConvexAnalysisUnitarily1995}. Smoothness of $f_\epsilon$ also ensures that $\phi$ is differentiable even when $\mathcal{G}$ is rank deficient \cite[Theorem~3.1]{lewisConvexAnalysisUnitarily1995}. The finite-difference operator $D$, directional operators $\Pi_{m,n}$ of Section~\ref{subsec:directional_from_guidance}, and weight matrices $B_n$ of Section~\ref{subsec:modality_weighting} are fixed linear maps. Composing $\phi$ with these maps and summing over voxels preserves convexity, so
 \begin{equation}
     \widetilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}} \ \text{is convex on}\ \mathbb{R}^{N\times M}.
     \label{eq:wdtnv_convex}
@@ -57,23 +57,23 @@ The singular-value representation gives a direct convexity argument. Define $f_\
 Differentiating the trace representation in~\eqref{eq:phi_gram_spectral} directly avoids forming singular vectors. For a perturbation $E\in\mathbb{R}^{d\times M}$,
 \begin{equation}
     \begin{aligned}
-        \mathrm{d}\phi(Y)[E]
+        \mathrm{d}\phi(\mathcal{G})[E]
         &=\frac12\operatorname{tr}\!\left((G+\epsilon^2\mathbb{I}_M)^{-1/2}
-        (Y^\top E+E^\top Y)\right)\\
-        &=\left\langle Y(G+\epsilon^2\mathbb{I}_M)^{-1/2},E\right\rangle_F,
+        (\mathcal{G}^\top E+E^\top \mathcal{G})\right)\\
+        &=\left\langle \mathcal{G}(G+\epsilon^2\mathbb{I}_M)^{-1/2},E\right\rangle_F,
     \end{aligned}
 \end{equation}
 where $\langle\cdot,\cdot\rangle_F$ is the Frobenius inner product. Define
 \begin{equation}
-    \Omegaeps{Y} \coloneqq \left(Y^\top Y+\epsilon^2\mathbb{I}\right)^{-1/2}
+    \Omegaeps{\mathcal{G}} \coloneqq \left(\mathcal{G}^\top \mathcal{G}+\epsilon^2\mathbb{I}\right)^{-1/2}
     \in\mathbb{R}^{M\times M}.
     \label{eq:spectral_weight}
 \end{equation}
-Because $\epsilon>0$, $\Omegaeps{Y}$ is well defined and \gls{spd} for every $Y$, including rank-deficient ones. The Jacobian-space gradient is therefore
+Because $\epsilon>0$, $\Omegaeps{\mathcal{G}}$ is well defined and \gls{spd} for every $\mathcal{G}$, including rank-deficient ones. The Jacobian-space gradient is therefore
 \begin{equation}\label{eq:phi_grad_inv_sqrt}
-\nabla\phi(Y)=Y\,\Omegaeps{Y},
+\nabla\phi(\mathcal{G})=\mathcal{G}\,\Omegaeps{\mathcal{G}},
 \end{equation}
-obtained by applying the inverse square-root of an $M\times M$ \gls{spd} matrix to the columns of $Y$. For $M=2$ this inverse square-root has a closed form (Appendix~\ref{app:inv_sqrt_2x2}), so the gradient can be evaluated using only dot products and scalar square-roots per voxel, without an eigendecomposition.
+obtained by applying the inverse square-root of an $M\times M$ \gls{spd} matrix to the columns of $\mathcal{G}$. For $M=2$ this inverse square-root has a closed form (Appendix~\ref{app:inv_sqrt_2x2}), so the gradient can be evaluated using only dot products and scalar square-roots per voxel, without an eigendecomposition.
 
 \section{Weighted Directional Total Nuclear Variation ($\wdtnv$)}
 \label{sec:wdtnv}

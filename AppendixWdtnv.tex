@@ -4,20 +4,21 @@
 \section{Closed-Form Inverse Square Root for Two Modalities}
 \label{app:inv_sqrt_2x2}
 
-For $M=2$, $\Omegaeps{Y}$ of~\eqref{eq:spectral_weight} can be evaluated without an eigendecomposition. Let $y_1,y_2$ be the columns of $Y\in\mathbb{R}^{d\times2}$ and write
+For $M=2$, $\Omegaeps{\mathcal{G}}$ of~\eqref{eq:spectral_weight} can be evaluated without an eigendecomposition. Following Chapter~\ref{chapter:wdtnv}, we suppress the voxel index and image dependence of the local Jacobian. Let $\bm{g}_1,\bm{g}_2$ be the columns of $\mathcal{G}\in\mathbb{R}^{d\times2}$ and write
 \begin{equation}
-    G_\epsilon:=Y^\top Y+\epsilon^2\mathbb{I}
-    =
+    \begin{aligned}
+    G_\epsilon:=\mathcal{G}^\top \mathcal{G}+\epsilon^2\mathbb{I}
+    &=
     \begin{pmatrix}
-    \|y_1\|_2^2+\epsilon^2 & \langle y_1,y_2\rangle\\
-    \langle y_1,y_2\rangle & \|y_2\|_2^2+\epsilon^2
-    \end{pmatrix},
-    \qquad
-    t:=\operatorname{tr}(G_\epsilon),
+    \|\bm{g}_1\|_2^2+\epsilon^2 & \langle \bm{g}_1,\bm{g}_2\rangle\\
+    \langle \bm{g}_1,\bm{g}_2\rangle & \|\bm{g}_2\|_2^2+\epsilon^2
+    \end{pmatrix},\\
+    t&:=\operatorname{tr}(G_\epsilon),
     \qquad
     \delta:=\sqrt{\det(G_\epsilon)}.
+    \end{aligned}
 \end{equation}
-Since $Y^\top Y\succeq0$ and $\epsilon>0$, $G_\epsilon$ is positive definite and $\delta>0$. The Cayley--Hamilton theorem gives $G_\epsilon^2-tG_\epsilon+\delta^2\mathbb{I}=0$, and hence
+Since $\mathcal{G}^\top \mathcal{G}\succeq0$ and $\epsilon>0$, $G_\epsilon$ is positive definite and $\delta>0$. The Cayley--Hamilton theorem gives $G_\epsilon^2-tG_\epsilon+\delta^2\mathbb{I}=0$, and hence
 \[
 (G_\epsilon+\delta\mathbb{I})^2=(t+2\delta)\,G_\epsilon.
 \]
@@ -27,7 +28,7 @@ G_\epsilon^{1/2}=\frac{G_\epsilon+\delta\mathbb{I}}{\sqrt{t+2\delta}}.
 \]
 Inverting with the $2\times2$ adjugate formula, using $\det(G_\epsilon+\delta\mathbb{I})=\delta(t+2\delta)$, yields
 \begin{equation}
-    \Omegaeps{Y}
+    \Omegaeps{\mathcal{G}}
     =G_\epsilon^{-1/2}
     =\frac{(t+\delta)\,\mathbb{I}-G_\epsilon}{\delta\sqrt{t+2\delta}}.
     \label{eq:inv_sqrt_2x2}
@@ -39,17 +40,17 @@ Each voxel therefore requires three dot products and two scalar square-roots.
 
 The block approximation used in Chapter~\ref{chapter:optimisation} retains PET/SPECT coupling within each voxel and omits coupling between voxels. The following construction specifies how the local derivatives are assembled into those approximate blocks.
 
-For a local weighted directional Jacobian $Y\in\mathbb{R}^{d\times M}$, write $G=Y^\top Y=V\operatorname{diag}(\lambda_i)V^\top$ and $s_i=\sqrt{\lambda_i+\epsilon^2}$. Equation~\eqref{eq:phi_gram_spectral} expresses $\phi$ as a spectral function of $G$, to which the Lewis--Sendov Hessian formula applies \cite[Theorem~3.3]{doi:10.1137/S089547980036838X}. Applying the chain rule gives the following equivalent expression for the Jacobian-space Hessian acting on a perturbation $E\in\mathbb{R}^{d\times M}$:
+For a local weighted directional Jacobian $\mathcal{G}\in\mathbb{R}^{d\times M}$, write $G=\mathcal{G}^\top \mathcal{G}=V\operatorname{diag}(\lambda_i)V^\top$ and $s_i=\sqrt{\lambda_i+\epsilon^2}$. Equation~\eqref{eq:phi_gram_spectral} expresses $\phi$ as a spectral function of $G$, to which the Lewis--Sendov Hessian formula applies \cite[Theorem~3.3]{doi:10.1137/S089547980036838X}. Applying the chain rule gives the following equivalent expression for the Jacobian-space Hessian acting on a perturbation $E\in\mathbb{R}^{d\times M}$:
 \begin{equation}
     \begin{aligned}
-    \nabla^2\phi(Y)[E]
-    &=E\,\Omegaeps{Y}
-    +YV\left[K\circ\left(V^\top(Y^\top E+E^\top Y)V\right)\right]V^\top,\\
+    \nabla^2\phi(\mathcal{G})[E]
+    &=E\,\Omegaeps{\mathcal{G}}
+    +\mathcal{G}V\left[K\circ\left(V^\top(\mathcal{G}^\top E+E^\top \mathcal{G})V\right)\right]V^\top,\\
     K_{ij}&=-\frac{1}{s_i s_j(s_i+s_j)}.
     \end{aligned}
     \label{eq:ls_local_hessian_action}
 \end{equation}
-Here $\circ$ denotes the Hadamard product. The first term differentiates the explicit factor $Y$ in $\nabla\phi(Y)=Y\Omegaeps{Y}$; the second accounts for the change in $\Omegaeps{Y}$. For distinct eigenvalues, $K_{ij}$ is the divided difference $(s_i^{-1}-s_j^{-1})/(\lambda_i-\lambda_j)$. The displayed form also covers repeated eigenvalues, where $K_{ij}=-1/(2s_i^3)$, and zero eigenvalues, since $\epsilon>0$.
+Here $\circ$ denotes the Hadamard product. The first term differentiates the explicit factor $\mathcal{G}$ in $\nabla\phi(\mathcal{G})=\mathcal{G}\Omegaeps{\mathcal{G}}$; the second accounts for the change in $\Omegaeps{\mathcal{G}}$. For distinct eigenvalues, $K_{ij}$ is the divided difference $(s_i^{-1}-s_j^{-1})/(\lambda_i-\lambda_j)$. The displayed form also covers repeated eigenvalues, where $K_{ij}=-1/(2s_i^3)$, and zero eigenvalues, since $\epsilon>0$.
 
 Let $E_{\ell m}$ be the $d\times M$ matrix with a single unit entry in difference channel $\ell$ and modality $m$. The direction-diagonal local block retained at target $r$ is
 \begin{equation}
@@ -81,17 +82,17 @@ Chapter~\ref{chapter:optimisation} builds its prior-curvature models from the Le
 
 \subsection{Construction}
 
-Let $Y,Y_0\in\mathbb{R}^{d\times M}$, let $\phi(Y)=\sum_{i}g(\sigma_i(Y))$ with $g$ the Charbonnier function of Chapter~\ref{chapter:wdtnv}, and let $C_0=\Omegaeps{Y_0}$. Then
+Let $\mathcal{G}\in\mathbb{R}^{d\times M}$ and let $\mathcal{G}_0\in\mathbb{R}^{d\times M}$ be a reference Jacobian. Let $\phi(\mathcal{G})=\sum_{i}g(\sigma_i(\mathcal{G}))$ with $g$ the Charbonnier function of Chapter~\ref{chapter:wdtnv}, and let $C_0=\Omegaeps{\mathcal{G}_0}$. Then
 \begin{equation}
-    \phi(Y)
+    \phi(\mathcal{G})
     \leq
-    \phi(Y_0)
-    +\tfrac12\operatorname{tr}\!\left[\left(Y^\top Y-Y_0^\top Y_0\right)C_0\right],
+    \phi(\mathcal{G}_0)
+    +\tfrac12\operatorname{tr}\!\left[\left(\mathcal{G}^\top \mathcal{G}-\mathcal{G}_0^\top \mathcal{G}_0\right)C_0\right],
     \label{eq:jacobian_majoriser}
 \end{equation}
-with equality at $Y=Y_0$. Since $\phi(Y)=\operatorname{tr}((Y^\top Y+\epsilon^2\mathbb{I}_M)^{1/2})-M\epsilon$ and the matrix square root is operator concave \cite{bhatiaMatrixAnalysis1997a}, $\phi$ is a concave function of the Gram matrix $Y^\top Y$, and~\eqref{eq:jacobian_majoriser} is its tangent bound. For $M=1$, $C_0$ is the familiar \gls{irls} weight for the Charbonnier potential \cite{fessler_image_2017,charbonnier_deterministic_1997}. It is also the same inverse square root that evaluates the prior gradient in Chapter~\ref{chapter:wdtnv}.
+with equality at $\mathcal{G}=\mathcal{G}_0$. Since $\phi(\mathcal{G})=\operatorname{tr}((\mathcal{G}^\top \mathcal{G}+\epsilon^2\mathbb{I}_M)^{1/2})-M\epsilon$ and the matrix square root is operator concave \cite{bhatiaMatrixAnalysis1997a}, $\phi$ is a concave function of the Gram matrix $\mathcal{G}^\top \mathcal{G}$, and~\eqref{eq:jacobian_majoriser} is its tangent bound. For $M=1$, $C_0$ is the familiar \gls{irls} weight for the Charbonnier potential \cite{fessler_image_2017,charbonnier_deterministic_1997}. It is also the same inverse square root that evaluates the prior gradient in Chapter~\ref{chapter:wdtnv}.
 
-Summing~\eqref{eq:jacobian_majoriser} over voxels, with $Y_0$ the weighted directional Jacobian $\tilde{\mathcal G}_n$ at a preconditioner refresh, gives a quadratic majoriser of the prior. Its Hessian couples neighbouring voxels, so, as for the Lewis--Sendov models, only voxel blocks are retained. Writing $C_r=\Omegaeps{\tilde{\mathcal G}_r}$ at target voxel $r$, the voxel block of this Hessian is
+Summing~\eqref{eq:jacobian_majoriser} over voxels, with $\mathcal{G}_0$ the weighted directional Jacobian $\tilde{\mathcal G}_n$ at a preconditioner refresh, gives a quadratic majoriser of the prior. Its Hessian couples neighbouring voxels, so, as for the Lewis--Sendov models, only voxel blocks are retained. Writing $C_r=\Omegaeps{\tilde{\mathcal G}_r}$ at target voxel $r$, the voxel block of this Hessian is
 \begin{equation}
     \widehat H_{\widetilde{\mathcal R},n}^{\mathrm{MM\text{-}block}}
     =
