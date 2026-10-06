@@ -136,12 +136,12 @@ The most direct update replaces the running estimate with the new simulation,
 However, using this method we observed some divergence in non-primary additive term where subsequent updates would result in increasing oscillating underestimation followed by overestimation. To reduce the resulting iteration-to-iteration variation, an under-relaxed update was used,
 \begin{equation}
     b^{(k+1)}=(1-\alpha)b^{(k)}+\alpha\widehat b^{(k+1)},
-    \qquad \alpha=0.2.
+    \qquad 0<\alpha\leq1,
     \label{eq:additive_damped_update}
 \end{equation}
-The value $\alpha=0.2$ was selected heuristically rather than through an optimisation study.
+where $\alpha=1$ recovers full replacement. A relaxation factor of $\alpha=0.2$ was used throughout this thesis; its selection is described in Section~\ref{subsec:additive_damping_choice}.
 
-Figure~\ref{fig:nema_scatter_est} shows the diagnostic that motivated this choice. With full replacement, the scale of successive projection profiles oscillates and grows rapidly. By the fourth outer iteration, the estimated additive profile well exceeds the measured total-emission profile. Under-relaxation keeps the profiles bounded over the ten-step refinement budget and suppresses the large iteration-to-iteration swings.
+Figure~\ref{fig:nema_scatter_est} shows the diagnostic that motivated under-relaxation. With full replacement, the scale of successive projection profiles oscillates and grows rapidly. By the fourth outer iteration, the estimated additive profile well exceeds the measured total-emission profile. Under-relaxation with $\alpha=0.2$ keeps the profiles bounded over the ten-step refinement budget and suppresses the large iteration-to-iteration swings.
 
 \begin{figure}[H]
     \centering
@@ -163,13 +163,27 @@ Figure~\ref{fig:nema_scatter_est} shows the diagnostic that motivated this choic
 
 After the tenth outer iteration, the final estimate is denoted $b_{\mathrm{MC}}=b^{(10)}$ and is frozen. No additional SIMIND simulation or additive-term update is performed during the target reconstruction. This makes $b_{\mathrm{MC}}$ a data- and activity-dependent plug-in estimate and the target reconstruction has a fixed objective.
 
+\subsection{Choice of relaxation factor and initial estimate}
+\label{subsec:additive_damping_choice}
+
+To choose $\alpha$, the outer loop was run for 20 outer iterations on the \glsentryshort{nema} phantom acquisition with $\alpha\in\{0.1,0.2,0.5,1\}$, starting from three initial estimates: the learned estimate, a spatially uniform projection with the same total counts, and zero (Figure~\ref{fig:additive_damping_study}). Full replacement did not settle from any initial estimate, whereas every relaxed update remained stable and approached the same total. With $\alpha=0.5$ the learned initial estimate converged fastest, within 3\% of the final total by the fifth outer iteration, but the uniform and zero initial estimates oscillated for most of the run. With $\alpha=0.2$ there was no oscillation from any initial estimate, and the learned-initialised total was within 6\% of its final value by the tenth outer iteration; $\alpha=0.1$ was markedly slower. We therefore used $\alpha=0.2$ with ten outer iterations.
+
+The learned estimate was used as the initialisation because it starts closest to the final estimate. Its projection profile is already close in shape to the converged non-primary term (Figure~\ref{fig:additive_damping_study}d): the relative $\ell_2$ difference between its profile and the final profile is 0.49, compared with 0.86 for the uniform and 1 for the zero initial estimate.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{figures/Chapter3/additive_damping_study.pdf}
+    \caption{Outer-loop refinement of the non-primary additive term for the measured \glsentryshort{nema} phantom acquisition (Section~\ref{subsec:90y_phantom}) from three initial estimates: the learned estimate, a spatially uniform projection with the same total counts, and zero. (a)--(c) Applied total $\sum_i b_i^{(k)}$ for $\alpha=1$ (full replacement), $0.5$ and $0.2$; the dashed line marks the ten-iteration budget. (d) Initial estimates and the final estimate ($\alpha=0.2$, learned initial estimate, $k=20$), summed over views and axial positions.}
+    \label{fig:additive_damping_study}
+\end{figure}
+
 
 \section{Scope, Limitations and Deployment}
 \label{sec:brems_deployment}
 
 In this chapter we have combined several established methodologies to obtain a practical forward model for SPECT acquisitions o Y90 data.  The contributions include the integration of a learned initial estimate with a calibrated SIMIND refinement, the empirical identification and suppression of unstable full replacement of the additive term, and an inexpensive fixed-width effective Gaussian surrogate that can be composed with a standard matched projector, calibrated against GATE and cross-checked against SIMIND.
 
-Several limitations follow from these choices. The network output is used outside its training protocol and is only a scatter-derived initialisation. Because the update is damped, the learned initial estimate may still influence the finite-budget result; this effect was not quantified. The scalar calibration in Equation~\ref{eq:simind_scale} cannot correct spatially varying differences between SIMIND and the analytic projector which may exist. The relaxation factor and ten-iteration budget were fixed heuristically, and Figure~\ref{fig:nema_scatter_est} is a stability diagnostic rather than a convergence proof. The range kernel is isotropic and water-equivalent, so it does not model material-dependent transport in lung or bone, nor the detailed angular and spectral structure represented by a full Monte Carlo projector. Future work could include the addition of anisotropic bremsstrahlung simulation methods such as that by Lim et al. \cite{lim_y-90_2018}. Finally, the analysis isolates selected model components and does not by itself establish improved clinical quantification.
+Several limitations follow from these choices. The network output is used outside its training protocol and is only a scatter-derived initialisation. Because the update is damped, the learned initial estimate still influences the finite-budget result; after ten outer iterations its total remained approximately 6\% above its final value (Section~\ref{subsec:additive_damping_choice}). The scalar calibration in Equation~\ref{eq:simind_scale} cannot correct spatially varying differences between SIMIND and the analytic projector which may exist. The relaxation factor and ten-iteration budget were chosen from single runs on one phantom acquisition, and Figures~\ref{fig:nema_scatter_est} and~\ref{fig:additive_damping_study} are stability diagnostics rather than a convergence proof. The range kernel is isotropic and water-equivalent, so it does not model material-dependent transport in lung or bone, nor the detailed angular and spectral structure represented by a full Monte Carlo projector. Future work could include the addition of anisotropic bremsstrahlung simulation methods such as that by Lim et al. \cite{lim_y-90_2018}. Finally, the analysis isolates selected model components and does not by itself establish improved clinical quantification.
 
 The configuration carried forward is as follows: a learned additive estimate is refined for ten outer iterations using SIMIND and Equation~\ref{eq:additive_damped_update}; the final non-primary term is frozen; and the effective range kernel is added to the SPECT acquisition model. Chapter~\ref{chapter:paper} uses this fixed model for the joint \isotope[90]{Y} \glsentryshort{pet}/\glsentryshort{spect} experiments.
 
