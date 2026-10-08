@@ -72,7 +72,7 @@ Here $L=S+1$: one full-prior component $\widetilde{\mathcal R}$ is appended to t
 \subsection{SVRG Updates}
 \label{subsec:optimisation_svrg_updates}
 
-Sampling uniformly with replacement from the selected component list gives an \gls{svrg} estimator at snapshot $\widetilde{\bm z}$,
+Sampling uniformly with replacement from the selected component list gives the \gls{svrg} estimator~\eqref{eq:SVRG1}, now taken over the $L$ components of $\mathcal{F}$ at snapshot $\widetilde{\bm z}$,
 \[
     g^{(k)}
     =
@@ -230,6 +230,7 @@ Setting $t=r/d$, its $p=0$ case gives
     =
     (d^{-1}+r^{-1})^{-1}.
 \]
+At $p=0$, $\tfrac12$ and $1$, $L_p$ is the harmonic, geometric and arithmetic mean of $d$ and $r$, so increasing $p$ gives the larger entry more influence.
 
 For the symmetric positive-definite $2\times2$ preconditioners at each voxel, the matrix extension is
 \begin{equation}
@@ -248,7 +249,7 @@ Here $T$ is symmetric positive definite and expresses the prior preconditioner r
     =
     U\operatorname{diag}\!\left(f_p(t_1),f_p(t_2)\right)U^\top.
 \]
-\SA{$T$ is a (symmetric?) matrix, so I think you mean $f_P(T) = U^{\rm T} f_P(W) U$ where $W$ is the diagonal matrix of eigenvalues to which any function can be applied component-wise. Is that right ? That is the normal way to express powers of matrices or other functions like $\exp{T}$. Maybe you can explain this in an appendix if need be.}
+%\SA{$T$ is a (symmetric?) matrix, so I think you mean $f_P(T) = U^{\rm T} f_P(W) U$ where $W$ is the diagonal matrix of eigenvalues to which any function can be applied component-wise. Is that right ? That is the normal way to express powers of matrices or other functions like $\exp{T}$. Maybe you can explain this in an appendix if need be. Yes, SPD - now stated, with f_p(T) written out spectrally just above. Short enough to keep inline rather than an appendix.}
 The same equivalence holds for the matrix rule,
 \begin{equation}
     \tfrac12L_0(\mathcal{P}_{\mathcal D},\mathcal{P}_{\widetilde{\mathcal R}})
@@ -256,8 +257,15 @@ The same equivalence holds for the matrix rule,
     \left(\mathcal{P}_{\mathcal D}^{-1}+\mathcal{P}_{\widetilde{\mathcal R}}^{-1}\right)^{-1}.
     \label{eq:lehmer_parallel_equivalence}
 \end{equation}
-For fixed data and prior preconditioners, $f_p(t)$ is non-decreasing with $p$ for every $t>0$ (and unchanged when $t=1$). Increasing $p$ therefore gives less conservative scaling in the data-normalised coordinates defined by $T$.
-\SA{This is quite interesting but it is hard to follow. If I am right $f_0(t) = \frac{2 t}{t+1}$. I don't see what that is the sames as "inverse sum". Why not show some graphs of $f_p(t)$ for different $p$ ? This could be in an appendix as well.} 
+For fixed data and prior preconditioners, $f_p(t)$ is non-decreasing with $p$ for every $t>0$ and unchanged when $t=1$ (Figure~\ref{fig:lehmer_fp_curves}). Increasing $p$ therefore gives less conservative scaling in the data-normalised coordinates defined by $T$.
+%\SA{This is quite interesting but it is hard to follow. If I am right $f_0(t) = \frac{2 t}{t+1}$. I don't see what that is the sames as "inverse sum". Why not show some graphs of $f_p(t)$ for different $p$ ? This could be in an appendix as well. Yes, f_0(t) = 2t/(t+1) - the factor 1/2 is what makes it the inverse sum, derivation now written out above. Added the f_p(t) plot inline plus a line on harmonic/geometric/arithmetic means.}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.6\linewidth]{figures/preconditioning/lehmer_fp_curves.png}
+    \caption{Scaled Lehmer combination $\tfrac12L_p(d,r)/d=\tfrac12f_p(t)$ against $t=r/d$ for several orders $p$, including the orders $p=0.01$ and $p=0.1$ tested in Section~\ref{subsec:optimisation_lehmer_results}. The $p=0$ curve coincides with the inverse sum (dashed). All curves equal $\tfrac12$ at $t=1$; elsewhere they increase with $p$, most where one curvature dominates.}
+    \label{fig:lehmer_fp_curves}
+\end{figure}
 
 \subsection{Implementation Details}
 \label{subsec:optimisation_preconditioner_implementation}
@@ -426,4 +434,4 @@ In this single-bed phantom subset experiment, all schedules used the same smooth
 
 Prior-aware preconditioning kept count-limited \gls{pet} bounded over the same 20-pass interval, where data-only \gls{bsrem} diverged; for \gls{spect}, data-only scaling remained competitive. Retaining the within-voxel \gls{pet}/\gls{spect} curvature gave modest \gls{pet} gains over the diagonal model. The Lehmer order $p=0.01$ gave similarly modest \gls{pet} gains over the inverse sum, whereas $p=0.1$ was clearly worse. Chapter~\ref{chapter:paper} uses the block model with $p=0.01$.
 
-\SA{Lots of interesting results, presented quite compactly. If I understand, the Lehmer order thing is a way of controlling away the very small eigevenvalues in the preconditioner, is that right ? That is why it is sometimes "better" than inverse sum, even though order $f_{p=0.01}(t)$ is "close to" identity. I can't help thinking there are simpler ways to handle division by small numbers if that is what is going on...}
+%\SA{Lots of interesting results, presented quite compactly. If I understand, the Lehmer order thing is a way of controlling away the very small eigevenvalues in the preconditioner, is that right ? That is why it is sometimes "better" than inverse sum, even though order $f_{p=0.01}(t)$ is "close to" identity. I can't help thinking there are simpler ways to handle division by small numbers if that is what is going on... Roughly yes - p>0 lifts the small eigenvalues of the combined preconditioner, most where one curvature dominates (new f_p figure). At p=0.01 it's basically a ~2% step change. Agreed there are probably simpler ways - I didn't get round to investigating this properly.}

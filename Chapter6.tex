@@ -77,7 +77,7 @@ obtained by applying the inverse square-root of an $M\times M$ \gls{spd} matrix 
 
 This section extends vanilla TNV \cite{rigieJointReconstructionMultichannel2015, holtTotalNuclearVariation2014} in two ways:
 \begin{itemize}
-    \item anatomical information is incorporated via a directional operator (similar to \gls{dtv}, Section~\ref{eq:dtv_defn})
+    \item anatomical information is incorporated via a directional operator (similar to \gls{dtv}, Equation~\eqref{eq:dtv_defn})
     \item  voxel- and modality-specific diagonal weighting can account for differences in scale and allow each modality to be down-weighted in regions where its measurements are less reliable.
 
 \end{itemize}
@@ -85,9 +85,9 @@ This section extends vanilla TNV \cite{rigieJointReconstructionMultichannel2015,
 \subsection{Directional operators from guidance}
 \label{subsec:directional_from_guidance}
 
-A straightforward way to extend (smoothed) \gls{tv} and TNV is by appending the guidance image as an additional modality. However, this as several disadvantages. A single global scaling would have data-dependent and spatially non-uniform consequences. Where emission gradients are weak, even modest guidance gradients could dominate the local Jacobian and hence the singular values; where emission gradients are strong, the same scaling may become negligible.
+A straightforward way to extend (smoothed) \gls{tv} and TNV is by appending the guidance image as an additional modality. However, this has several disadvantages. A single global scaling would have data-dependent and spatially non-uniform consequences. Where emission gradients are weak, even modest guidance gradients could dominate the local Jacobian and hence the singular values; where emission gradients are strong, the same scaling may become negligible.
 
-We instead use the the directional operator used in \gls{dtv} (Equation~\ref{eq:directional_op}) to incorporate a higher-resolution anatomical image. The image steers the penalty rather than entering the joint Jacobian as an additional column. This keeps the anatomical channel separate from the emission channels, whose units, resolution, and artefacts differ (as demonstrated in Chapter~\ref{chapter:deconvolution_pvc}).
+We instead use the directional operator used in \gls{dtv} (Equation~\ref{eq:directional_op}) to incorporate a higher-resolution anatomical image. The image steers the penalty rather than entering the joint Jacobian as an additional column. This keeps the anatomical channel separate from the emission channels, whose units, resolution, and artefacts differ (as demonstrated in Chapter~\ref{chapter:deconvolution_pvc}).
 
 Each modality gradient $(D z_m)_n$ is replaced by its directional counterpart $\Pi_{m,n}(D z_m)_n$.  $\Pi_{m,n}\in\mathbb{R}^{d\times d}$ is constructed from the guidance field at voxel $n$
 \begin{equation}
