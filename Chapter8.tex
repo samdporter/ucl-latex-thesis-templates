@@ -24,9 +24,9 @@ The \gls{shkem} method of Deidda \textit{et al.} improves lesion contrast by rec
 
 We use the joint MAP framework introduced in Section~\ref{subsec:synergistic_recon}. For the present application we set $M=2$ modalities, with $m=1$ denoting PET and $m=2$ denoting SPECT\@. Let $z_m\in\mathbb{R}_+^{N}$ denote the image for modality $m$ represented on a shared grid and let $y_m\in\mathbb{N}^{I_m}$ denote the corresponding projection data.
 
-Following Section~\ref{sec:optimisation_framework}, $W_m:\mathbb{R}_+^{J_m}\to\mathbb{R}_+^{N}$ resamples native images to the shared grid, and its discrete adjoint $W_m^\ast$ maps $z_m$ to the native projector grid. The affine Poisson model is
+Following Section~\ref{sec:optimisation_framework}, $W_m:\mathbb{R}_+^{J_m}\to\mathbb{R}_+^{N}$ resamples native images to the shared grid, and its discrete adjoint $W_m^\top$ maps $z_m$ to the native projector grid. The affine Poisson model is
 \begin{equation}
-\bar y_m(z_m) = A_m W_m^\ast z_m + b_m,
+\bar y_m(z_m) = A_m W_m^\top z_m + b_m,
 \end{equation}
 where $A_m$ is the system matrix and $b_m$ collects additive corrections. For example, randoms and scatter for PET and simulated scatter/penetration terms for SPECT (see Sections~\ref{subsec:90y_pet_forward} and~\ref{subsec:90y_spect_forward}).
 
@@ -36,7 +36,7 @@ The joint objective is
 =
 \arg\min_{\bm{z}\ge 0}
 \left\{
-\sum_{m=1}^{2}\mathcal{D}_m\!\left(y_m \mid A_m W_m^\ast z_m + b_m\right)
+\sum_{m=1}^{2}\mathcal{D}_m\!\left(y_m \mid A_m W_m^\top z_m + b_m\right)
 +
 \widetilde{\mathcal{R}}(\bm{z})
 \right\},
@@ -246,7 +246,7 @@ SPECT projection data are partitioned into 12 staggered subsets for both SVRG an
 
 The PET and SPECT CTAC volumes were retained in their native acquisition grids before registration: the SPECT CTAC was resampled to the SPECT reconstruction grid rather than to PET voxel sizes. Since patient arm positioning differed between modalities (arms down in PET, arms up in SPECT), registration was restricted to the trunk. A trunk mask was obtained automatically from each CTAC using TotalSegmentator \cite{wasserthalTotalSegmentatorRobustSegmentation2023}, and voxels outside it were set to air. The native-grid SPECT CTAC was then registered to the PET CTAC with NiftyReg, called through \gls{sirf}: a rigid transformation estimated by symmetric block matching \cite{modatGlobalImageRegistration2014}, followed by a cubic B-spline free-form deformation initialised from the rigid solution \cite{modatFastFreeformDeformation2010}, both with default NiftyReg settings. Registration used the CT images only; no emission data were involved. For the NEMA phantom, which is a rigid object, a single rigid transformation between the two $\mu$-maps was used.
 
-The registration field defines $W_2$, whose interpolation, voxel-volume scaling and adjoint are described in Section~\ref{sec:optimisation_framework}. Activity-concentration values are interpolated without a spatially varying Jacobian correction, so the deformation need not preserve total activity. Local volume changes also limit the approximation $W_2^\ast W_2\approx I$. Figure~\ref{fig:90y_registration_sirt3} shows both registration stages for the training patient. Rigid alignment removes the global offset, but checkerboard discontinuities remain, for example along the liver dome and around the bowel. Deformable refinement reduces these discontinuities, although residual differences remain. This is a qualitative check on one patient, without a cohort-wide measurement of registration error.
+The registration field defines $W_2$, whose interpolation, voxel-volume scaling and adjoint are described in Section~\ref{sec:optimisation_framework}. Activity-concentration values are interpolated without a spatially varying Jacobian correction, so the deformation need not preserve total activity. Local volume changes also limit the approximation $W_2^\top W_2\approx I$. Figure~\ref{fig:90y_registration_sirt3} shows both registration stages for the training patient. Rigid alignment removes the global offset, but checkerboard discontinuities remain, for example along the liver dome and around the bowel. Deformable refinement reduces these discontinuities, although residual differences remain. This is a qualitative check on one patient, without a cohort-wide measurement of registration error.
 
 \begin{figure}[htbp]
     \centering
