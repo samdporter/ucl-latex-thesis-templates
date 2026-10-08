@@ -1,7 +1,7 @@
 \chapter{Penalised-Likelihood Reconstruction: Priors and Optimisation Algorithms}
 \label{chapter:reconstruction}
 
-Emission tomography reconstruction is an ill-posed inverse problem: the unknown activity must be inferred from noisy Poisson count data through a highly smoothing and poorly conditioned forward operator. While \acrfull{ml} approaches remain the clinical workhorse \cite{dempsterMaximumLikelihoodIncomplete1977, sheppMaximumLikelihoodReconstruction1982}, their practical success relies heavily on early stopping, which acts as an implicit regulariser but can introduce iteration-dependent bias and compromise quantification \cite{veklerovStoppingRuleMLE1987, wuConvergencePropertiesEM1983}. For quantitative, low-count, and multi-modality settings, precisely those that arise in modern \gls{pet}/\gls{spect} practice, explicit regularisation and fast, robust optimisation become essential.
+Emission tomography reconstruction is an ill-posed inverse problem: the unknown activity must be inferred from noisy Poisson count data through a highly smoothing and poorly conditioned forward operator.
 
 This chapter establishes the reconstruction framework used later in the thesis. It formalises the Poisson model and penalised-likelihood objective, then reviews regularisation methods ranging from quadratic and edge-preserving priors to anatomically guided and kernelised models. The final part introduces synergistic regularisation and Jacobian-based priors such as \acrfull{jtv} and \acrfull{tnv}, which motivate the models developed in later chapters.
 
@@ -151,7 +151,7 @@ In clinical practice, adaptable edge-preserving priors are often preferred. The 
 with $\gamma$ controlling the amount of edge preservation and $\epsilon\geq0$ the STIR RDP stabiliser. Positive $\epsilon$ regularises zero-valued voxel pairs; when $\epsilon=0$, STIR assigns the zero--zero contribution its limiting value of zero. Note that if $(x_j+x_k+\epsilon)\gg \gamma|x_j-x_k|$ then $\mathcal R_{\mathrm{RDP}}$ behaves like a relative quadratic prior,
 whereas if $\gamma|x_j-x_k|\gg (x_j+x_k+\epsilon)$ it behaves like an anisotropic \gls{tv} penalty (up to a constant factor).
 
-\subsection{Anatomically Guided Regularisation}
+\subsection{Anatomically Guided Regularisation}\label{subsec:anatomical_recon}
 In low-count regimes, single-modality priors struggle to distinguish between noise and legitimate small structures. Anatomically guided reconstruction uses a high-resolution structural image $u$ (e.g., \gls{ct}) to modulate the regularisation of the emission image $x$.
 
 Geometric Alignment methods assume that if an edge exists in the emission image, it should be supported by corresponding boundaries in a registered anatomical guidance image. The seminal Bowsher prior \cite{bowsherUtilizingMRIInformation2004} implements this idea by defining, for each voxel $j$, a data-adaptive and dynamic neighbourhood $\mathcal{B}_j(u)$ using the guidance image $u$. Concretely, from a fixed candidate neighbourhood $\mathcal{N}_j$, the Bowsher construction selects the $B$ voxels whose intensities in $u$ are most similar to $u_j$, i.e.\ those minimising a similarity metric such as
@@ -458,11 +458,7 @@ In practice, L-BFGS-B can exhibit rapid local convergence on smooth penalised ob
 
 \section{Summary and Research Gap}
 
-This chapter reviewed the statistical and algorithmic foundations of emission tomography reconstruction under a Poisson measurement model. Starting from maximum-likelihood estimation, we motivated penalised-likelihood (\gls{map}) formulations as a principled alternative to early stopping, particularly in low-count and quantitatively demanding settings. We then surveyed regularisation strategies ranging from quadratic smoothness and total variation to clinically deployed edge-preserving models such as the relative difference prior, before focusing on anatomically guided approaches (e.g.\ Bowsher, \glsentryshort{pls}/\glsentryshort{dtv}) and kernelised representations that incorporate structural side-information through the image model.
-
-A central theme in modern \gls{pet}/\gls{spect} practice is the availability of multiple co-registered modalities. While sequential (one-way) guidance can be effective, it is inherently limited by asymmetric information flow and by the risk of propagating errors or mismatches from the guidance image into the emission reconstruction. This motivates synergistic reconstruction, in which modalities are coupled through joint priors. In this setting, Jacobian-based penalties such as \glsentryshort{jtv} and \glsentryshort{tnv} promote co-located, directionally consistent edges across modalities while allowing modality-specific contrast.
-
-From an optimisation perspective, clinical subset-accelerated EM methods achieve fast early progress but can exhibit limit-cycle behaviour and lack convergence guarantees in penalised problems without relaxation. Convergent frameworks such as BSREM recover stability via diminishing step sizes, but may converge slowly when the curvature induced by strong, spatially varying priors dominates the data term. Variance-reduced subset methods (e.g.\ \gls{saga}/\gls{svrg}) offer a promising compromise, retaining low per-iteration cost while suppressing subset-induced stochasticity. However, their practical performance depends critically on effective preconditioning.
+Joint priors share edge information across modalities while allowing modality-specific contrast, but introduce coupled and spatially heterogeneous curvature. Combining such coupling with anatomical guidance therefore motivates both prior design and efficient optimisation.
 
 \paragraph{Research gap.}
 Two gaps in this literature bear directly on quantitative \isotope[90]{Y} imaging:
