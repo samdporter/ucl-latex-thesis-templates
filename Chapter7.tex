@@ -6,7 +6,18 @@ Chapter~\ref{chapter:wdtnv} defined the smoothed weighted directional total nucl
 \section{Reconstruction Framework}
 \label{sec:optimisation_framework}
 
-As in Section~\ref{subsec:synergistic_recon}, let $\bm z=(z_1,z_2)$ again denote the \gls{pet} and \gls{spect} images represented on a common reconstruction grid. Chapter~\ref{chapter:reconstruction} presented a native-grid formulation, with the prior applied to $W_m x_m$. Here we optimise the shared-grid variables $z_m$ directly, using the forward model $A_m W_m^\ast z_m+b_m$ detailed in Chapter~\ref{chapter:paper}. The adjoint $W_m^\ast$ maps to the native projector grid; it is not assumed to be an inverse of $W_m$. For $S$ subset data functions, define $\mathcal D(\bm z)=\sum_{s=1}^{S}\mathcal D_s(\bm z)$. The objective is
+Let $\bm z=(z_1,z_2)$ denote the \gls{pet} and \gls{spect} images on a shared reconstruction grid. The formulation in Section~\ref{subsec:synergistic_recon} optimised native-grid images $x_m$, with the prior applied to $W_m x_m$. Here we optimise $z_m$ directly, enabling the voxel-wise \gls{pet}/\gls{spect} preconditioners of Section~\ref{sec:optimisation_preconditioners}. The expected data are
+\begin{equation}
+    \bar y_m(z_m)=A_m W_m^\ast z_m+b_m,
+    \label{eq:shared_grid_forward_model}
+\end{equation}
+where $A_m$ is the native-grid system matrix, $b_m$ collects additive corrections, and the discrete adjoint $W_m^\ast$ maps shared-grid images to the native projector grid. The data-term gradient is $W_m A_m^\top(\bm 1-y_m/\bar y_m)$, with element-wise division. Thus warping uses $W_m$ and its adjoint; no inverse deformation is estimated. The formulations are not generally equivalent: $z_m$ need not equal $W_m x_m$ for any native image.
+
+The shared grid is the \gls{pet} reconstruction grid, so $W_1$ is the identity. The \gls{spect} warp $W_2$ is estimated by registering its \gls{ctac} image to the \gls{pet} \gls{ctac} before reconstruction and is then held fixed; emission data are not used. It resamples native \gls{spect} images onto the shared grid using non-negative linear interpolation weights and scaling $c_2=(v_1/v_2)^{1/2}$, where $v_m$ is modality $m$'s voxel volume. No clipping is required, so $W_2$ remains linear. Its adjoint $W_2^\ast$ uses the transposed interpolation weights and the same scaling; it is not an inverse warp. For a resampled image $W_2x_2$, shared-grid values are interpolated native values multiplied by $c_2$.
+
+The product $W_2^\ast W_2$ generally mixes neighbouring native \gls{spect} voxels. For volume-preserving transformations, such as rigid registration, the scaling makes this product approximately preserve constant images away from grid boundaries. Thus $W_2^\ast W_2 x_2\approx x_2$ for images that vary slowly at the native voxel scale, and $z_2=W_2x_2$ approximately reproduces the native-grid expected data. The shared grid must cover all activity; native voxels beyond the interpolation support receive zero from $W_2^\ast$.
+
+For $S$ subset data functions, define $\mathcal D(\bm z)=\sum_{s=1}^{S}\mathcal D_s(\bm z)$. The objective is
 \begin{equation}
     \mathcal{O}(\bm z)
     =
@@ -131,10 +142,10 @@ For modality $m$, let $s_m$ denote the sensitivity image on the shared grid,
 \begin{equation}
     s_m
     =
-    W_m A_m^\top \bm 1,
+    W_m A_m^\top \bm 1.
     \label{eq:shared_grid_sensitivity}
 \end{equation}
-where $A_m$ is the native-grid system matrix and the warping operator, $W_m$, maps native images to the shared prior grid. The data-only \gls{em}/\gls{bsrem} preconditioner is
+The data-only \gls{em}/\gls{bsrem} preconditioner is
 \begin{equation}
     \mathcal{P}_{\mathcal D,m}
     =
@@ -282,7 +293,7 @@ The experiments compare the alternatives defined above while keeping the reconst
 \subsection{Common Evaluation Protocol}
 \label{subsec:optimisation_evaluation_protocol}
 
-The optimisation experiments used an anthropomorphic phantom scanned on the Mediso AnyScan at the National Physical Laboratory. \gls{pet} and \gls{spect} were each partitioned into 18 subsets. Each candidate configuration was evaluated over 20 expected data passes with five stochastic realisations and initial step $\varsigma^{(0)}=1$. The 20-epoch folded, modality-separated runs used $\eta_{\mathrm{relax}}=0.002$; the subset experiment rescales this rate to match relaxation across schedules. A single 1000-epoch reconstruction of the same objective, using a diagonal preconditioner and slower relaxation decay ($\eta_{\mathrm{relax}}=10^{-4}$), provided the reference image pair $\bm z^\star$. Appendix~\ref{app:baseline_convergence} reports the objective and iterate diagnostics supporting its effective stationarity relative to the best observed iterate.
+The optimisation experiments used an anthropomorphic phantom scanned on the Mediso AnyScan at the National Physical Laboratory. A single \gls{pet} bed position covered all activity, although inactive parts of the phantom extended beyond the axial field of view. For this rigid phantom, $W_2$ used a single rigid transformation estimated by symmetric block matching \cite{modatGlobalImageRegistration2014}. \gls{pet} and \gls{spect} were each partitioned into 18 subsets. Each candidate configuration was evaluated over 20 expected data passes with five stochastic realisations and initial step $\varsigma^{(0)}=1$. The 20-epoch folded, modality-separated runs used $\eta_{\mathrm{relax}}=0.002$; the subset experiment rescales this rate to match relaxation across schedules. A single 1000-epoch reconstruction of the same objective, using a diagonal preconditioner and slower relaxation decay ($\eta_{\mathrm{relax}}=10^{-4}$), provided the reference image pair $\bm z^\star$. Appendix~\ref{app:baseline_convergence} reports the objective and iterate diagnostics supporting its effective stationarity relative to the best observed iterate.
 
 For each stochastic run and each saved iteration, the \acrfull{nrmse} is evaluated separately for the shared-grid modality images $z_m^{(k)}$ and references $z_m^\star$, with $m=1$ for \gls{pet} and $m=2$ for \gls{spect}. In a shared-grid region $R$, it is
 \begin{equation}
@@ -433,5 +444,7 @@ The modality dependence in Figure~\ref{fig:optim_preconditioners} plausibly refl
 In this single-bed phantom subset experiment, all schedules used the same smooth objective and an unbiased uniform-sampling \gls{svrg} estimator. We rescaled the relaxation rate from the folded, modality-separated setting $\eta_{\mathrm{relax}}=0.002$, giving every configuration the same step size at a given expected data pass. On that expected data-exposure axis, the folded schedules reduced \gls{nrmse} over 20 expected data passes and the intermittent schedules did not. Since the total update counts differ, this comparison does not establish a wall-clock or compute-efficiency advantage.
 
 Prior-aware preconditioning kept count-limited \gls{pet} bounded over the same 20-pass interval, where data-only \gls{bsrem} diverged; for \gls{spect}, data-only scaling remained competitive. Retaining the within-voxel \gls{pet}/\gls{spect} curvature gave modest \gls{pet} gains over the diagonal model. The Lehmer order $p=0.01$ gave similarly modest \gls{pet} gains over the inverse sum, whereas $p=0.1$ was clearly worse. Chapter~\ref{chapter:paper} uses the block model with $p=0.01$.
+
+These single-bed experiments used rigid registration. Chapter~\ref{chapter:paper} extends the shared-grid formulation to two overlapping \gls{pet} bed positions and deformable patient registration.
 
 %\SA{Lots of interesting results, presented quite compactly. If I understand, the Lehmer order thing is a way of controlling away the very small eigevenvalues in the preconditioner, is that right ? That is why it is sometimes "better" than inverse sum, even though order $f_{p=0.01}(t)$ is "close to" identity. I can't help thinking there are simpler ways to handle division by small numbers if that is what is going on... Roughly yes - p>0 lifts the small eigenvalues of the combined preconditioner, most where one curvature dominates (new f_p figure). At p=0.01 it's basically a ~2% step change. Agreed there are probably simpler ways - I didn't get round to investigating this properly.}
