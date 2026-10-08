@@ -12,7 +12,7 @@ In this chapter we consider a deliberately simplified, image-domain inverse prob
     \item it provides a practical \glsentryshort{pvc} baseline that is straightforward to deploy on retrospectively reconstructed images.
 \end{enumerate}
 
-\acrfull{rl} deconvolution is a purely image-domain analogue of \glsentryshort{mlem} under the Poisson model $\bar y(x)=Cx+b$: it is the same \glsentryshort{em} update, with the system matrix $A$ replaced by the \glsentryshort{psf} convolution operator $C$ \cite{richardson_bayesian-based_1972,lucy_iterative_1974,sheppMaximumLikelihoodReconstruction1982,sawatzkyEMTVMethodsInverse2013}. In this setting the ``sensitivity image'' simplifies substantially, since for a unit-sum \glsentryshort{psf} we have $C^{\mathsf T}\mathbf{1}\approx \mathbf{1}$\footnote{$C^{\mathsf T}\mathbf{1}=\mathbf{1}$ everywhere except at the image boundary.}, so the usual \glsentryshort{mlem} normalisation by $A^{\mathsf T}\mathbf{1}$ becomes approximately trivial. We extend \gls{rl} to a penalised deconvolution regime by incorporating a directional total variation prior (Equation~\ref{eq:dtv_defn}), and we construct kernelised deconvolution updates by substituting the kernel image model $x=K\alpha$, exactly as in \gls{kem}/\gls{hkem}. The resulting anatomy-aware deconvolution variants are referred to throughout as \gls{krl}, \gls{hkrl}, and \gls{rldtv}. The following sections give only what differs from Chapter~\ref{chapter:reconstruction}.
+\acrfull{rl} provides the unregularised deconvolution baseline. We compare it with the kernelised variants \gls{krl} and \gls{hkrl}, and with \gls{rldtv}, which incorporates a directional total variation penalty. The following sections describe how the priors reviewed in Chapter~\ref{chapter:reconstruction} are adapted to this image-domain problem.
 
 \section{Image-domain inverse problem and objective}
 \label{sec:deconv_model}
@@ -32,7 +32,7 @@ Let $u$ denote a co-registered anatomical guidance image (\gls{mr} or \gls{ct}),
 \section{Baseline: Richardson--Lucy deconvolution}
 \label{sec:deconv_rl}
 
-\gls{rl} is \glsentryshort{mlem} (Section~\ref{sec:optimisation}) applied to \eqref{eq:deconv_forward_model} with $b=0$ \cite{sheppMaximumLikelihoodReconstruction1982}. Since $C^{\mathsf T}\mathbf{1}\approx\mathbf{1}$, the sensitivity normalisation drops out; for ease of reading, the resulting update is
+\gls{rl} is \glsentryshort{mlem} (Section~\ref{sec:optimisation}) applied to \eqref{eq:deconv_forward_model} with $b=0$ \cite{richardson_bayesian-based_1972,lucy_iterative_1974,sheppMaximumLikelihoodReconstruction1982,sawatzkyEMTVMethodsInverse2013}. For a unit-sum \glsentryshort{psf}, $C^{\mathsf T}\mathbf{1}\approx\mathbf{1}$\footnote{$C^{\mathsf T}\mathbf{1}=\mathbf{1}$ everywhere except at the image boundary.}. Under this unit-sensitivity approximation, the update is
 \begin{equation}
     x^{(k+1)}
     =
@@ -45,7 +45,7 @@ In the scaled-gradient form of Section~\ref{sec:optimisation}, this is a unit st
 \section{Kernelised Richardson--Lucy deconvolution}
 \label{sec:deconv_krl}
 
-\gls{krl} applies the kernel image model $x=K\alpha$ of \eqref{eq:kernel1} to deconvolution, with $K$ the sparse, row-normalised kernel matrix built from features of $u$ as in Chapter~\ref{chapter:reconstruction} \cite{wangPETImageReconstruction2015,hutchcroftAnatomicallyaidedPETReconstruction2016}. The forward model becomes $\bar y(\alpha)=CK\alpha+b$, and the corresponding \glsentryshort{em} update, again given for ease of reading, is
+\gls{krl} applies the kernel image model $x=K\alpha$ of \eqref{eq:kernel1} to deconvolution, with $K$ the sparse, row-normalised kernel matrix built from features of $u$ as in Chapter~\ref{chapter:reconstruction} \cite{wangPETImageReconstruction2015,hutchcroftAnatomicallyaidedPETReconstruction2016}. The forward model becomes $\bar y(\alpha)=CK\alpha+b$, and the corresponding \glsentryshort{em} update is
 \begin{equation}
     \alpha^{(k+1)}
     =
@@ -106,7 +106,7 @@ For \gls{rl} and \gls{krl}/\gls{hkrl}, early stopping is essential and is treate
     }
     \leq f_{\mathrm{tol}}.
 \end{equation}
-Here $\mathcal O$ is the constrained objective of Section~\ref{sec:recon_basics} with $\mathcal R=\widetilde{\mathcal{R}}_{\mathrm{dTV}}$; the iterates are feasible, so it equals the finite data-plus-prior value. We use SciPy's default $f_{\mathrm{tol}}=10^{7}\epsilon_{\mathrm{mach}}\approx2.2\times10^{-9}$.
+The stopping test uses the objective in \eqref{eq:deconv_map_dtv}. We use SciPy's default $f_{\mathrm{tol}}=10^{7}\epsilon_{\mathrm{mach}}\approx2.2\times10^{-9}$.
 
 \section{Data and experimental setup} \label{sec:deconv_data}
 Two datasets are used to characterise behaviour under controlled and realistic conditions: a simulated hot-sphere phantom with known ground truth, enabling assessment of edge recovery and spill-over, and an in vivo $\tau$-\gls{pet} brain scan with \gls{mri} guidance.
@@ -246,7 +246,7 @@ RL--DTV & 0.0177 & 164 & 0.889& 0.123& -- & -- & 2  \\
 
 Across both initialisation strategies, \gls{rldtv} achieved the lowest \gls{nrmse} (0.0177), the highest aggregate \gls{rc} (0.889), and the lowest background \gls{cov} (0.123). \gls{krl} and \gls{hkrl} substantially improved on unregularised \gls{rl}, but were almost indistinguishable from one another in this simple sphere phantom. With blurred initialisation, the best \gls{rl} result occurred at iteration 0, indicating that unconstrained \gls{rl} deconvolution immediately increased the \gls{nrmse} once applied to this noisy reconstruction.
 
-Figure~\ref{fig:deconv_rc_cov_selected} shows the recovery--noise trajectories for the selected hyperparameter setting of each method. The trajectories and their selected operating points change with the initial image for \gls{rl}, \gls{krl} and \gls{hkrl}, demonstrating that their reported performance depends on both initialisation and early stopping. For \gls{krl} and \gls{hkrl}, the iterates are updated in kernel-coefficient space, whereas recovery and background \gls{cov} are evaluated after mapping the coefficients to the image domain. Under uniform initialisation, the coefficient image is normalised from the uniform image before this mapping; consequently, the apparent starting positions of the kernelised trajectories are a parametrisation effect rather than a recovery--noise advantage. The same convention is used for the full hybrid-kernel reconstruction in Chapter~\ref{chapter:paper}. Selection by minimum \gls{nrmse} is possible in this controlled phantom because the ground truth is known, but an equivalent stopping rule is not directly available for clinical data. In contrast, \gls{rldtv} reaches the same selected recovery, background \gls{cov} and \gls{nrmse} from both initialisations, although the number of optimiser iterations differs.
+Figure~\ref{fig:deconv_rc_cov_selected} shows the recovery--noise trajectories for the selected hyperparameter setting of each method. The trajectories and their selected operating points change with the initial image for \gls{rl}, \gls{krl} and \gls{hkrl}, demonstrating that their reported performance depends on both initialisation and early stopping. The coefficient-space convention described in the figure caption is also used for the full hybrid-kernel reconstruction in Chapter~\ref{chapter:paper}. Selection by minimum \gls{nrmse} is possible in this controlled phantom because the ground truth is known, but an equivalent stopping rule is not directly available for clinical data. In contrast, \gls{rldtv} reaches the same selected recovery, background \gls{cov} and \gls{nrmse} from both initialisations, although the number of optimiser iterations differs.
 
 \begin{figure}[hbtp]
     \centering
@@ -298,4 +298,4 @@ The present study should be viewed as a proof-of-principle rather than a definit
 \section{Summary}
 \label{sec:deconv_summary}
 
-This chapter formulated post-reconstruction \gls{pet} \gls{pvc} as an approximate image-domain Poisson inverse problem $\bar y(x)=Cx+b$ and studied \gls{rl} deconvolution and three anatomy-aware regularised variants. \gls{krl} and \gls{hkrl} implement implicit regularisation through kernelised image models, consistent with the kernel framework reviewed in Chapter~\ref{chapter:reconstruction} \cite{wangPETImageReconstruction2015,hutchcroftAnatomicallyaidedPETReconstruction2016,deiddaHybridPETMR2019}. \gls{rldtv} implements explicit anatomically guided regularisation via a \gls{dtv} penalty \cite{ehrhardtPETReconstructionAnatomical2016} using the same directional notation as Chapter~\ref{chapter:reconstruction}. These experiments provide a practical \gls{pvc} baseline and a controlled setting for diagnosing guidance-driven bias and noise amplification. The findings inform the synergistic priors and optimisation methods developed in later chapters.
+In the sphere phantom, \gls{rldtv} achieved the lowest \gls{nrmse} and the same selected recovery and noise metrics from both initialisations. Kernelised methods improved on unregularised \gls{rl}, but remained sensitive to initialisation and stopping. The single brain example favoured \gls{rldtv} qualitatively, while illustrating the risk of guidance-driven bias. These findings motivate synergistic priors that preserve information present in only one modality.
