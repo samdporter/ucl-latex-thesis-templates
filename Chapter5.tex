@@ -12,7 +12,7 @@ In this chapter we consider a deliberately simplified, image-domain inverse prob
     \item it provides a practical \glsentryshort{pvc} baseline that is straightforward to deploy on retrospectively reconstructed images.
 \end{enumerate}
 
-\acrfull{rl} deconvolution is a purely image-domain analogue of \glsentryshort{mlem} under the Poisson model $\bar y(x)=Cx+b$: it is the same \glsentryshort{em} update, with the system matrix $A$ replaced by the \glsentryshort{psf} convolution operator $C$ \cite{richardson_bayesian-based_1972,lucy_iterative_1974,sheppMaximumLikelihoodReconstruction1982,sawatzkyEMTVMethodsInverse2013}. In this setting the ``sensitivity image'' simplifies substantially, since for a unit-sum \glsentryshort{psf} we has $C^{\mathsf T}\mathbf{1}\approx \mathbf{1}$, so the usual \glsentryshort{mlem} normalisation by $A^{\mathsf T}\mathbf{1}$ becomes approximately trivial. We extend \gls{rl} to a penalised deconvolution regime by incorporating a directional total variation prior (Equation~\ref{eq:dtv_defn}), and we construct kernelised deconvolution updates by substituting the kernel image model $x=K\alpha$, exactly as in \gls{kem}/\gls{hkem}. The resulting anatomy-aware deconvolution variants are referred to throughout as \gls{krl}, \gls{hkrl}, and \gls{rldtv}. Their basic update equations are derived in the following sections.
+\acrfull{rl} deconvolution is a purely image-domain analogue of \glsentryshort{mlem} under the Poisson model $\bar y(x)=Cx+b$: it is the same \glsentryshort{em} update, with the system matrix $A$ replaced by the \glsentryshort{psf} convolution operator $C$ \cite{richardson_bayesian-based_1972,lucy_iterative_1974,sheppMaximumLikelihoodReconstruction1982,sawatzkyEMTVMethodsInverse2013}. In this setting the ``sensitivity image'' simplifies substantially, since for a unit-sum \glsentryshort{psf} we have $C^{\mathsf T}\mathbf{1}\approx \mathbf{1}$\footnote{$C^{\mathsf T}\mathbf{1}=\mathbf{1}$ everywhere except at the image boundary.}, so the usual \glsentryshort{mlem} normalisation by $A^{\mathsf T}\mathbf{1}$ becomes approximately trivial. We extend \gls{rl} to a penalised deconvolution regime by incorporating a directional total variation prior (Equation~\ref{eq:dtv_defn}), and we construct kernelised deconvolution updates by substituting the kernel image model $x=K\alpha$, exactly as in \gls{kem}/\gls{hkem}. The resulting anatomy-aware deconvolution variants are referred to throughout as \gls{krl}, \gls{hkrl}, and \gls{rldtv}. Their basic update equations are derived in the following sections.
 
 \section{Image-domain inverse problem and objective}
 \label{sec:deconv_model}
@@ -121,7 +121,7 @@ Substituting into \eqref{eq:deconv_forward_model} gives the kernelised forward m
 \subsection{\gls{krl} update}
 \label{sec:deconv_krl_update}
 
-Maximising the Poisson likelihood with respect to $\alpha$ under \eqref{eq:deconv_kernel_forward} yields an EM-type multiplicative update analogous to \gls{kem}:
+Maximising the Poisson likelihood with respect to $\alpha$ under \eqref{eq:deconv_kernel_forward} yields an EM-type multiplicative update:
 \begin{equation}
     \alpha^{(k+1)}
     =
@@ -137,7 +137,7 @@ Maximising the Poisson likelihood with respect to $\alpha$ under \eqref{eq:decon
     x^{(k+1)} = K\alpha^{(k+1)}.
     \label{eq:krl_update}
 \end{equation}
-As in \gls{kem}, the denominator can be precomputed once, and the update preserves non-negativity given $\alpha^{(0)}\ge 0$. Under the same unit-sensitivity approximation used for vanilla \gls{rl}, $C^{\mathsf T}\mathbf{1}\approx\mathbf{1}$, the denominator reduces to $K^{\mathsf T}\mathbf{1}$. This term is generally not equal to $\mathbf{1}$ and cannot be ignored.
+The denominator can be precomputed once, and the update preserves non-negativity given $\alpha^{(0)}\ge 0$. Under the same unit-sensitivity approximation used for vanilla \gls{rl}, $C^{\mathsf T}\mathbf{1}\approx\mathbf{1}$, the denominator reduces to $K^{\mathsf T}\mathbf{1}$. This term is generally not equal to $\mathbf{1}$ and cannot be ignored.
 
 \subsection{Hybrid \gls{krl} (\gls{hkrl})}
 \label{sec:deconv_hkrl}
