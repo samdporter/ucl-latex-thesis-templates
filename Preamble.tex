@@ -26,36 +26,17 @@ We evaluate \wdtnv{} against directional total variation, weighted total nuclear
 \end{abstract}
 
 \begin{impactstatement}
+Selective Internal Radiotherapy (SIRT) uses $^{90}$Y microspheres to treat liver tumours that cannot be removed surgically. Post-treatment imaging is used to verify where the microspheres were deposited and to estimate absorbed dose, but quantitative $^{90}$Y imaging is difficult. PET has good spatial resolution, but $^{90}$Y emits very few positrons, so the images are noisy. Bremsstrahlung SPECT has more counts but poor spatial resolution. When both scans are acquired, they are usually reconstructed separately. This thesis develops a method that reconstructs PET and SPECT images together, using structure shared between them and anatomical edges from CT.
 
-	UCL theses now have to include an impact statement. \textit{(I think for REF reasons?)} The following text is the description from the guide linked from the formatting and submission website of what that involves. (Link to the guide: {\scriptsize \url{http://www.grad.ucl.ac.uk/essinfo/docs/Impact-Statement-Guidance-Notes-for-Research-Students-and-Supervisors.pdf}})
+Within academia, the main contribution is the weighted directional total nuclear variation prior (\wdtnv). It encourages edges in the PET and SPECT images to align without forcing their intensities to match. The CT provides edge directions but is not treated as a third image. The approach could be adapted to other pairs of images that share anatomy, such as dual-radionuclide SPECT or planning and post-treatment scans.
 
-\begin{quote}
-The statement should describe, in no more than 500 words, how the expertise, knowledge, analysis,
-discovery or insight presented in your thesis could be put to a beneficial use. Consider benefits both
-inside and outside academia and the ways in which these benefits could be brought about.
+In the optimisation study, including the prior in the preconditioner kept the low-count PET reconstruction stable in tests where a data-only preconditioner diverged. This may also apply to other low-count problems. In the partial volume correction study, unregularised and kernel-based deconvolution depended on the starting image and on when the iterations were stopped. A directional total variation penalty gave the lowest error and matching recovery and noise from both starting images tested. This matters because the true image is unknown in clinical data.
 
-The benefits inside academia could be to the discipline and future scholarship, research methods or
-methodology, the curriculum; they might be within your research area and potentially within other
-research areas.
+Parts of this work have been presented at the IEEE Nuclear Science Symposium and Medical Imaging Conference (2022, 2024 and 2025) and at the PET is Wonderful meeting (2025). The joint reconstruction study is available as a preprint. The SIMIND Python connector written for this thesis is openly available; it lets researchers run SIMIND Monte Carlo simulations from Python and use the results directly in STIR, SIRF and PyTomography. I have also contributed to the open-source STIR and CIL reconstruction libraries, and to collaborative studies on partial volume correction in carotid FDG PET, multi-radionuclide SPECT and $^{177}$Lu-DOTATATE dosimetry.
 
-The benefits outside academia could occur to commercial activity, social enterprise, professional
-practice, clinical use, public health, public policy design, public service delivery, laws, public
-discourse, culture, the quality of the environment or quality of life.
+Outside academia, the potential benefit is mainly clinical. Across 45 lesions in nine patients, \wdtnv{} gave significantly higher PET lesion contrast than the three comparison methods. In a phantom study, it improved recovery of the smallest spheres. These gains could support verification of microsphere delivery, lesion-level dosimetry and decisions about further treatment. Where both scans are already acquired, the method needs no extra scanning or radiation dose and could be introduced through reconstruction software alone. Because artefacts in the CT can propagate into the guided images, the thesis also recommends acquiring the CT with the patient's arms raised where possible.
 
-The impact could occur locally, regionally, nationally or internationally, to individuals, communities or
-organisations and could be immediate or occur incrementally, in the context of a broader field of
-research, over many years, decades or longer.
-
-Impact could be brought about through disseminating outputs (either in scholarly journals or
-elsewhere such as specialist or mainstream media), education, public engagement, translational
-research, commercial and social enterprise activity, engaging with public policy makers and public
-service delivery practitioners, influencing ministers, collaborating with academics and non-academics
-etc.
-
-Further information including a searchable list of hundreds of examples of UCL impact outside of
-academia please see \url{https://www.ucl.ac.uk/impact/}. For thousands more examples, please see
-\url{http://results.ref.ac.uk/Results/SelectUoa}.
-\end{quote}
+Further validation is needed before clinical use. The patient study was retrospective and single-centre, and it used image-quality measures rather than absorbed dose or patient outcomes. Sensitivity to misregistration between the scans was not tested. A multi-centre study with absorbed-dose and treatment-response data is the next step.
 \end{impactstatement}
 
 \begin{acknowledgements}
