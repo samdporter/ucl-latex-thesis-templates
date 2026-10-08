@@ -12,7 +12,7 @@ In this chapter we consider a deliberately simplified, image-domain inverse prob
     \item it provides a practical \glsentryshort{pvc} baseline that is straightforward to deploy on retrospectively reconstructed images.
 \end{enumerate}
 
-\acrfull{rl} deconvolution is a purely image-domain analogue of \glsentryshort{mlem} under the Poisson model $\bar y(x)=Cx+b$: it is the same \glsentryshort{em} update, with the system matrix $A$ replaced by the \glsentryshort{psf} convolution operator $C$ \cite{richardson_bayesian-based_1972,lucy_iterative_1974,sheppMaximumLikelihoodReconstruction1982,sawatzkyEMTVMethodsInverse2013}. In this setting the ``sensitivity image'' simplifies substantially, since for a unit-sum \glsentryshort{psf} we have $C^{\mathsf T}\mathbf{1}\approx \mathbf{1}$\footnote{$C^{\mathsf T}\mathbf{1}=\mathbf{1}$ everywhere except at the image boundary.}, so the usual \glsentryshort{mlem} normalisation by $A^{\mathsf T}\mathbf{1}$ becomes approximately trivial. We extend \gls{rl} to a penalised deconvolution regime by incorporating a directional total variation prior (Equation~\ref{eq:dtv_defn}), and we construct kernelised deconvolution updates by substituting the kernel image model $x=K\alpha$, exactly as in \gls{kem}/\gls{hkem}. The resulting anatomy-aware deconvolution variants are referred to throughout as \gls{krl}, \gls{hkrl}, and \gls{rldtv}. Their basic update equations are derived in the following sections.
+\acrfull{rl} deconvolution is a purely image-domain analogue of \glsentryshort{mlem} under the Poisson model $\bar y(x)=Cx+b$: it is the same \glsentryshort{em} update, with the system matrix $A$ replaced by the \glsentryshort{psf} convolution operator $C$ \cite{richardson_bayesian-based_1972,lucy_iterative_1974,sheppMaximumLikelihoodReconstruction1982,sawatzkyEMTVMethodsInverse2013}. In this setting the ``sensitivity image'' simplifies substantially, since for a unit-sum \glsentryshort{psf} we have $C^{\mathsf T}\mathbf{1}\approx \mathbf{1}$\footnote{$C^{\mathsf T}\mathbf{1}=\mathbf{1}$ everywhere except at the image boundary.}, so the usual \glsentryshort{mlem} normalisation by $A^{\mathsf T}\mathbf{1}$ becomes approximately trivial. We extend \gls{rl} to a penalised deconvolution regime by incorporating a directional total variation prior (Equation~\ref{eq:dtv_defn}), and we construct kernelised deconvolution updates by substituting the kernel image model $x=K\alpha$, exactly as in \gls{kem}/\gls{hkem}. The resulting anatomy-aware deconvolution variants are referred to throughout as \gls{krl}, \gls{hkrl}, and \gls{rldtv}. The following sections give only what differs from Chapter~\ref{chapter:reconstruction}.
 
 \section{Image-domain inverse problem and objective}
 \label{sec:deconv_model}
@@ -25,42 +25,14 @@ Let $x\in\mathbb{R}^J_+$ denote the unknown (sharper) \gls{pet} activity image o
     \qquad j=1,\dots,J,
     \label{eq:deconv_forward_model}
 \end{equation}
-where $C\in\mathbb{R}_+^{J\times J}$ is a discretised convolution operator representing a space-invariant \glsentryshort{psf}, and $b\in\mathbb{R}^J_+$ is an optional additive background term (set to $0$ in the experiments unless stated otherwise). The operator $C$ plays the same role as the system matrix $A$ in \eqref{eq:forward_model}, but in the image domain.
+where $C\in\mathbb{R}_+^{J\times J}$ is a discretised convolution operator representing a space-invariant \glsentryshort{psf}, and $b\in\mathbb{R}^J_+$ is an optional additive background term (set to $0$ in the experiments unless stated otherwise). The operator $C$ plays the same role as the system matrix $A$ in \eqref{eq:forward_model}, but in the image domain; its adjoint $C^{\mathsf T}$ is convolution with the flipped \glsentryshort{psf}. Assuming independence across voxels, the negative log-likelihood $\mathcal D$ and the penalised objective are those of Section~\ref{sec:recon_basics} with $A$ replaced by $C$.
 
-Within this approximation, where we assume independence across voxels, the Poisson negative log-likelihood is
-\begin{equation}
-    \mathcal{D}(x)
-    =
-    \sum_{j=1}^{J}
-    \left(
-        \bar y_j(x) - y_j \log \bar y_j(x)
-    \right),
-    \qquad
-    \bar y(x)=Cx+b,
-    \label{eq:deconv_nll}
-\end{equation}
-dropping constants independent of $x$ as in Chapter~\ref{chapter:reconstruction}.
-
-A \acrfull{map} deconvolution estimate is then
-\begin{equation}
-    \hat x
-    \in
-    \arg\min_{x\in\mathcal{C}}
-    \left\{
-        \mathcal{D}(x) + \beta \mathcal{R}(x)
-    \right\},
-    \qquad
-    \mathcal{C}=\mathbb{R}_+^J,
-    \label{eq:deconv_map}
-\end{equation}
-with $\beta>0$ and an appropriate regulariser $\mathcal{R}$.
-
-For a unit-sum \glsentryshort{psf} kernel and negligible boundary effects, $C\mathbf{1}\approx \mathbf{1}$ and $C^{\mathsf T}\mathbf{1}\approx \mathbf{1}$. The adjoint $C^{\mathsf T}$ corresponds to convolution with the flipped \glsentryshort{psf}.
+Let $u$ denote a co-registered anatomical guidance image (\gls{mr} or \gls{ct}), resampled to the \gls{pet} grid. It defines either the kernel matrix (\gls{krl}/\gls{hkrl}) or the \gls{dtv} direction field (\gls{rldtv}).
 
 \section{Baseline: Richardson--Lucy deconvolution}
 \label{sec:deconv_rl}
 
-The RL algorithm is the EM algorithm for the Poisson model \eqref{eq:deconv_forward_model} with $b=0$ \cite{sheppMaximumLikelihoodReconstruction1982}. Introducing elementwise multiplication and division, denoted $\odot$ and $\oslash$, the unit-sensitivity RL update is
+\gls{rl} is \glsentryshort{mlem} (Section~\ref{sec:optimisation}) applied to \eqref{eq:deconv_forward_model} with $b=0$ \cite{sheppMaximumLikelihoodReconstruction1982}. Since $C^{\mathsf T}\mathbf{1}\approx\mathbf{1}$, the sensitivity normalisation drops out; for ease of reading, the resulting update is
 \begin{equation}
     x^{(k+1)}
     =
@@ -68,60 +40,12 @@ The RL algorithm is the EM algorithm for the Poisson model \eqref{eq:deconv_forw
         C^{\mathsf T}\!\left( y \oslash (C x^{(k)}) \right).
     \label{eq:rl_update}
 \end{equation}
-As with \glsentryshort{mlem}/\glsentryshort{osem} under the full forward model, RL iterations tend to sharpen edges rapidly but amplify high-frequency noise as iterations increase. Consequently, unregularised RL is typically used with early stopping, which acts as an implicit regulariser but can result in iteration-dependent bias.
-
-\subsection{Scaled-gradient interpretation and EM-type preconditioning}
-\label{sec:deconv_precond}
-
-To connect with Chapter~\ref{chapter:reconstruction}, we rewrite \eqref{eq:rl_update} as an additive scaled-gradient step. The gradient of the Poisson negative log-likelihood \eqref{eq:deconv_nll} (with $b=0$) is
-\begin{equation}
-    \nabla_x \mathcal{D}(x)
-    =
-    C^{\mathsf T}\!\left(
-        \mathbf{1} - y \oslash (Cx)
-    \right).
-    \label{eq:deconv_nll_grad}
-\end{equation}
-Using the same rearrangement as for \glsentryshort{mlem} in Chapter~\ref{chapter:reconstruction}, and again using $C^{\mathsf T}\mathbf{1}\approx\mathbf{1}$, we obtain
-\begin{equation}
-    x^{(k+1)}
-    =
-    x^{(k)}\odot\left(\mathbf{1}
-    -
-    \nabla_x\mathcal{D}(x^{(k)})\right).
-    \label{eq:deconv_scaled_grad}
-\end{equation}
-This corresponds to an EM-type diagonal preconditioner analogous to $\mathcal{P}_{\mathcal D}^{(k)}=\operatorname{diag}(x^{(k)}/(A^{\mathsf T}\mathbf{1}))$ in the full reconstruction problem.
+In the scaled-gradient form of Section~\ref{sec:optimisation}, this is a unit step with the \glsentryshort{em} preconditioner $\mathcal{P}_{\mathcal D}^{(k)}=\operatorname{diag}(x^{(k)})$. As with \glsentryshort{mlem}, unregularised \gls{rl} amplifies noise as iterations increase and relies on early stopping.
 
 \section{Kernelised Richardson--Lucy deconvolution}
 \label{sec:deconv_krl}
 
-The kernel image model $x=K\alpha$ was introduced in Equation~\eqref{eq:kernel1} as an implicit regularisation strategy in which prior information enters through the image representation rather than through an explicit penalty \cite{wangPETImageReconstruction2015,hutchcroftAnatomicallyaidedPETReconstruction2016}. The same model can be applied to image-domain deconvolution.
-
-\subsection{Kernel image model}
-\label{sec:deconv_kernel_model}
-
-Let $u$ be a co-registered anatomical guidance image (\gls{mr} or \gls{ct}), resampled to the \gls{pet} grid. We represent
-\begin{equation}
-    x = K\alpha,
-    \qquad
-    \alpha\in\mathbb{R}^J_+,
-    \qquad
-    K\in\mathbb{R}_+^{J\times J},
-    \label{eq:deconv_kernel_x}
-\end{equation}
-where $K$ is a sparse, row-normalised kernel matrix constructed from features extracted from $u$ (and optionally spatial coordinates), as in Chapter~\ref{chapter:reconstruction}. Row normalisation ($K\mathbf{1}=\mathbf{1}$) ensures that constant coefficient images are mapped to constant activity images, preventing arbitrary local rescaling.
-
-Substituting into \eqref{eq:deconv_forward_model} gives the kernelised forward model
-\begin{equation}
-    \bar y(\alpha) = C(K\alpha)+b.
-    \label{eq:deconv_kernel_forward}
-\end{equation}
-
-\subsection{\gls{krl} update}
-\label{sec:deconv_krl_update}
-
-Maximising the Poisson likelihood with respect to $\alpha$ under \eqref{eq:deconv_kernel_forward} yields an EM-type multiplicative update:
+\gls{krl} applies the kernel image model $x=K\alpha$ of \eqref{eq:kernel1} to deconvolution, with $K$ the sparse, row-normalised kernel matrix built from features of $u$ as in Chapter~\ref{chapter:reconstruction} \cite{wangPETImageReconstruction2015,hutchcroftAnatomicallyaidedPETReconstruction2016}. The forward model becomes $\bar y(\alpha)=CK\alpha+b$, and the corresponding \glsentryshort{em} update, again given for ease of reading, is
 \begin{equation}
     \alpha^{(k+1)}
     =
@@ -137,24 +61,14 @@ Maximising the Poisson likelihood with respect to $\alpha$ under \eqref{eq:decon
     x^{(k+1)} = K\alpha^{(k+1)}.
     \label{eq:krl_update}
 \end{equation}
-The denominator can be precomputed once, and the update preserves non-negativity given $\alpha^{(0)}\ge 0$. Under the same unit-sensitivity approximation used for vanilla \gls{rl}, $C^{\mathsf T}\mathbf{1}\approx\mathbf{1}$, the denominator reduces to $K^{\mathsf T}\mathbf{1}$. This term is generally not equal to $\mathbf{1}$ and cannot be ignored.
+The denominator can be precomputed once, and the update preserves non-negativity given $\alpha^{(0)}\ge 0$. Under the unit-sensitivity approximation the denominator reduces to $K^{\mathsf T}\mathbf{1}$, which, unlike $C^{\mathsf T}\mathbf{1}$, is generally not close to $\mathbf{1}$ and cannot be ignored.
 
-\subsection{Hybrid \gls{krl} (\gls{hkrl})}
-\label{sec:deconv_hkrl}
-
-A known limitation of purely anatomy-derived kernels is suppression of \gls{pet}-unique structures when they are not supported by the guidance image \cite{deiddaHybridPETMR2019}. Hybrid kernels mitigate this by incorporating features derived from the evolving \gls{pet} estimate \cite{deiddaHybridPETMR2019}.
-
-Because iteration-dependent kernels can propagate noise back into the coupling structure at late iterations, we adopt a frozen-kernel strategy consistent with the motivation in \gls{hkem}, freezing after 5 iterations (although this proved to be unnecessary for the sphere phantom as the best iteration was usually before this point).
+\gls{hkrl} replaces $K$ with the \gls{hkem} hybrid kernel of Chapter~\ref{chapter:reconstruction}, which adds features from the evolving \gls{pet} estimate to reduce suppression of \gls{pet}-unique structures \cite{deiddaHybridPETMR2019}. Because iteration-dependent kernels can feed noise back into the coupling at late iterations, we freeze the kernel after 5 iterations; for the sphere phantom this proved unnecessary, as the best iteration was usually reached earlier.
 
 \section{Directional-TV regularised RL deconvolution}
 \label{sec:deconv_dtv}
 
-\acrfull{dtv} was introduced in Chapter~\ref{chapter:reconstruction} as an anatomically guided regulariser that promotes edge alignment between the emission image and a structural guidance image \cite{ehrhardtPETReconstructionAnatomical2016}. Here we use \gls{dtv} as an explicit penalty for deconvolution.
-
-\subsection{Penalised objective and update}
-\label{sec:deconv_dtv_update}
-
-The penalised-likelihood deconvolution objective is
+\gls{rldtv} uses the \gls{dtv} prior \eqref{eq:dtv_defn} \cite{ehrhardtPETReconstructionAnatomical2016} as an explicit penalty, with the direction field \eqref{eq:xi} computed from $u$. The penalised deconvolution objective is
 \begin{equation}
     \hat x
     \in
@@ -162,11 +76,9 @@ The penalised-likelihood deconvolution objective is
     \left\{
         \mathcal{D}(x) + \beta \widetilde{\mathcal{R}}_{\mathrm{dTV}}(x;u)
     \right\},
-    \qquad
-    \mathcal{D}(x)=\sum_{j}\left((Cx+b)_j-y_j\log(Cx+b)_j\right).
     \label{eq:deconv_map_dtv}
 \end{equation}
-$\widetilde{\mathcal{R}}_{\mathrm{dTV}}$ is a Charbonnier-smoothed \gls{dtv} penalty. A natural baseline solver extends Equation~\ref{eq:deconv_scaled_grad},
+where $\widetilde{\mathcal{R}}_{\mathrm{dTV}}$ is smoothed in the same way as $\widetilde{\mathcal{R}}_{\mathrm{TV}}$ in Chapter~\ref{chapter:reconstruction}. A natural baseline solver adds the prior gradient to the \glsentryshort{em}-preconditioned step of Section~\ref{sec:deconv_rl},
 \begin{equation}
     x^{(k+1)}
     =
@@ -180,9 +92,9 @@ $\widetilde{\mathcal{R}}_{\mathrm{dTV}}$ is a Charbonnier-smoothed \gls{dtv} pen
     \right\}_{\geq 0},
     \label{eq:rldtv_update}
 \end{equation}
-where $\{\}_{\geq0}$ denotes projection onto non-negativity. This update is the image-domain analogue of the scaled-gradient \gls{map} schemes discussed in Chapter~\ref{chapter:reconstruction}, but without subsets.
+where $\{\}_{\geq0}$ denotes projection onto non-negativity.
 
-In contrast to kernelised \gls{rl} variants, \gls{rldtv} is typically numerically stable once $\beta$ is chosen, and the data-plus-prior part $\mathcal F$ in \eqref{eq:deconv_map_dtv} is smooth, with simple bound constraints. This makes it well suited to a quasi-Newton solver: in the experiments of this chapter we therefore accelerate convergence by optimising \eqref{eq:deconv_map_dtv} with the L-BFGS-B algorithm reviewed in Section~\ref{sec:optimisation}, using bound constraints to enforce non-negativity. In this setting, L-BFGS-B replaces the hand-tuned step-size sequence $\{\varsigma^{(k)}\}$ by an automatic line search and curvature-informed scaling, often reaching a stationary point of \eqref{eq:deconv_map_dtv} in substantially fewer iterations than the scaled-gradient \gls{rldtv} update \eqref{eq:rldtv_update}.
+Because \eqref{eq:deconv_map_dtv} is smooth with simple bound constraints, the experiments instead optimise it with L-BFGS-B (Section~\ref{sec:optimisation}). This replaces the hand-tuned step sizes $\{\varsigma^{(k)}\}$ with a line search and curvature-informed scaling, and typically reaches a stationary point in far fewer iterations than \eqref{eq:rldtv_update}.
 
 For \gls{rl} and \gls{krl}/\gls{hkrl}, early stopping is essential and is treated as part of the regularisation. In experiments we report results across iteration counts and select a stopping point based on \gls{nrmse} (Equation~\ref{eq:nrmse_krl}) for the phantom and qualitative assessment for the brain example. For \gls{rldtv}, iteration sensitivity is reduced, but a stopping point is still selected to avoid unnecessary computation once the relative objective decrease satisfies
 \begin{equation}
@@ -194,7 +106,7 @@ For \gls{rl} and \gls{krl}/\gls{hkrl}, early stopping is essential and is treate
     }
     \leq f_{\mathrm{tol}}.
 \end{equation}
-Here $\mathcal F(x)=\mathcal D(x)+\beta \widetilde{\mathcal{R}}_{\mathrm{dTV}}(x;u)$ and $\mathcal O(x)=\mathcal F(x)+\iota_{\mathcal C}(x)$. The iterates lie in $\mathcal C=\mathbb R_+^J$, so the indicator is zero and the stopping criterion uses the finite data-plus-prior values. Here $f_{\mathrm{tol}}$ is chosen to be $10^{-6}\epsilon_{\mathrm{mach}}$. SciPy's \texttt{minimize(..., method='L-BFGS-B')} option calls this parameter \texttt{ftol}; the lower-level \texttt{fmin\_l\_bfgs\_b} interface exposes the equivalent \texttt{factr} relation $f_{\mathrm{tol}}=\texttt{factr}\,\epsilon_{\mathrm{mach}}$.
+Here $\mathcal O$ is the constrained objective of Section~\ref{sec:recon_basics} with $\mathcal R=\widetilde{\mathcal{R}}_{\mathrm{dTV}}$; the iterates are feasible, so it equals the finite data-plus-prior value. We set $f_{\mathrm{tol}}=10^{-6}\epsilon_{\mathrm{mach}}$ (SciPy's \texttt{ftol}, equivalently $\texttt{factr}=f_{\mathrm{tol}}/\epsilon_{\mathrm{mach}}$).
 
 \section{Data and experimental setup} \label{sec:deconv_data}
 Two datasets are used to characterise behaviour under controlled and realistic conditions.
@@ -218,8 +130,6 @@ Two datasets are used to characterise behaviour under controlled and realistic c
     \caption{Left, reconstructed $\tau$-\gls{pet} brain, right registered \glsentryshort{mri} guidance image. Units are arbitrary.}
     \label{fig:brain_overview}
 \end{figure}
-
-In both cases, the anatomical image $u$ is registered to the \gls{pet} grid and resampled to the reconstruction voxel size. The registered anatomical image is used either to define the kernel $K$ (\gls{krl}/\gls{hkrl}) or the directional field $\{\xi_j\}$ (\gls{rldtv}).
 
 To obtain a controlled test case with known truth while retaining a realistic resolution/noise regime, the sphere dataset is simulated from a digital activity distribution by forward projecting with an isotropic Gaussian resolution model of $\mathrm{FWHM}=\SI{6}{\milli\metre}$ embedded in the forward projector, adding Poisson noise to the resulting sinograms, and then reconstructing using an operator without additional blurring. This deliberately introduces a resolution-modelling mismatch between simulation and reconstruction. The deconvolution operator used in the subsequent image-domain correction was the same $\SI{6}{\milli\metre}$ Gaussian model, implemented with the same boundary handling as the simulation blur.
 
