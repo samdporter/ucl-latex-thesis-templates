@@ -24,7 +24,7 @@ The \gls{shkem} method of Deidda \textit{et al.} improves lesion contrast by rec
 
 We use the joint MAP framework introduced in Section~\ref{subsec:synergistic_recon}. For the present application we set $M=2$ modalities, with $m=1$ denoting PET and $m=2$ denoting SPECT\@. Let $z_m\in\mathbb{R}_+^{N}$ denote the image for modality $m$ represented on a shared grid and let $y_m\in\mathbb{N}^{I_m}$ denote the corresponding projection data.
 
-The native image grid for modality $m$ may differ from the shared grid. Let $W_m:\mathbb{R}_+^{J_m}\to\mathbb{R}_+^{N}$ denote the discrete resampling operator from the native grid to the shared grid, and let $W_m^\ast:\mathbb{R}_+^{N}\to\mathbb{R}_+^{J_m}$ denote its discrete adjoint. The adjoint maps shared-grid variables back to the native grid before application of the system matrix. For each modality we therefore use the affine Poisson model
+With $W_m:\mathbb{R}_+^{J_m}\to\mathbb{R}_+^{N}$ denoting native-to-shared-grid resampling, its discrete adjoint $W_m^\ast$ maps $z_m$ to the native projector grid. The affine Poisson model is
 \begin{equation}
 \bar y_m(z_m) = A_m W_m^\ast z_m + b_m,
 \end{equation}
@@ -42,11 +42,7 @@ The joint objective is
 \right\},
 \label{eq:90y_joint_obj}
 \end{equation}
-where $\mathcal{D}_m$ is the Poisson negative log-likelihood (up to an additive constant),
-\begin{equation}
-\mathcal{D}_m(y_m\mid \bar y_m)=\sum_{i=1}^{I_m}\left((\bar y_m)_i - (y_m)_i\log (\bar y_m)_i\right),
-\end{equation}
-and $\widetilde{\mathcal{R}}$ is the coupled prior. Throughout this thesis, a tilde on a TV- or TNV-type regularisation functional denotes its smoothed version. Thus $\widetilde{\mathcal{R}}$ is the smoothed $w$-$d$TNV prior $\widetilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}$ defined in Section~\ref{sec:wdtnv} (Chapter~\ref{chapter:wdtnv}). The overall regularisation strength is carried by the modality weights introduced below, so no separate global scalar prior multiplier is used in the implementation.
+where $\mathcal{D}_m$ is the modality-specific Poisson negative log-likelihood (up to an additive constant) defined in Section~\ref{sec:recon_basics}, and $\widetilde{\mathcal{R}}=\widetilde{\mathcal{R}}_{\mathrm{w\text{-}dTNV}}$ is the smoothed prior from Section~\ref{sec:wdtnv}. Its strength is carried by the modality weights introduced below, with no separate global scalar multiplier.
 
 \subsection{Multi-Bed \gls{pet} Acquisition}
 \label{sec:multibed}
@@ -140,7 +136,7 @@ Weights are computed from early-stopped unregularised reconstructions represente
 \qquad m\in\{1,2\},
 \label{eq:90y_rhom_def}
 \end{equation}
-where $q_p(\cdot|_{\Omega'})$ denotes the $p$-quantile (so $q_{0.01}$ and $q_{0.99}$ are the 1st and 99th percentiles) over voxels in $\Omega'$, and $\beta_m$ are user-controlled regularisation weights used for operating-point selection (Section~\ref{subsec:90y_hyperparams}). Thus $\beta_m$ is the chosen modality-specific regularisation setting, whereas $\rho_m$ is the resulting weight applied to the modality gradient after intensity normalisation. Here $\rho_{m,n}=\rho_m$ for every voxel $n$. The regularisation settings enter the prior through these weights, so the objective uses no additional global multiplier $\beta$. Percentile scaling provides a robust dynamic-range estimate and reduces sensitivity to outliers. This matches the intent of Section~\ref{subsec:modality_weighting} while avoiding an additional spatially varying weight for this investigation \cite{tsaiBenefitsUsingSpatiallyVariant2020}.
+where $q_p(\cdot|_{\Omega'})$ denotes the $p$-quantile over voxels in $\Omega'$, and $\beta_m$ are user-controlled modality regularisation settings used for operating-point selection (Section~\ref{subsec:90y_hyperparams}). Percentile scaling provides a robust dynamic-range estimate and reduces sensitivity to outliers; spatially varying weights were not investigated \cite{tsaiBenefitsUsingSpatiallyVariant2020}.
 
 \subsection{Directional finite-difference operator for PET/SPECT coupling}
 \label{subsec:90y_directional_stencil}
@@ -229,7 +225,7 @@ All reconstructions were implemented in the \acrfull{sirf} \cite{ovtchinnikovSIR
 
 PET list-mode data were processed using the vendor toolchains to generate normalisation, attenuation, and additive corrections (randoms and scatter), which were held fixed during reconstruction \cite{stearnsRandomCoincidenceEstimation2003, iatrou3DImplementationScatter2006}. Reconstructions use a voxel size of $3.27\times 2.13\times 2.13~\mathrm{mm}^3$ (z,y,x) on a grid of $83\times 255\times 255$.
 
-Patient PET data were acquired across two partially overlapping bed positions. For all methods, these bed positions were reconstructed jointly in a single combined-bed image space, with separate forward- and back-projections for each bed position; for the variational methods, the image-domain prior is evaluated over the combined volume. This uses the multi-bed formulation in Section~\ref{sec:multibed}. It permits one edge-preserving prior to act over the combined field of view and was motivated by the qualitative overlap comparison in Figure~\ref{fig:optim_multibed_qualitative}. Bed positions overlapped by 11 voxels. Phantom PET data were reconstructed using a single bed position.
+For all methods, patient PET data from the two bed positions were reconstructed jointly using the formulation in Section~\ref{sec:multibed}, with separate forward- and back-projections for each bed and an 11-voxel overlap. Phantom PET data used a single bed position.
 
 Projection data are partitioned into staggered, view-interleaved subsets. For SHKEM we use $N_{\mathrm{PET}}=9$ PET subsets, following the comparator study. For SVRG-based reconstructions we use 18 PET subsets for phantom data and 18 subsets per PET bed position for clinical data, giving 36 PET subsets in total for two-bed patient reconstructions.
 
