@@ -256,7 +256,7 @@ The same equivalence holds for the matrix rule,
     \left(\mathcal{P}_{\mathcal D}^{-1}+\mathcal{P}_{\widetilde{\mathcal R}}^{-1}\right)^{-1}.
     \label{eq:lehmer_parallel_equivalence}
 \end{equation}
-For fixed data and prior preconditioners, $f_p(t)$ is non-decreasing with $p$ for every $t>0$ (and unchanged when $t=1$). Increasing $p$ therefore gives less conservative scaling in the data-normalised coordinates defined by $T$. It can also change the update direction, so it does not guarantee a larger image-space step or faster convergence.
+For fixed data and prior preconditioners, $f_p(t)$ is non-decreasing with $p$ for every $t>0$ (and unchanged when $t=1$). Increasing $p$ therefore gives less conservative scaling in the data-normalised coordinates defined by $T$.
 \SA{This is quite interesting but it is hard to follow. If I am right $f_0(t) = \frac{2 t}{t+1}$. I don't see what that is the sames as "inverse sum". Why not show some graphs of $f_p(t)$ for different $p$ ? This could be in an appendix as well.} 
 
 \subsection{Implementation Details}
@@ -392,7 +392,7 @@ For \gls{spect}, all three trajectories remain bounded, the block and diagonal m
 \subsection{Lehmer Order}
 \label{subsec:optimisation_lehmer_results}
 
-The final experiment asks whether changing the combination rule improves the trajectories. It keeps the Lewis--Sendov block model, modality-separated subsets and folded prior schedule fixed, and varies only the Lehmer order through $p=0$, $p=0.01$ and $p=0.1$. It uses the common evaluation protocol and initial step $\varsigma^{(0)}=1$.
+The final experiment investigates whether changing the combination rule improves the trajectories. It keeps the Lewis--Sendov block model, modality-separated subsets and folded prior schedule fixed, and varies only the Lehmer order through $p=0$, $p=0.01$ and $p=0.1$. It uses the common evaluation protocol and initial step $\varsigma^{(0)}=1$.
 
 \begin{figure}[htbp]
     \centering
@@ -415,14 +415,14 @@ Changing $p$ also changes the effective step scale. The factor $\tfrac12$ is cal
 \section{Discussion}
 \label{sec:optimisation_discussion}
 
-The block and diagonal models behaved similarly. Two mechanisms plausibly limit the benefit of retaining the within-voxel coupling. First, cross-modal curvature is appreciable only where both modalities carry non-negligible local gradients, which may be a small fraction of a volumetric \gls{voi}. Second, wherever the data curvature dominates the inverse sum~\eqref{eq:parallel_sum_combination}, differences between prior models are attenuated. Neither effect was measured.
+The block and diagonal models for the preconditioners behaved similarly. Two mechanisms plausibly limit the benefit of retaining the within-voxel coupling. First, cross-modal curvature is appreciable only where both modalities carry non-negligible local gradients, which may be a small fraction of a volumetric \gls{voi}. Second, wherever the data curvature dominates the inverse sum~\eqref{eq:parallel_sum_combination}, differences between prior models are attenuated. Neither effect was measured.
 
 The modality dependence in Figure~\ref{fig:optim_preconditioners} plausibly reflects the balance between data and prior curvature. The modality weights $\rho_{m,n}$ were chosen in Chapter~\ref{chapter:wdtnv} to balance the gradients entering the nuclear norm, independently of the modality sensitivities, so the prior/data curvature ratio can differ between \gls{pet} and \gls{spect}. A separate modality scaling of the prior curvature in the preconditioner would change the optimisation metric without changing the objective; it was not investigated here.
 
 \section{Conclusion}
 \label{sec:optimisation_conclusion}
 
-In the single-bed phantom subset experiment, all schedules used the same smooth objective and an unbiased uniform-sampling \gls{svrg} estimator. We rescaled the relaxation rate from the folded, modality-separated setting $\eta_{\mathrm{relax}}=0.002$, giving every configuration the same step size at a given expected data pass. On that expected data-exposure axis, the folded schedules reduced \gls{nrmse} over 20 expected data passes and the intermittent schedules did not. Since the total update counts differ, this comparison does not establish a wall-clock or compute-efficiency advantage.
+In this single-bed phantom subset experiment, all schedules used the same smooth objective and an unbiased uniform-sampling \gls{svrg} estimator. We rescaled the relaxation rate from the folded, modality-separated setting $\eta_{\mathrm{relax}}=0.002$, giving every configuration the same step size at a given expected data pass. On that expected data-exposure axis, the folded schedules reduced \gls{nrmse} over 20 expected data passes and the intermittent schedules did not. Since the total update counts differ, this comparison does not establish a wall-clock or compute-efficiency advantage.
 
 Prior-aware preconditioning kept count-limited \gls{pet} bounded over the same 20-pass interval, where data-only \gls{bsrem} diverged; for \gls{spect}, data-only scaling remained competitive. Retaining the within-voxel \gls{pet}/\gls{spect} curvature gave modest \gls{pet} gains over the diagonal model. The Lehmer order $p=0.01$ gave similarly modest \gls{pet} gains over the inverse sum, whereas $p=0.1$ was clearly worse. Chapter~\ref{chapter:paper} uses the block model with $p=0.01$.
 

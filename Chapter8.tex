@@ -51,7 +51,7 @@ and $\widetilde{\mathcal{R}}$ is the coupled prior. Throughout this thesis, a ti
 \subsection{Multi-Bed \gls{pet} Acquisition}
 \label{sec:multibed}
 
-The patient acquisitions in this chapter use two partially overlapping \gls{pet} bed positions to extend the axial coverage beyond a single field of view. Structures of interest can therefore extend into the low-sensitivity edge of an individual bed, while two beds contribute measurements of the shared anatomy in their overlap. A coupled edge-preserving prior ideally should act on one activity field spanning the whole acquisition, rather than on images divided by scanner bed boundaries.
+The patient acquisitions in this chapter use two partially overlapping \gls{pet} bed positions to extend the axial coverage beyond a single field of view. Structures of interest can therefore extend into the low-sensitivity edge of an individual bed, while two beds contribute measurements of the shared anatomy in their overlap. A \gls{pet}/\gls{spect} coupled edge-preserving prior ideally should act on one activity field spanning the whole acquisition, rather than on images divided by scanner bed boundaries.
 
 \subsubsection{Why Not Stitch Independent Reconstructions?}
 \label{subsec:stitching_failure}
@@ -629,7 +629,7 @@ More broadly, this chapter focuses on the favourable case in which PET and SPECT
 \section{Conclusion}
 \label{sec:90y_conclusion}
 
-This chapter validated the $w$-$d$TNV prior of Chapter~\ref{chapter:wdtnv} in joint $^{90}$Y PET/SPECT reconstruction with CTAC-derived directional guidance. The single-bed optimisation framework of Chapter~\ref{chapter:optimisation} was extended to reconstruct the patient PET bed positions jointly, allowing the prior to act across the combined field of view. The key modelling choice is to use CTAC information directionally while preserving a two-modality Jacobian and avoiding unstable intensity coupling to CT.
+This chapter evaluated the $w$-$d$TNV prior of Chapter~\ref{chapter:wdtnv} in joint $^{90}$Y PET/SPECT reconstruction with CTAC-derived directional guidance. The single-bed optimisation framework of Chapter~\ref{chapter:optimisation} was extended to reconstruct the patient PET bed positions jointly, allowing the prior to act across the combined field of view. The key modelling choice is to use CTAC information directionally while preserving a two-modality Jacobian and avoiding unstable intensity coupling to CT.
 
 On a bootstrapped NEMA IEC phantom, \wdtnv improves small-object recovery relative to \wtnv, \dtv, and a sequential hybrid kernel baseline at a matched noise operating point, with significant gains over the isotropic and non-synergistic variational baselines. Repeatability is better than SHKEM in the background and high-count regions, although lower than for the more strongly smoothing variational baselines. In the post-SIRT cohort of 45 lesions across nine patients, \wdtnv yields significantly higher lesion TBR than the comparators at approximately matched background CoV.
 
