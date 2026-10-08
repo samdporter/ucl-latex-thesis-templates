@@ -106,7 +106,7 @@ For \gls{rl} and \gls{krl}/\gls{hkrl}, early stopping is essential and is treate
     }
     \leq f_{\mathrm{tol}}.
 \end{equation}
-Here $\mathcal O$ is the constrained objective of Section~\ref{sec:recon_basics} with $\mathcal R=\widetilde{\mathcal{R}}_{\mathrm{dTV}}$; the iterates are feasible, so it equals the finite data-plus-prior value. We use SciPy's default $f_{\mathrm{tol}}=10^{7}\epsilon_{\mathrm{mach}}\approx2.2\times10^{-9}$ (\texttt{ftol}, equivalently $\texttt{factr}=f_{\mathrm{tol}}/\epsilon_{\mathrm{mach}}=10^{7}$).
+Here $\mathcal O$ is the constrained objective of Section~\ref{sec:recon_basics} with $\mathcal R=\widetilde{\mathcal{R}}_{\mathrm{dTV}}$; the iterates are feasible, so it equals the finite data-plus-prior value. We use SciPy's default $f_{\mathrm{tol}}=10^{7}\epsilon_{\mathrm{mach}}\approx2.2\times10^{-9}$.
 
 \section{Data and experimental setup} \label{sec:deconv_data}
 Two datasets are used to characterise behaviour under controlled and realistic conditions.
