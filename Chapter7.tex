@@ -369,7 +369,7 @@ Figure~\ref{fig:optim_subset_organisation} separates the six configurations main
 
 All three schedules give the same prior update on average. Folded scheduling applies it at every update, whereas the other schedules apply larger updates less frequently. These intermittent  updates may contribute to the poorer behaviour observed here, although the experiment also changes how data components are sampled.
 
-The step size was matched at each expected data pass, so different relaxation rates do not explain the result. 
+The step size was matched at each expected data pass, so different relaxation rates do not explain the result. All schedules also share the objective, estimator, preconditioner and initialisation, and each draws $S$ data components per expected data pass on average. The remaining differences follow from where the prior enters the component list. For the folded, prior/half and once-per-epoch schedules respectively, an expected data pass contains on average $S$, $2S$ and $S+1$ updates (Table~\ref{tab:subset_update_counts}), of which $S$, $S$ and one evaluate the prior gradient, and each sampled correction is scaled by $L=S$, $2S$ and $S+1$.
 
 \subsection{Block versus Diagonal Preconditioning}
 \label{subsec:optimisation_block_vs_diag}
@@ -427,10 +427,12 @@ The final experiment investigates whether changing the combination rule improves
 
 In Figure~\ref{fig:optim_lehmer_parallel}, the order $p=0.1$ is clearly worse than the inverse sum ($p=0$) in every region of both modalities. The order $p=0.01$ is close to the inverse sum. For \gls{pet} it is as good or marginally better in every region, including the hot sphere, and avoids the transient whole-image increase near pass 14, although it shows a smaller one near pass 8. For \gls{spect} it is slightly worse in the hot and cold spheres and slightly better in the liver.
 
-Changing $p$ also changes the effective step scale. The factor $\tfrac12$ is calibrated at $p=0$; for eigenvalues of $T$ of order $10^2$, $p=0.01$ increases the spectral factor by roughly two per cent relative to the inverse sum, rising to a few per cent at $10^3$. A fixed-$\varsigma^{(0)}$ sweep therefore mixes the effect of the Lehmer order with a modest step-size change. Since $p=0.01$ was as good as or marginally better than the inverse sum for \gls{pet}, including the hot sphere, it was retained for Chapter~\ref{chapter:paper}.
+Changing $p$ also changes the effective step scale. The factor $\tfrac12$ is calibrated at $p=0$; for eigenvalues of $T$ of order $10^2$, $p=0.01$ increases the spectral factor by roughly two per cent relative to the inverse sum, rising to a few per cent at $10^3$. A fixed-$\varsigma^{(0)}$ sweep therefore mixes the effect of the Lehmer order with a modest step-size change.
 
 \section{Discussion}
 \label{sec:optimisation_discussion}
+
+With step size matched at each expected data pass, the folded schedules reduced \gls{nrmse} over 20 expected data passes and the intermittent schedules did not. A plausible contributor is the variance of the prior correction $\nabla\widetilde{\mathcal R}(\bm z^{(k)})-\nabla\widetilde{\mathcal R}(\widetilde{\bm z})$. The folded estimator applies it with weight one at every update, whereas the intermittent estimators apply it with weight $0$ or $2$ (prior/half) and $0$ or $S+1$ (once per epoch). The mean is the same, but only the folded schedule applies it without sampling noise; the larger $L$ also inflates the data correction in the intermittent schedules. Neither effect was isolated experimentally. Since the total update counts differ, the comparison does not establish a wall-clock or compute-efficiency advantage.
 
 The block and diagonal models for the preconditioners behaved similarly. Two mechanisms plausibly limit the benefit of retaining the within-voxel coupling. First, cross-modal curvature is appreciable only where both modalities carry non-negligible local gradients, which may be a small fraction of a volumetric \gls{voi}. Second, wherever the data curvature dominates the inverse sum~\eqref{eq:parallel_sum_combination}, differences between prior models are attenuated. Neither effect was measured.
 
@@ -439,9 +441,9 @@ The modality dependence in Figure~\ref{fig:optim_preconditioners} plausibly refl
 \section{Conclusion}
 \label{sec:optimisation_conclusion}
 
-In this single-bed phantom subset experiment, all schedules used the same smooth objective and an unbiased uniform-sampling \gls{svrg} estimator. We rescaled the relaxation rate from the folded, modality-separated setting $\eta_{\mathrm{relax}}=0.002$, giving every configuration the same step size at a given expected data pass. On that expected data-exposure axis, the folded schedules reduced \gls{nrmse} over 20 expected data passes and the intermittent schedules did not. Since the total update counts differ, this comparison does not establish a wall-clock or compute-efficiency advantage.
+Of the three prior schedules, only folded scheduling reduced \gls{nrmse} over 20 expected data passes; it was used for the remaining experiments and in Chapter~\ref{chapter:paper}.
 
-Prior-aware preconditioning kept count-limited \gls{pet} bounded over the same 20-pass interval, where data-only \gls{bsrem} fails to decrease the distance with the converged image within 20 passes; for \gls{spect}, data-only scaling remained competitive. Retaining the within-voxel \gls{pet}/\gls{spect} curvature gave modest \gls{pet} gains over the diagonal model. The Lehmer order $p=0.01$ gave similarly modest \gls{pet} gains over the inverse sum, whereas $p=0.1$ was clearly worse. The block model's modest \gls{pet} gains led to its use in Chapter~\ref{chapter:paper} with $p=0.01$.
+Prior-aware preconditioning kept count-limited \gls{pet} bounded over the same 20-pass interval, where data-only \gls{bsrem} fails to decrease the distance with the converged image within 20 passes; for \gls{spect}, data-only scaling remained competitive. Retaining the within-voxel \gls{pet}/\gls{spect} curvature gave modest \gls{pet} gains over the diagonal model. The Lehmer order $p=0.01$ was as good as or marginally better than the inverse sum in every \gls{pet} region, including the hot sphere, whereas $p=0.1$ was clearly worse. On the strength of these \gls{pet} gains, Chapter~\ref{chapter:paper} uses the block model with $p=0.01$.
 
 These single-bed experiments used rigid registration. Chapter~\ref{chapter:paper} extends the shared-grid formulation to two overlapping \gls{pet} bed positions and deformable patient registration.
 
