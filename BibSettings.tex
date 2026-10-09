@@ -1,1 +1,10 @@
 % Bibliography style and sorting are configured through biblatex in Main.tex.
+
+% Zotero exports a language code (en, eng, English) that biblatex would otherwise print in every entry.
+\DeclareSourcemap{
+  \maps[datatype=bibtex]{
+    \map{
+      \step[fieldset=language, null]
+    }
+  }
+}

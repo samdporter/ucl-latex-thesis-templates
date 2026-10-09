@@ -1,23 +1,4 @@
 
-@article{fuster_integration_2013,
-	title = {Integration of advanced {3D} {SPECT} modeling into the open-source {STIR} framework},
-	volume = {40},
-	issn = {2473-4209},
-	doi = {10.1118/1.4816676},
-	abstract = {PURPOSE: The Software for Tomographic Image Reconstruction (STIR, http://stir.sourceforge.net) package is an open source object-oriented library implemented in C++. Although its modular design is suitable for reconstructing data from several modalities, it currently only supports Positron Emission Tomography (PET) data. In this work, the authors present results for Single Photon Emission Computed Tomography (SPECT) imaging.
-METHODS: This was achieved by the complete integration of a 3D SPECT system matrix modeling library into STIR.
-RESULTS: The authors demonstrate the flexibility of the combined software by reconstructing simulated and acquired projections from three different scanners with different iterative algorithms of STIR.
-CONCLUSIONS: The extension of the open source STIR project with advanced SPECT modeling will enable the research community to study the performance of several algorithms on SPECT data, and potentially implement new algorithms by expanding the existing framework.},
-	language = {eng},
-	number = {9},
-	journal = {Medical Physics},
-	author = {Fuster, Berta Marti and Falcon, Carles and Tsoumpas, Charalampos and Livieratos, Lefteris and Aguiar, Pablo and Cot, Albert and Ros, Domenec and Thielemans, Kris},
-	month = sep,
-	year = {2013},
-	keywords = {Imaging, Three-Dimensional, Models, Theoretical, Phantoms, Imaging, Software, Tomography, Emission-Computed, Single-Photon},
-	pages = {092502},
-}
-
 @misc{noauthor_integration_nodate,
 	title = {Integration of advanced {3D} {SPECT} modeling into the open‐source {STIR} framework - {Fuster} - 2013 - {Medical} {Physics} - {Wiley} {Online} {Library}},
 	url = {https://aapm.onlinelibrary.wiley.com/doi/10.1118/1.4816676},
@@ -109,14 +90,13 @@ CONCLUSION: The 2022 national re-audit confirmed improvements in radiology diagn
 	pages = {1069--1076},
 }
 
-@inproceedings{fessler_image_2017,
-	title = {Image {Reconstruction} : {Algorithms} and {Analysis} {Draft} !},
-	shorttitle = {Image {Reconstruction}},
-	url = {https://www.semanticscholar.org/paper/Image-Reconstruction-%3A-Algorithms-and-Analysis-!-Fessler/4847c06c0fc46b1ac482957daebc7f2274f4c9e8},
-	abstract = {This book describes the theory and practice of iterative methods for tomographic image reconstruction and related inverse problems such as image restoration. I emphasize methods that are rooted in statistical models for the measurement noise; previous texts have emphasized primarily analytical image reconstruction methods or iterative methods that are based on algebraic principles rather than statistical models. Some of the earliest tomographic images created by Hounsfield [1, 2] for X-ray computed tomography were formed using iterative methods. And even earlier than that, Muehllehner and Wetzel described an iterative method for (4 view) SPECT reconstruction [3]. Around the same time, Kuhl et al. also developed iterative methods for SPECT [4, p. 183] [5]. However, by the mid 1970’s the analytical filter-backproject (FBP) method quickly became the method used exclusively in routine clinical practice for tomographic reconstruction for many years [6, p. 695]. In the late 1990’s, statistical image reconstruction (SIR) methods (of the type described in Chapter 16) were first introduced commercially for reconstructing SPECT and PET images, following many years of academic research demonstrating their benefits. SIR methods soon supplanted the venerable FBP algorithm clinically for PET and SPECT. Full SIR methods for X-ray CT (of the type described in this book) became commercially available in about 2011, motivated primarily by concerns about patient X-ray dose. The enormous computation time of SIR methods for X-ray CT has slowed its adoption and spurred considerable research into acceleration methods. Image reconstruction methods for magnetic resonance imaging (MRI) are poised to undergo a revolution similar to that of PET, SPECT and X-ray CT in the near future. Historically, the exclusive reconstruction method used for clinical MRI has been the inverse fast Fourier transform (FFT). Many factors have increased interest in iterative reconstruction methods for MRI, including the introduction of parallel imaging with multiple coils, problems such as field inhomogeneity and non-Cartesian k-space trajectories, and incomplete sampling, often called compressed sensing [7, 8], particularly in dynamic imaging problems. Therefore, this book also describes MR image reconstruction problems even though the primary considerations in MRI are sampling, not noise statistics. The increasing use of and interest in statistical image reconstruction methods motivated this text. The concepts needed for research and implementation of statistically based iterative reconstruction methods are spread far and wide over the literature, in journals with homes in engineering, mathematics, physics, radiology, and statistics. This book is an attempt to bring together in one place many of the key ingredients. Although focused on PET, SPECT, X-ray CT, and MRI, tomographic reconstruction problems arise in numerous applications, some surprising, such as ecological inference from aggregate data [9, Section 6.2.4], and ionospheric measurements [10]. I had in mind two distinct audiences when writing this book. One audience is the researchers and students involved in developing new methods for image reconstruction. The other audience is the practitioners of medical (and nonmedical) imaging (medical physicists, etc.) who need to use image reconstruction for their work, and would benefit from making informed choices among the many reconstruction methods available. For the first audience, I have included the many mathematical details that one must master before one reaches a point where one can contribute useful new algorithms. The theorems and proofs throughout the text are aimed primarily at this audience. For the benefit of the more applied readers, I try to explain the practical implications of the theory, rather than adopting the traditional mathematical style where the theorems and proofs stand on their own with relatively little explanatory text. In other words, practical readers will find the text too theoretical, and mathematical readers will find the text too verbose. C’est la vie... For the benefit of all readers, I have tried to include explicit algorithms in forms that are very close to their actual implementations. In addition, I provide free software (suitable for use with MATLAB or OCTAVE) that illustrates many of the algorithms described in this book an accompanying web site http://web.eecs.umich.edu/ ̃fessler. Many sections of the book refer to this software. The web site also lists any errata found for this book. The book is designed to be reasonably self contained for readers who have familiarity with the basic principles of tomographic imaging systems. Some background in basic probability is essential for working with statistical methods. The appendices summarize some “well known” useful mathematical and statistical tools that are used in the text. This book is organized into several parts.},
-	urldate = {2026-08-16},
-	author = {Fessler, J.},
+@unpublished{fessler_image_2017,
+	title = {Image {Reconstruction}: {Algorithms} and {Analysis}},
+	url = {https://web.eecs.umich.edu/~fessler/book/},
+	urldate = {2026-07-26},
+	author = {Fessler, Jeffrey A.},
 	year = {2017},
+	note = {Book draft},
 }
 
 @article{byrd_limited_1995,
@@ -149,7 +129,7 @@ CONCLUSION: The 2022 national re-audit confirmed improvements in radiology diagn
 }
 
 @article{richardson_bayesian-based_1972,
-	title = {Bayesian-{Based} {Iterative} {Method} of {Image} {Restoration}*},
+	title = {Bayesian-{Based} {Iterative} {Method} of {Image} {Restoration}},
 	volume = {62},
 	copyright = {https://doi.org/10.1364/OA\_License\_v1\#VOR},
 	issn = {0030-3941},
@@ -275,7 +255,7 @@ CONCLUSION: The 2022 national re-audit confirmed improvements in radiology diagn
 }
 
 @article{bass_colloquium_2023,
-	title = {\textit{{Colloquium}} : {Positronium} physics and biomedical applications},
+	title = {\textit{Colloquium}: {Positronium} physics and biomedical applications},
 	volume = {95},
 	issn = {0034-6861, 1539-0756},
 	shorttitle = {\textit{{Colloquium}}},
@@ -368,7 +348,6 @@ CONCLUSION: The 2022 national re-audit confirmed improvements in radiology diagn
 	author = {Lucy, L. B.},
 	month = jun,
 	year = {1974},
-	note = {ADS Bibcode: 1974AJ.....79..745L},
 	pages = {745},
 }
 
@@ -583,7 +562,6 @@ CONCLUSION: The 2022 national re-audit confirmed improvements in radiology diagn
 	volume = {1},
 	shorttitle = {{SAGA}},
 	abstract = {In this work we introduce a new optimisation method called SAGA in the spirit of SAG, SDCA, MISO and SVRG, a set of recently proposed incremental gradient algorithms with fast linear convergence rates. SAGA improves on the theory behind SAG and SVRG, with better theoretical convergence rates, and has support for composite objectives where a proximal operator is used on the regulariser. Unlike SDCA, SAGA supports non-strongly convex problems directly, and is adaptive to any inherent strong convexity of the problem. We give experimental results showing the effectiveness of our method.},
-	urldate = {2026-07-24},
 	booktitle = {Proceedings of the 28th {International} {Conference} on {Neural} {Information} {Processing} {Systems} - {Volume} 1},
 	publisher = {MIT Press},
 	author = {Defazio, Aaron and Bach, Francis and Lacoste-Julien, Simon},
@@ -686,7 +664,6 @@ CONCLUSION: The 2022 national re-audit confirmed improvements in radiology diagn
 	journal = {Medical Physics},
 	author = {Carney, Jonathan P. J. and Townsend, David W. and Rappoport, Vitaliy and Bendriem, Bernard},
 	year = {2006},
-	note = {\_eprint: https://aapm.onlinelibrary.wiley.com/doi/pdf/10.1118/1.2174132},
 	keywords = {Calibration, Computed radiography, Computed tomography, Image analysis, Image scanners, Lungs, Medical X-ray imaging, Medical image contrast, Medical imaging, Non-ionizing radiation equipment and techniques, Positron emission tomography, Positron emission tomography (PET), Tissues, Water vapor, X-ray tubes, bone, computerised tomography, image reconstruction, image scanners, phantoms, positron emission tomography},
 	pages = {976--983},
 }
@@ -1416,7 +1393,6 @@ Please click on the 'PDF' for the full abstract!},
 	author = {Porter, S. D. and Deidda, D. and Arridge, S. and Thielemans, K.},
 	month = oct,
 	year = {2024},
-	note = {ISSN: 2577-0829},
 	keywords = {Image reconstruction, Microwave integrated circuits, Phantoms, Positron emission tomography, Reconstruction algorithms, Semiconductor detectors, Single photon emission computed tomography},
 	pages = {1--2},
 }
@@ -2055,7 +2031,7 @@ Subject\_term: Machine learning, Computer science, Society},
 	number = {3},
 	urldate = {2026-02-04},
 	journal = {IMA Journal of Applied Mathematics},
-	author = {BROYDEN, C. G.},
+	author = {Broyden, C. G.},
 	month = sep,
 	year = {1970},
 	pages = {222--231},
@@ -2177,7 +2153,7 @@ Subject\_term: Machine learning, Computer science, Society},
 }
 
 @article{kappadathQuantitativeEvaluation90YPET2024,
-	title = {Quantitative {Evaluation} of {90Y}-{PET}/{CT} and {90Y}-{SPECT}/{CT}-based {Dosimetry} following {Yttrium}-90 {Radioembolization}},
+	title = {Quantitative {Evaluation} of {$^{90}$Y}-{PET}/{CT} and {$^{90}$Y}-{SPECT}/{CT}-based {Dosimetry} following {Yttrium}-90 {Radioembolization}},
 	volume = {51},
 	issn = {0094-2405},
 	url = {https://pmc.ncbi.nlm.nih.gov/articles/PMC11731408/},
@@ -2273,7 +2249,6 @@ The strong correlation between Dmean and Dx suggests information from multiple d
 	journal = {Hepatology Communications},
 	author = {Reincke, Marlene and Schultheiss, Michael and Doppler, Michael and Verloh, Niklas and Uller, Wibke and Sturm, Lukas and Thimme, Robert and Goetz, Christian and Bettinger, Dominik},
 	year = {2022},
-	note = {\_eprint: https://onlinelibrary.wiley.com/doi/pdf/10.1002/hep4.2072},
 	pages = {3223--3233},
 }
 
@@ -2669,9 +2644,10 @@ The proposed EW-based BC model was developed for 90Y bremsstrahlung imaging. SPE
 
 @book{cherryPhysicsNuclearMedicine2003,
 	title = {Physics in nuclear medicine},
-	volume = {3},
+	address = {Philadelphia},
+	edition = {3},
 	publisher = {Saunders},
-	author = {Cherry, Simon R. and Sorenson, James A. and Phelps, Michael E. and service), ScienceDirect (Online},
+	author = {Cherry, Simon R. and Sorenson, James A. and Phelps, Michael E.},
 	year = {2003},
 }
 
@@ -2695,7 +2671,6 @@ The proposed EW-based BC model was developed for 90Y bremsstrahlung imaging. SPE
 @inproceedings{johnsonAcceleratingStochasticGradient2013,
 	title = {Accelerating {Stochastic} {Gradient} {Descent} using {Predictive} {Variance} {Reduction}},
 	volume = {26},
-	urldate = {2026-01-12},
 	booktitle = {Advances in {Neural} {Information} {Processing} {Systems}},
 	publisher = {Curran Associates, Inc.},
 	author = {Johnson, Rie and Zhang, Tong},
@@ -3230,12 +3205,13 @@ Program Title: Synergistic Image Reconstruction Framework (SIRF) Program Files D
 @article{angerScintillationCamera1958,
 	title = {Scintillation camera},
 	volume = {29},
+	issn = {0034-6748},
+	doi = {10.1063/1.1715998},
 	number = {1},
-	journal = {Review of scientific instruments},
+	journal = {Review of Scientific Instruments},
 	publisher = {American Institute of Physics},
 	author = {Anger, Hal O.},
 	year = {1958},
-	note = {ISBN: 0034-6748},
 	pages = {27--33},
 }
 
@@ -3413,7 +3389,7 @@ GRADIENT was the most accurate and consistent technique for target volume contou
 }
 
 @article{mikellImpact90YPET2018,
-	title = {Impact of {90Y} {PET} gradient-based tumor segmentation on voxel-level dosimetry in liver radioembolization},
+	title = {Impact of {$^{90}$Y} {PET} gradient-based tumor segmentation on voxel-level dosimetry in liver radioembolization},
 	volume = {5},
 	issn = {2197-7364},
 	url = {https://doi.org/10.1186/s40658-018-0230-y},
@@ -3647,7 +3623,7 @@ Interim analysis found that liver toxicity from 90Y SIRT followed by SBRT was be
 	month = oct,
 	year = {2003},
 	keywords = {Clocks, Computed tomography, Delay estimation, Detectors, Equations, Event detection, Image reconstruction, Photonic crystals, Positron emission tomography, Space vector pulse width modulation},
-	pages = {3067--3069 Vol.5},
+	pages = {3067--3069},
 }
 
 @article{faheyDataAcquisitionPET2002,
@@ -4410,9 +4386,14 @@ Label: Multidisciplinary Digital Publishing Institute},
 	pages = {167--188},
 }
 
-@article{jonssonTotalVariationRegularization1998,
+@techreport{jonssonTotalVariationRegularization1998,
 	title = {Total variation regularization in positron emission tomography},
-	author = {Jonsson, Elias and Huang, Sung-cheng and Chan, Tony},
+	type = {{CAM} {Report}},
+	number = {98-48},
+	institution = {Department of Mathematics, University of California, Los Angeles},
+	url = {https://ww3.math.ucla.edu/camreport/cam98-48.pdf},
+	author = {Jonsson, Elias and Huang, Sung-Cheng and Chan, Tony},
+	month = nov,
 	year = {1998},
 }
 
@@ -7761,11 +7742,11 @@ Issue: 25},
 @article{thielemansSTIRSoftwareTomographic2012a,
 	title = {{STIR}: {Software} for tomographic image reconstruction release 2},
 	volume = {57},
+	number = {4},
 	shorttitle = {{STIR}},
-	url = {https://www.researchgate.net/publication/221791839_STIR_Software_for_tomographic_image_reconstruction_release_2},
 	doi = {10.1088/0031-9155/57/4/867},
 	abstract = {We present a new version of STIR (Software for Tomographic Image Reconstruction), an open source object-oriented library implemented in C++ for 3D positron emission tomography reconstruction. This library has been designed such that it can be used for many algorithms and scanner geometries, while being portable to various computing platforms. This second release enhances its flexibility and modular design and includes additional features such as Compton scatter simulation, an additional iterative reconstruction algorithm and parametric image reconstruction (both indirect and direct). We discuss the new features in this release and present example results. STIR can be downloaded from http://stir.sourceforge.net.},
-	journal = {Physics in medicine and biology},
+	journal = {Physics in Medicine and Biology},
 	author = {Thielemans, Kris and Tsoumpas, Charalampos and Mustafovic, Sanida and Beisel, Tobias and Aguiar, Pablo and Dikaios, Nikolaos and Jacobson, Matthew},
 	year = {2012},
 	pages = {867--883},
@@ -8424,12 +8405,12 @@ Issue: 25},
 	address = {New York, NY},
 	title = {Matrix {Analysis}},
 	volume = {169},
-	isbn = {978-1-4612-6857-4 978-1-4612-0653-8},
-	url = {http://link.springer.com/10.1007/978-1-4612-0653-8},
+	isbn = {978-1-4612-0653-8},
+	doi = {10.1007/978-1-4612-0653-8},
 	publisher = {Springer},
 	author = {Bhatia, Rajendra},
 	year = {1997},
-	note = {Publication Title: Graduate Texts in Mathematics},
+	series = {Graduate {Texts} in {Mathematics}},
 	keywords = {Eigenvalue, Smooth function, algebra, approximation, calculus, exponential function, inequality, linear algebra, matrices, matrix, numerical analysis, operator, operator theory, perturbation, polynomial},
 }
 
@@ -9370,10 +9351,8 @@ Issue: 25},
 	shorttitle = {Nuclear medicine physics},
 	language = {en},
 	publisher = {International Atomic Energy Agency},
-	author = {Bailey, D L and Medicine, American Association of Physicists in},
+	editor = {Bailey, D. L. and Humm, J. L. and Todd-Pokropek, A. and van Aswegen, A.},
 	year = {2014},
-	note = {Publication Title: STI/PUB
-Issue: 1617},
 }
 
 @article{parrMatrixCalculusYou2018a,
@@ -10034,7 +10013,6 @@ The data have been collated and evaluated by an international working group (Dec
 	doi = {10.1016/J.JVIR.2016.12.1221},
 	abstract = {Purpose To evaluate whether technetium-99 (99mTc)-labeled macroaggregated albumin (MAA) can predict subsequent yttrium-90 (90Y) distribution and imaging response in patients with hepatocellular carcinoma (HCC). Materials Retrospective review was performed of records of 83 patients with HCC who underwent 90Y glass microsphere radioembolization with 99mTc-MAA single photon emission computed tomography (SPECT) and 90Y positron emission tomography (PET)/CT between January 2013 and December 2014. Images were fused to segment the whole liver normal tissue (WLNT) and the largest tumors. Fused images were reviewed and analyzed for comparison of absorbed dose (AD) to tumors and WLNT as calculated from 99mTc-MAA SPECT and from 90Y PET/CT, subjective imaging comparison of 99mTc-MAA SPECT and 90Y PET for tumors and WLNT, and correlation of tumoral AD with response on follow-up CT. Results Final analysis included 73 and 63 patients for WLNT and tumor 99mTc-MAA/90Y correlation, respectively, and 62 patients for AD vs response. 99mTc-MAA/90Y limit of agreement for each reviewer was viewed as clinically acceptable only for WLNT (–15 to 15 Gy). AD interreviewer variability was clinically acceptable for WLNT but was too broad for tumor. Mean tumor AD for objective response (78\%) was 313 Gy vs 234 Gy for nonresponders. No threshold was found between tumor AD and response (P {\textgreater}.1). Catheter mismatch between 99mTc-MAA and 90Y had a direct impact on AD mismatch between the 2 image sets. Conclusions 99mTc-MAA was found to be a poor surrogate to quantitatively predict subsequent 90Y AD to hepatocellular tumors. 99mTc-MAA distribution correlated with 90Y distribution in the normal hepatic parenchyma.},
 	number = {5},
-	urldate = {2025-08-21},
 	journal = {Journal of Vascular and Interventional Radiology},
 	publisher = {Elsevier},
 	author = {Haste, Paul and Tann, Mark and Persohn, Scott and LaRoche, Thomas and Aaron, Vasantha and Mauxion, Thibault and Chauhan, Nikhil and Dreher, Matthew R. and Johnson, Matthew S.},
@@ -10112,13 +10090,12 @@ The data have been collated and evaluated by an international working group (Dec
 }
 
 @article{selwynNewInternalPair2007,
-	title = {A new internal pair production branching ratio of {90Y}: {The} development of a non-destructive assay for {90Y} and {90Sr}},
+	title = {A new internal pair production branching ratio of {$^{90}$Y}: {The} development of a non-destructive assay for {$^{90}$Y} and {$^{90}$Sr}},
 	volume = {65},
 	issn = {0969-8043},
 	doi = {10.1016/J.APRADISO.2006.08.009},
 	abstract = {90Y is utilized as a therapeutic radioisotope in radiolabeled monoclonal antibodies and in microspheres for targeted radiation therapy of the liver. Currently, the widely used dose calibrator assay of 90Y can have uncertainties exceeding ±10\%. A non-destructive assay using spectroscopy is possible by reducing the currently published uncertainty (±12\%) in the internal pair production branching ratio for the 0+-0+ transition of 90Zr. A high-purity germanium detector was used to determine the branching ratio to be (31.86±0.47)×10-6. © 2006 Elsevier Ltd. All rights reserved.},
 	number = {3},
-	urldate = {2025-08-21},
 	journal = {Applied Radiation and Isotopes},
 	publisher = {Pergamon},
 	author = {Selwyn, R. G. and Nickles, R. J. and Thomadsen, B. R. and DeWerd, L. A. and Micka, J. A.},
@@ -10176,7 +10153,11 @@ The data have been collated and evaluated by an international working group (Dec
 }
 
 @techreport{nationalinstituteforhealthandcareexcellenceniceSelectiveInternalRadiation2021,
-	title = {Selective internal radiation therapies for treating hepatocellular carcinoma  [{TA688}]},
+	title = {Selective internal radiation therapies for treating hepatocellular carcinoma},
+	type = {Technology appraisal guidance},
+	number = {TA688},
+	institution = {NICE},
+	address = {London},
 	url = {https://www.nice.org.uk/guidance/ta688},
 	urldate = {2025-08-21},
 	author = {{National Institute for Health and Care Excellence (NICE)}},
@@ -10185,7 +10166,11 @@ The data have been collated and evaluated by an international working group (Dec
 }
 
 @techreport{nationalinstituteforhealthandcareexcellenceniceSelectiveInternalRadiation2024,
-	title = {Selective internal radiation therapy with {QuiremSpheres} for treating unresectable advanced hepatocellular carcinoma [{TA985}]},
+	title = {Selective internal radiation therapy with {QuiremSpheres} for treating unresectable advanced hepatocellular carcinoma},
+	type = {Technology appraisal guidance},
+	number = {TA985},
+	institution = {NICE},
+	address = {London},
 	url = {https://www.nice.org.uk/guidance/ta985},
 	urldate = {2025-08-21},
 	author = {{National Institute for Health and Care Excellence (NICE)}},
@@ -10200,7 +10185,6 @@ The data have been collated and evaluated by an international working group (Dec
 	doi = {10.1109/TMI.2019.2913889},
 	abstract = {In this study, we explore the use of a spatially-variant penalty strength in penalized image reconstruction using anatomical priors to reduce the dependence of lesion contrast on surrounding activity and lesion location. This work builds on a previous method to make the local perturbation response (LPR) approximately spatially invariant. While the dependence of lesion contrast on the local properties introduced by the anatomical penalty is intentional, the method aims to reduce the influence from surroundings lying along the lines of response (LORs) but not in the penalty neighborhood structure. The method is evaluated using simulated data, assuming that the anatomical information is absent or well-aligned with the corresponding activity images. Since the parallel level sets (PLS) penalty is convex and has shown promising results in the literature, it is chosen as the representative anatomical penalty and incorporated into the previously proposed preconditioned algorithm (L-BFGS-B-PC) for achieving good image quality and fast convergence rate. A 2D disc phantom with a feature at the center and a 3D XCAT thorax phantom with lesions inserted in different slices are used to study how surrounding activity and lesion location affect the visual appearance and quantitative consistency. A bias and noise analysis is also performed with the 2D disc phantom. The consistency of the algorithm convergence rate with respect to different data noise and background levels is also investigated using the XCAT phantom. Finally, an example of reconstruction for a patient dataset with inserted pseudo lesions is used as a demonstration in a clinical context. We show that applying the spatially-variant penalization with PLS can reduce the dependence of the lesion contrast on the surrounding activity and lesion location. It does not affect the bias and noise trade-off curves for matched local resolution. Moreover, when using the proposed penalization, significant improvement in algorithm convergence rate and convergence consistency is observed.},
 	number = {1},
-	urldate = {2025-08-21},
 	journal = {IEEE Transactions on Medical Imaging},
 	publisher = {Institute of Electrical and Electronics Engineers Inc.},
 	author = {Tsai, Yu Jung and Schramm, Georg and Ahn, Sangtae and Bousse, Alexandre and Arridge, Simon and Nuyts, Johan and Hutton, Brian F. and Stearns, Charles W. and Thielemans, Kris},
@@ -10284,7 +10268,6 @@ The data have been collated and evaluated by an international working group (Dec
 	doi = {10.1109/83.661180},
 	abstract = {We propose a new definition of the total variation norm for vector-valued functions that can be applied to restore color and other vector-valued images. The new TV norm has the desirable properties of 1) not penalizing discontinuities (edges) in the image, 2) being rotationally invariant in the image space, and 3) reducing to the usual TV norm in the scalar case. Some numerical experiments on denoising simple color images in red-green-blue (RGB) color space are presented. © 1998 IEEE.},
 	number = {3},
-	urldate = {2025-08-21},
 	journal = {IEEE Transactions on Image Processing},
 	author = {Blomgren, Peter and Chan, Tony F.},
 	year = {1998},
@@ -10421,7 +10404,6 @@ The data have been collated and evaluated by an international working group (Dec
 	doi = {10.1109/TNS.1966.4324123},
 	abstract = {Radioisotope cameras are relatively new instruments for imaging the distribution of γ-ray or positron-emitting isotopes in vivo. They produce pictures similar to those made by medical radioisotope scanners, showing the uptake of tracer compounds in tumors and organs. Cameras can produce pictures in much less time than scanners because of their higher sensitivity and their ability to view all parts of the subject continuously. In the scintillation camera described here, an array of 19 multiplier phototubes view a single, large, thin, sodium iodide crystal. From the relative amount of light seen by each phototube when a scintillation is produced, the position is determined in two dimensions and it is displayed as a point flash of light on an oscilloscope. Pictures are obtained by taking a time exposure of the oscilloscope screen. Pinhole or parallel multichannel collimation is used with γ-ray emitters, and coincidence techniques are used with positron emitters. © 1966, IEEE. All rights reserved.},
 	number = {3},
-	urldate = {2025-08-07},
 	journal = {IEEE Transactions on Nuclear Science},
 	author = {Anger, Hal O.},
 	year = {1966},
@@ -10547,7 +10529,7 @@ The data have been collated and evaluated by an international working group (Dec
 }
 
 @article{dewarajaImprovedQuantitative90Y2017,
-	title = {Improved quantitative {90Y} bremsstrahlung {SPECT}/{CT} reconstruction with {Monte} {Carlo} scatter modeling},
+	title = {Improved quantitative {$^{90}$Y} bremsstrahlung {SPECT}/{CT} reconstruction with {Monte} {Carlo} scatter modeling},
 	volume = {44},
 	issn = {2473-4209},
 	url = {https://onlinelibrary.wiley.com/doi/full/10.1002/mp.12597},
@@ -10565,21 +10547,19 @@ The data have been collated and evaluated by an international working group (Dec
 }
 
 @article{jia90YSPECTScatter2023,
-	title = {{90Y} {SPECT} scatter estimation and voxel dosimetry in radioembolization using a unified deep learning framework},
+	title = {{$^{90}$Y} {SPECT} scatter estimation and voxel dosimetry in radioembolization using a unified deep learning framework},
 	volume = {10},
 	issn = {21977364},
-	url = {https://link.springer.com/articles/10.1186/s40658-023-00598-9},
-	doi = {10.1186/S40658-023-00598-9/FIGURES/8},
+	doi = {10.1186/s40658-023-00598-9},
 	abstract = {Purpose: 90Y SPECT-based dosimetry following radioembolization (RE) in liver malignancies is challenging due to the inherent scatter and the poor spatial resolution of bremsstrahlung SPECT. This study explores a deep-learning-based absorbed dose-rate estimation method for 90Y that mitigates the impact of poor SPECT image quality on dosimetry and the accuracy–efficiency trade-off of Monte Carlo (MC)-based scatter estimation and voxel dosimetry methods. Methods: Our unified framework consists of three stages: convolutional neural network (CNN)-based bremsstrahlung scatter estimation, SPECT reconstruction with scatter correction (SC) and absorbed dose-rate map generation with a residual learning network (DblurDoseNet). The input to the framework is the measured SPECT projections and CT, and the output is the absorbed dose-rate map. For training and testing under realistic conditions, we generated a series of virtual patient phantom activity/density maps from post-therapy images of patients treated with 90Y-RE at our clinic. To train the scatter estimation network, we use the scatter projections for phantoms generated from MC simulation as the ground truth (GT). To train the dosimetry network, we use MC dose-rate maps generated directly from the activity/density maps of phantoms as the GT (Phantom + MC Dose). We compared performance of our framework (SPECT w/CNN SC + DblurDoseNet) and MC dosimetry (SPECT w/CNN SC + MC Dose) using normalized root mean square error (NRMSE) and normalized mean absolute error (NMAE) relative to GT. Results: When testing on virtual patient phantoms, our CNN predicted scatter projections had NRMSE of 4.0\% ± 0.7\% on average. For the SPECT reconstruction with CNN SC, we observed a significant improvement on NRMSE (9.2\% ± 1.7\%), compared to reconstructions with no SC (149.5\% ± 31.2\%). In terms of virtual patient dose-rate estimation, SPECT w/CNN SC + DblurDoseNet had a NMAE of 8.6\% ± 5.7\% and 5.4\% ± 4.8\% in lesions and healthy livers, respectively; compared to 24.0\% ± 6.1\% and 17.7\% ± 2.1\% for SPECT w/CNN SC + MC Dose. In patient dose-rate maps, though no GT was available, we observed sharper lesion boundaries and increased lesion-to-background ratios with our framework. For a typical patient data set, the trained networks took {\textasciitilde} 1 s to generate the scatter estimate and {\textasciitilde} 20 s to generate the dose-rate map (matrix size: 512 × 512 × 194) on a single GPU (NVIDIA V100). Conclusion: Our deep learning framework, trained using true activity/density maps, has the potential to outperform non-learning voxel dosimetry methods such as MC that are dependent on SPECT image quality. Across comprehensive testing and evaluations on multiple targeted lesions and healthy livers in virtual patients, our proposed deep learning framework demonstrated higher (66\% on average in terms of NMAE) estimation accuracy than the current “gold-standard” MC method. The enhanced computing speed with our framework without sacrificing accuracy is highly relevant for clinical dosimetry following 90Y-RE.},
 	number = {1},
-	urldate = {2025-07-30},
 	journal = {EJNMMI Physics},
 	publisher = {Springer Science and Business Media Deutschland GmbH},
 	author = {Jia, Yixuan and Li, Zongyu and Akhavanallaf, Azadeh and Fessler, Jeffrey A. and Dewaraja, Yuni K.},
 	month = dec,
 	year = {2023},
 	keywords = {90Y, Deep learning, Dosimetry, Radioembolization, SPECT, Scatter correction},
-	pages = {1--18},
+	pages = {82},
 }
 
 @article{deiddaTripleModalityImage2023b,
@@ -10886,7 +10866,6 @@ Conclusions
 	journal = {Medical Physics},
 	author = {Rault, Erwann and Staelens, Steven and Van Holen, Roel and De Beenhouwer, Jan and Vandenberghe, Stefaan},
 	year = {2010},
-	note = {\_eprint: https://onlinelibrary.wiley.com/doi/pdf/10.1118/1.3431998},
 	keywords = {Anatomy, Applications, Cameras, Dosimetry, Emission spectra, Medical image reconstruction, Medical imaging, Monte Carlo methods, Photons, Probability density functions, SPECT, Single photon emission computed tomography, Single photon emission computed tomography (SPECT), bremsstrahlung, cameras, dosimetry, phantoms, radiation therapy, simulation, single photon emission computed tomography},
 	pages = {2943--2950},
 }
@@ -11278,7 +11257,7 @@ Tc clinical bone study were reconstructed using the implemented corrections and 
 }
 
 @article{depierroFastEMlikeMethods2001,
-	title = {Fast {EM}-like methods for maximum "a posteriori" estimates in emission tomography},
+	title = {Fast {EM}-like methods for maximum `a posteriori' estimates in emission tomography},
 	volume = {20},
 	issn = {02780062},
 	url = {http://ieeexplore.ieee.org/document/921477/},
@@ -12225,7 +12204,7 @@ Conclusions: Such quantitative improvements could facilitate improved 42},
 }
 
 @article{deiddaTripleModalityImage2023,
-	title = {Triple modality image reconstruction of {PET} data using {SPECT}, {PET}, {CT} information increases lesion uptake in images of patients treated with radioembolization with {90Y} micro-spheres},
+	title = {Triple modality image reconstruction of {PET} data using {SPECT}, {PET}, {CT} information increases lesion uptake in images of patients treated with radioembolization with {$^{90}$Y} micro-spheres},
 	volume = {10},
 	issn = {2197-7364},
 	url = {https://doi.org/10.1186/s40658-023-00549-4},
@@ -12418,7 +12397,7 @@ arXiv:1411.3406 [cs]},
 	abstract = {We address the task of reconstructing images corrupted by Poisson noise, which is important in various applications such as fluorescence microscopy (Dey et al., 3D microscopy deconvolution using Richardson-Lucy algorithm with total variation regularization, 2004), positron emission tomography (PET; Vardi et al., J Am Stat Assoc 80:8–20, 1985), or astronomical imaging (Lantéri and Theys, EURASIP J Appl Signal Processing 15:2500–2513, 2005). Here we focus on reconstruction strategies combining the expectation-maximization (EM) algorithm and total variation (TV) based regularization, and present a detailed analysis as well as numerical results. Recently extensions of the well known EM/Richardson-Lucy algorithm received increasing attention for inverse problems with Poisson data (Dey et al., 3D microscopy deconvolution using Richardson-Lucy algorithm with total variation regularization, 2004; Jonsson et al., Total variation regularization in positron emission tomography, 1998; Panin et al., IEEE Trans Nucl Sci 46(6):2202–2210, 1999). However, most of these algorithms for regularizations like TV lead to convergence problems for large regularization parameters, cannot guarantee positivity, and rely on additional approximations (like smoothed TV). The goal of this lecture is to provide accurate, robust and fast EM-TV based methods for computing cartoon reconstructions facilitating post-segmentation and providing a basis for quantification techniques. We illustrate also the performance of the proposed algorithms and confirm the analytical concepts by 2D and 3D synthetic and real-world results in optical nanoscopy and PET.},
 	language = {en},
 	urldate = {2023-05-02},
-	booktitle = {Level {Set} and {PDE} {Based} {Reconstruction} {Methods} in {Imaging}: {Cetraro}, {Italy} 2008, {Editors}: {Martin} {Burger}, {Stanley} {Osher}},
+	booktitle = {Level {Set} and {PDE} {Based} {Reconstruction} {Methods} in {Imaging}: {Cetraro}, {Italy} 2008},
 	publisher = {Springer International Publishing},
 	author = {Sawatzky, Alex and Brune, Christoph and Kösters, Thomas and Wübbeling, Frank and Burger, Martin},
 	editor = {Burger, Martin and Mennucci, Andrea C.G. and Osher, Stanley and Rumpf, Martin},
@@ -13188,7 +13167,7 @@ The optimization of energy window in Y-90 bremsstrahlung has the potential to im
 }
 
 @article{rongDevelopmentEvaluationImproved2012,
-	title = {Development and evaluation of an improved quantitative (90){Y} bremsstrahlung {SPECT} method},
+	title = {Development and evaluation of an improved quantitative {$^{90}$Y} bremsstrahlung {SPECT} method},
 	volume = {39},
 	issn = {0094-2405},
 	doi = {10.1118/1.3700174},
@@ -13550,7 +13529,6 @@ CONCLUSIONS: The proposed (90)Y bremsstrahlung SPECT reconstruction method provi
 	author = {Davis, LauraMay and Smith, April-Louise and Aldridge, Matthew D. and Foulkes, Jack and Peet, Connie and Wan, Simon and Gains, Jennifer E. and Bomanji, Jamshed B. and Gaze, Mark N.},
 	month = dec,
 	year = {2020},
-	note = {Number: 4},
 	keywords = {dosimetry, imaging biomarkers, molecular radiotherapy, organs at risk, personalised dose administration, radionuclide therapy, response assessment, theragnostics},
 	pages = {174},
 }
@@ -14443,7 +14421,7 @@ Conclusions: The Veriton system represents the next generation in conventional S
 
 @incollection{ljungbergSIMINDMonteCarlo2012,
 	edition = {2},
-	title = {- {The} {SIMIND} {Monte} {Carlo} {Program}},
+	title = {{The} {SIMIND} {Monte} {Carlo} {Program}},
 	isbn = {978-0-429-15116-3},
 	abstract = {The Monte Carlo code SIMIND [1] simulates a clinical SPECT scintillation 
 camera and can easily be modi‰ed for almost any type of calculation or measurement encountered in SPECT imaging. The SIMIND system consists of two 
@@ -14456,11 +14434,13 @@ data ‰les. In this way, several input ‰les can be prepared in a command ‰l
 for submission to a batch queue, a convenient way when working with Monte 
 Carlo simulations. Figure 7.1 shows a °owchart that describes a different ‰le 
 structure for the SIMIND and the CHANGE program.},
-	booktitle = {Monte {Carlo} {Calculations} in {Nuclear} {Medicine}},
+	booktitle = {Monte {Carlo} {Calculations} in {Nuclear} {Medicine}: {Applications} in {Diagnostic} {Imaging}},
 	publisher = {CRC Press},
 	author = {Ljungberg, Michael},
 	year = {2012},
-	note = {Num Pages: 18},
+	editor = {Ljungberg, Michael and Strand, Sven-Erik and King, Michael A.},
+	doi = {10.1201/b13073-8},
+	pages = {111--128},
 }
 
 @article{ljungbergSIMINDMonteCarlo2015,
@@ -15489,7 +15469,7 @@ arXiv:1505.04597 [cs]},
 }
 
 @article{minarikEvaluationQuantitative90Y2008,
-	title = {Evaluation of quantitative {90Y} {SPECT} based on experimental phantom studies},
+	title = {Evaluation of quantitative {$^{90}$Y} {SPECT} based on experimental phantom studies},
 	volume = {53},
 	issn = {0031-9155},
 	url = {https://dx.doi.org/10.1088/0031-9155/53/20/008},
@@ -15546,7 +15526,7 @@ Methods: The energy spectrum from a Y-90 source was measured with a high purity 
 	author = {Dewaraja, Yuni and Fleming, Ronald and Simpson, Philip and Walrand, Stephan and Ljungberg, Michael and Wilderman, Scott},
 	month = may,
 	year = {2018},
-	pages = {577--577},
+	pages = {577},
 }
 
 @article{elschotQuantitativeComparisonPET2013,
@@ -15835,7 +15815,7 @@ This article is part of the theme issue ‘Synergistic tomographic image reconst
 }
 
 @article{deiddaHybridKernelisedExpectation2022,
-	title = {Hybrid kernelised expectation maximisation for {Bremsstrahlung} {SPECT} reconstruction in {SIRT} with {90Y} micro-spheres},
+	title = {Hybrid kernelised expectation maximisation for {Bremsstrahlung} {SPECT} reconstruction in {SIRT} with {$^{90}$Y} micro-spheres},
 	volume = {9},
 	issn = {2197-7364},
 	url = {https://doi.org/10.1186/s40658-022-00452-4},
@@ -16133,7 +16113,6 @@ arXiv:2209.04747 [cs]},
 	author = {Ehrhardt, Matthias Joachim and Arridge, Simon R.},
 	month = jan,
 	year = {2014},
-	note = {Conference Name: IEEE Transactions on Image Processing},
 	keywords = {Biomedical imaging, Equations, Image color analysis, Level set, Mathematical model, Noise reduction, Parallel level sets, demosaicking, denoising, non-linear diffusion, variational methods, vector-valued images},
 	pages = {9--18},
 }
@@ -17147,7 +17126,6 @@ Conclusion: 33 34},
 	author = {Knoll, Florian and Holler, Martin and Koesters, Thomas and Otazo, Ricardo and Bredies, Kristian and Sodickson, Daniel K},
 	month = jan,
 	year = {2017},
-	note = {Conference Name: IEEE Transactions on Medical Imaging},
 	keywords = {Couplings, Image edge detection, Image reconstruction, Iterative image reconstruction, MR-PET, Positron emission tomography, TV, Tensile stress, multi-modality imaging, total generalized variation, variational regularization methods},
 	pages = {1--16},
 }
@@ -17240,7 +17218,7 @@ Conclusion: 33 34},
 	month = oct,
 	year = {2004},
 	keywords = {Cancer, Computed tomography, High-resolution imaging, Image reconstruction, Magnetic resonance imaging, Neoplasms, Positron emission tomography, Single photon emission computed tomography, Smoothing methods, Spatial resolution},
-	pages = {2488--2492 Vol. 4},
+	pages = {2488--2492},
 }
 
 @article{nuytsConcavePriorPenalizing2002,
@@ -17254,7 +17232,6 @@ Conclusion: 33 34},
 	author = {Nuyts, J. and Beque, D. and Dupont, P. and Mortelmans, L.},
 	month = feb,
 	year = {2002},
-	note = {Conference Name: IEEE Transactions on Nuclear Science},
 	keywords = {Attenuation, Dynamic range, Humans, Image reconstruction, Nuclear medicine, Positron emission tomography, Weight control},
 	pages = {56--60},
 }
@@ -17922,7 +17899,6 @@ terminology discussed here. See related articles at http://explained.ai},
 	author = {Geman, Stuart and Geman, Donald},
 	month = nov,
 	year = {1984},
-	note = {Conference Name: IEEE Transactions on Pattern Analysis and Machine Intelligence},
 	keywords = {Additive noise, Annealing, Bayesian methods, Deformable models, Degradation, Energy states, Gibbs distribution, Image restoration, MAP estimate, Markov random field, Markov random fields, Penalised, Stochastic processes, Temperature distribution, image restoration, line process, relaxation, scene modeling, spatial degradation},
 	pages = {721--741},
 }
@@ -18005,7 +17981,6 @@ terminology discussed here. See related articles at http://explained.ai},
 	author = {Wang, Guobao and Qi, Jinyi},
 	month = jan,
 	year = {2015},
-	note = {Conference Name: IEEE Transactions on Medical Imaging},
 	keywords = {Expectation maximization (EM), Image reconstruction, Kernel, Maximum likelihood estimation, Noise, Noise reduction, Positron emission tomography, Sparse matrices, image prior, image reconstruction, kernel method, positron emission tomography (PET)},
 	pages = {61--71},
 }
@@ -18041,7 +18016,6 @@ terminology discussed here. See related articles at http://explained.ai},
 	author = {Ehrhardt, Matthias J. and Markiewicz, Pawel and Liljeroth, Maria and Barnes, Anna and Kolehmainen, Ville and Duncan, John S. and Pizarro, Luis and Atkinson, David and Hutton, Brian F. and Ourselin, Sébastien and Thielemans, Kris and Arridge, Simon R.},
 	month = sep,
 	year = {2016},
-	note = {Conference Name: IEEE Transactions on Medical Imaging},
 	keywords = {Anatomical prior, Image edge detection, Image reconstruction, Image segmentation, Level set, Magnetic resonance imaging, Phantoms, Positron emission tomography, magnetic resonance imaging, parallel level sets, positron emission tomography, total variation},
 	pages = {2189--2199},
 }
@@ -18179,7 +18153,6 @@ terminology discussed here. See related articles at http://explained.ai},
 	author = {Holt, Kevin M.},
 	month = sep,
 	year = {2014},
-	note = {Conference Name: IEEE Transactions on Image Processing},
 	keywords = {Color, Color imaging, Image color analysis, Image reconstruction, Jacobian matrices, Materials, TV, Vectors, convex optimization, denoising, image reconstruction, inverse problems, multidimensional signal processing, regularization, total variation, vector-valued images},
 	pages = {3975--3989},
 }
@@ -18309,7 +18282,6 @@ imaging modes where different types of information are obtained (e.g. in medical
 	journal = {SIAM Journal on Matrix Analysis and Applications},
 	author = {Lewis, Adrian S. and Sendov, Hristo S.},
 	year = {2001},
-	note = {tex.eprint: https://doi.org/10.1137/S089547980036838X},
 	pages = {368--386},
 }
 
@@ -18333,4 +18305,24 @@ imaging modes where different types of information are obtained (e.g. in medical
 	author = {Modat, Marc and Cash, David M. and Daga, Pankaj and Winston, Gavin P. and Duncan, John S. and Ourselin, Sébastien},
 	year = {2014},
 	pages = {024003},
+}
+
+@software{porterSimindPythonConnector2026,
+	title = {simind-python-connector: {Python} {SIMIND} {Monte} {Carlo} connector with {STIR}/\allowbreak{}{SIRF}/\allowbreak{}{PyTomography} adaptors},
+	version = {2.0.0},
+	doi = {10.5281/zenodo.23268904},
+	organization = {Zenodo},
+	author = {Porter, Sam and Varzakis, Efstathios and Thielemans, Kris},
+	month = oct,
+	year = {2026},
+}
+
+@software{porterCilKrl2026,
+	title = {cil-krl: Kernelised {Richardson}--{Lucy} deconvolution for {PET}},
+	version = {0.3.3},
+	doi = {10.5281/zenodo.23269039},
+	organization = {Zenodo},
+	author = {Porter, Sam and Erlandsson, Kjell and Deidda, Daniel and Thielemans, Kris},
+	month = oct,
+	year = {2026},
 }

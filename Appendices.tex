@@ -14,8 +14,7 @@ The software developed or adapted for this thesis comprises a Python interface t
 
 The main integration task is reconciling geometry conventions: \glsentryshort{stir}/\glsentryshort{sirf} image arrays use \texttt{(z, y, x)}, PyTomography uses \texttt{(x, y, z)}, and raw Interfile projections use \texttt{(views, bins, axial)}. The connector also converts millimetre voxel sizes to the centimetre-based SIMIND geometry. Pure-Python tests cover configuration, parsing and density conversion; backend-dependent tests and Docker examples exercise the reconstruction interfaces.
 
-Version \texttt{1.0.1} is archived at \href{https://doi.org/10.5281/zenodo.19605413}{doi:10.5281/zenodo.19605413}; source code and usage instructions are available in the \href{https://github.com/samdporter/simind-python-connector}{public repository}. SIMIND remains a separately licensed external dependency and is not distributed with the package, which is independent of the SIMIND project.
-% TODO: Replace the DOI link with the Zenodo-managed bibliography entry once imported.
+Version \texttt{2.0.0} is archived on Zenodo \cite{porterSimindPythonConnector2026}; source code and usage instructions are available in the \href{https://github.com/samdporter/simind-python-connector}{public repository}. SIMIND remains a separately licensed external dependency and is not distributed with the package, which is independent of the SIMIND project.
 
 \input{AppendixScatterDL}
 \input{AppendixKernelRL}
