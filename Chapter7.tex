@@ -404,7 +404,7 @@ All methods minimise the same objective, so the long-run reconstruction provides
 
 For count-limited \gls{pet} (Figure~\ref{fig:optim_preconditioners}), the whole-image data-only \gls{bsrem} error rises by more than eight orders of magnitude within the first few passes and does not recover over the tested interval. This instability is concentrated in the low-activity background: errors within the hot sphere, cold sphere and liver remain finite, although above the prior-aware trajectories, which decrease in all three regions. The block and diagonal models stay close throughout. The block model gives slightly lower \gls{nrmse} in the liver and, over the first few passes, in the hot sphere; both show transient whole-image increases, near pass 7 for the diagonal model and near pass 14 for the block model.
 
-For \gls{spect}, all three trajectories remain bounded, the block and diagonal models are almost indistinguishable, and data-only \gls{bsrem} gives slightly lower \gls{nrmse} in the anatomical regions. Section~\ref{sec:optimisation_discussion} discusses this contrast with \gls{pet}. The block model's modest \gls{pet} gains led to its use in Chapter~\ref{chapter:paper}.
+For \gls{spect}, all three trajectories remain bounded, the block and diagonal models are almost indistinguishable, and data-only \gls{bsrem} gives slightly lower \gls{nrmse} in the anatomical regions. Section~\ref{sec:optimisation_discussion} discusses this contrast with \gls{pet}. 
 
 \subsection{Lehmer Order}
 \label{subsec:optimisation_lehmer_results}
@@ -425,7 +425,7 @@ The final experiment investigates whether changing the combination rule improves
     \label{fig:optim_lehmer_parallel}
 \end{figure}
 
-In Figure~\ref{fig:optim_lehmer_parallel}, the order $p=0.1$ is clearly worse than the inverse sum in every region of both modalities. The order $p=0.01$ is close to the inverse sum. For \gls{pet} it is as good or marginally better in every region, including the hot sphere, and avoids the transient whole-image increase near pass 14, although it shows a smaller one near pass 8. For \gls{spect} it is slightly worse in the hot and cold spheres and slightly better in the liver.
+In Figure~\ref{fig:optim_lehmer_parallel}, the order $p=0.1$ is clearly worse than the inverse sum ($p=0$) in every region of both modalities. The order $p=0.01$ is close to the inverse sum. For \gls{pet} it is as good or marginally better in every region, including the hot sphere, and avoids the transient whole-image increase near pass 14, although it shows a smaller one near pass 8. For \gls{spect} it is slightly worse in the hot and cold spheres and slightly better in the liver.
 
 Changing $p$ also changes the effective step scale. The factor $\tfrac12$ is calibrated at $p=0$; for eigenvalues of $T$ of order $10^2$, $p=0.01$ increases the spectral factor by roughly two per cent relative to the inverse sum, rising to a few per cent at $10^3$. A fixed-$\varsigma^{(0)}$ sweep therefore mixes the effect of the Lehmer order with a modest step-size change. Since $p=0.01$ was as good as or marginally better than the inverse sum for \gls{pet}, including the hot sphere, it was retained for Chapter~\ref{chapter:paper}.
 
@@ -434,14 +434,14 @@ Changing $p$ also changes the effective step scale. The factor $\tfrac12$ is cal
 
 The block and diagonal models for the preconditioners behaved similarly. Two mechanisms plausibly limit the benefit of retaining the within-voxel coupling. First, cross-modal curvature is appreciable only where both modalities carry non-negligible local gradients, which may be a small fraction of a volumetric \gls{voi}. Second, wherever the data curvature dominates the inverse sum~\eqref{eq:parallel_sum_combination}, differences between prior models are attenuated. Neither effect was measured.
 
-The modality dependence in Figure~\ref{fig:optim_preconditioners} plausibly reflects the balance between data and prior curvature. The modality weights $\rho_{m,n}$ were chosen in Chapter~\ref{chapter:wdtnv} to balance the gradients entering the nuclear norm, independently of the modality sensitivities, so the prior/data curvature ratio can differ between \gls{pet} and \gls{spect}. A separate modality scaling of the prior curvature in the preconditioner would change the optimisation metric without changing the objective; it was not investigated here.
+The modality dependence in Figure~\ref{fig:optim_preconditioners} plausibly reflects the balance between data and prior curvature. The modality weights $\rho_{m,n}$ were chosen in Chapter~\ref{chapter:wdtnv} to balance the gradients entering the nuclear norm, independently of the modality sensitivities, so the prior/data curvature ratio can differ between \gls{pet} and \gls{spect}. A separate modality scaling of the prior curvature in the preconditioner could change the convergence rate without changing the objective; it was not investigated here.
 
 \section{Conclusion}
 \label{sec:optimisation_conclusion}
 
 In this single-bed phantom subset experiment, all schedules used the same smooth objective and an unbiased uniform-sampling \gls{svrg} estimator. We rescaled the relaxation rate from the folded, modality-separated setting $\eta_{\mathrm{relax}}=0.002$, giving every configuration the same step size at a given expected data pass. On that expected data-exposure axis, the folded schedules reduced \gls{nrmse} over 20 expected data passes and the intermittent schedules did not. Since the total update counts differ, this comparison does not establish a wall-clock or compute-efficiency advantage.
 
-Prior-aware preconditioning kept count-limited \gls{pet} bounded over the same 20-pass interval, where data-only \gls{bsrem} diverged; for \gls{spect}, data-only scaling remained competitive. Retaining the within-voxel \gls{pet}/\gls{spect} curvature gave modest \gls{pet} gains over the diagonal model. The Lehmer order $p=0.01$ gave similarly modest \gls{pet} gains over the inverse sum, whereas $p=0.1$ was clearly worse. Chapter~\ref{chapter:paper} uses the block model with $p=0.01$.
+Prior-aware preconditioning kept count-limited \gls{pet} bounded over the same 20-pass interval, where data-only \gls{bsrem} fails to decrease the distance with the converged image within 20 passes; for \gls{spect}, data-only scaling remained competitive. Retaining the within-voxel \gls{pet}/\gls{spect} curvature gave modest \gls{pet} gains over the diagonal model. The Lehmer order $p=0.01$ gave similarly modest \gls{pet} gains over the inverse sum, whereas $p=0.1$ was clearly worse. The block model's modest \gls{pet} gains led to its use in Chapter~\ref{chapter:paper} with $p=0.01$.
 
 These single-bed experiments used rigid registration. Chapter~\ref{chapter:paper} extends the shared-grid formulation to two overlapping \gls{pet} bed positions and deformable patient registration.
 
