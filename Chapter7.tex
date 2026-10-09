@@ -367,9 +367,9 @@ After $e$ expected data passes, $k_q=L_qe$, so every configuration has the same 
 
 Figure~\ref{fig:optim_subset_organisation} separates the six configurations mainly by prior schedule. The folded runs reduce mean \gls{nrmse} over the tested 20-pass interval; separate-folded attains the lowest mean \gls{nrmse} at pass 20 in every region for both modalities, with paired-folded close behind. The separate-folded \gls{pet} whole-image \gls{nrmse} curve has a transient jump near pass six before recovering. Neither the sampled nor once-per-epoch schedule shows a net \gls{nrmse} reduction over the same interval.
 
-All three schedules give the same prior correction on average. Folded scheduling applies it at every update, whereas the other schedules apply larger corrections less frequently. These intermittent corrections may contribute to the poorer behaviour observed here, although the experiment also changes how data components are sampled.
+All three schedules give the same prior update on average. Folded scheduling applies it at every update, whereas the other schedules apply larger updates less frequently. These intermittent  updates may contribute to the poorer behaviour observed here, although the experiment also changes how data components are sampled.
 
-The step size was matched at each expected data pass, so different relaxation rates do not explain the result. Update counts and computational work still differ between schedules; this comparison therefore establishes no execution-time advantage.
+The step size was matched at each expected data pass, so different relaxation rates do not explain the result. 
 
 \subsection{Block versus Diagonal Preconditioning}
 \label{subsec:optimisation_block_vs_diag}
