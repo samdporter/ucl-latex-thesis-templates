@@ -379,7 +379,7 @@ The next experiment asks whether incorporating prior curvature improves the upda
 \subsubsection{Experimental protocol}
 \label{subsec:preconditioner_experiment_methods}
 
-The comparison uses modality-separated subsets and the folded prior schedule, which gave the lowest final mean \gls{nrmse} in the subset experiment. All methods use the common protocol above, with the same objective, initialisation and long-run reference. The data component is smoothed with a $5\,\mathrm{mm}$ Gaussian \gls{fwhm}. Three preconditioners are compared: data-only \gls{bsrem} scaling~\eqref{eq:bsrem_preconditioner}, and its inverse-sum combinations~\eqref{eq:parallel_sum_combination} with the block~\eqref{eq:ls_block_preconditioner} and diagonal~\eqref{eq:ls_diag_preconditioner} prior models.
+The comparison uses modality-separated subsets and the folded prior schedule, which gave the lowest final mean \gls{nrmse} in the subset experiment. All methods use the common protocol above, with the same objective, initialisation and long-run reference. Three preconditioners are compared: data-only \gls{bsrem} scaling~\eqref{eq:bsrem_preconditioner}, and its inverse-sum combinations~\eqref{eq:parallel_sum_combination} with the block~\eqref{eq:ls_block_preconditioner} and diagonal~\eqref{eq:ls_diag_preconditioner} prior models.
 
 The prior-aware preconditioners follow the numerical stabilisation and epoch refresh procedure described in Section~\ref{subsec:optimisation_preconditioner_implementation}.
 
