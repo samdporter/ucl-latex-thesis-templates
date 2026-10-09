@@ -458,7 +458,7 @@ Figure~\ref{fig:90y_rc_spheres_comparison} and Table~\ref{tab:90y_effect_ratio_r
 \begin{figure*}[htbp]
     \centering
     \includegraphics[width=\linewidth]{figures/Chapter6/phantoms/manc_nema/bootstrap_rc.png}
-    \caption{Recovery coefficient (RC) for NEMA phantom spheres for \wdtnv, \dtv, \wtnv and SHKEM (subiteration 27). Also shown are the equivalent RCs for a high-count, long-OSEM reconstruction. The grey line indicates perfect recovery. Statistical significance is reported for paired comparisons versus \wdtnv (Benjamini--Hochberg adjusted): $^*$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$.}
+    \caption{Recovery coefficient (RC) for NEMA phantom spheres for \wdtnv, \dtv, \wtnv and SHKEM (subiteration 27). Also shown are the equivalent RCs for the high-count, long-OSEM reconstruction of Figure~\ref{fig:90y_phantom_mean_profiles}. The dashed line indicates perfect recovery. Statistical significance is reported for paired comparisons versus \wdtnv (Benjamini--Hochberg adjusted): $^*$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$.}
     \label{fig:90y_rc_spheres_comparison}
 \end{figure*}
 
@@ -493,11 +493,21 @@ SHKEM (27) & 37\,mm & 0.9931 & [0.8720,\,1.1312] & 0.9175 \\
 \label{tab:90y_effect_ratio_rc}
 \end{table}
 
+Figure~\ref{fig:90y_phantom_mean_profiles} shows the mean over the 20 realisations for each method, together with the long-OSEM reference used for the RC comparison and profiles through all five analysed spheres. \dtv and \wtnv give rounded profiles with lower peaks in the 28 and \SI{22}{mm} spheres, consistent with their lower RC at these sizes, whereas \wdtnv keeps a plateau across the three larger spheres. The rings visible at the edges of the \wdtnv spheres are less pronounced in the profiles than in the images, but they are present: in the larger spheres the \wdtnv profiles rise at most 5\% above their level in the sphere interior, compared with 5--11\% for the long-OSEM reference, and show small shoulders on the sphere edges and a slight dip below the background just outside the \SI{37}{mm} sphere. SHKEM shows a few hot voxels in the larger spheres (Figure~\ref{fig:90y_phantom_recon_comparison}), and these persist in the mean image. In every realisation, its maximum in the 22, 28 and \SI{37}{mm} spheres exceeded that of \wdtnv, but its sphere means, and hence RC, were similar for these spheres and lower for the two smallest; background means differed by less than 1\%.
+
+In the 10 and \SI{13}{mm} spheres (profile C), all four methods peak below the long-OSEM reference. This is expected: the reference is reconstructed from 60 times as many counts, and averaging the low-count reconstructions removes their noise but not the loss of resolution from the regularisation needed at that count level. \wdtnv gives the highest peak of the four methods in the \SI{10}{mm} sphere. In the \SI{13}{mm} sphere, \wdtnv and SHKEM peak at similar levels, well above \dtv and \wtnv. SHKEM's RC for this sphere is nonetheless lower (Table~\ref{tab:90y_effect_ratio_rc}): RC averages over the whole sphere VOI, whereas a profile samples a single line through its centre.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{figures/Chapter6/phantoms/manc_nema/phantom_mean_images_profiles.png}
+    \caption{Mean NEMA phantom PET images and profiles, on the slice and colour scale of Figure~\ref{fig:90y_phantom_recon_comparison} (reconstruction intensity units). Top: the long-acquisition (\SI{15}{\hour}) OSEM reconstruction (24 subsets, 240 iterations), scaled by the bootstrap thinning fraction (0.0167), and the mean of the 20 bootstrap realisations for each method. The long-OSEM image and profiles are post-smoothed with a \SI{7}{mm} Gaussian for display only; the unsmoothed image, used as the RC reference in Figure~\ref{fig:90y_rc_spheres_comparison}, is dominated by voxel-level noise and is therefore not shown. Bottom: profiles along the dashed lines A, B and C (first panel) through the \SI{37}{mm} sphere, the 28 and \SI{22}{mm} spheres, and the 10 and \SI{13}{mm} spheres. The grey bands show the width of each sphere along the profile, taken from the sphere VOIs used for RC; they do not indicate the expected intensity. The mean images are shown for visual comparison only: averaging removes the noise present in any single acquisition, and all quantitative results (Figures~\ref{fig:90y_rc_spheres_comparison} and~\ref{fig:90y_phantom_cov} and Table~\ref{tab:90y_effect_ratio_rc}) are computed from the individual realisations.}
+    \label{fig:90y_phantom_mean_profiles}
+\end{figure}
+
 Figure~\ref{fig:90y_phantom_cov} summarises voxel-wise reproducibility across bootstraps. At the matched operating point, \dtv and \wtnv yield lower voxel-wise CoV than \wdtnv in the evaluated VOIs, consistent with stronger effective smoothing. SHKEM exhibits higher variability in background and high-count regions but improved stability in the cold lung insert. Sphere-level CoV trends were consistent with the voxel-wise analysis, with \wtnv and \dtv generally providing the lowest variability across the evaluated sphere diameters and SHKEM the highest.
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\linewidth]{figures/Chapter6/phantoms/manc_nema/bootstrap_voxelwise_cov.png}
-    \caption{VOI-mean inter-bootstrap voxel coefficient of variation (CoV, dimensionless ratio) across 20 bootstrapped PET realisations within each VOI\@. The groups from left to right are \wdtnv, \dtv, \wtnv and SHKEM (27). Statistical significance is reported for paired comparisons versus \wdtnv (BH-adjusted): $^*$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$.}
+    \caption{VOI-mean inter-bootstrap voxel coefficient of variation (CoV, dimensionless ratio) across 20 bootstrapped PET realisations within each VOI\@. Statistical significance is reported for paired comparisons versus \wdtnv (BH-adjusted): $^*$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$.}
     \label{fig:90y_phantom_cov}
 \end{figure}
 
@@ -577,7 +587,7 @@ SHKEM (27)  & 1.339 & [1.022,\,1.753] & 0.103 \\
 \section{Discussion}
 \label{sec:90y_discussion}
 
-At the matched operating point, \wtnv alone did not recover the smallest sphere boundaries. Adding anatomical guidance, explicitly in \wdtnv or implicitly through CT-informed SHKEM features, improved boundary localisation. The gain of \wdtnv over \wtnv and \dtv was largest for the smallest spheres, where PET counts and SPECT resolution were most limiting.
+At the matched operating point, \wtnv alone did not recover the smallest sphere boundaries. Adding anatomical guidance, explicitly in \wdtnv or implicitly through CT-informed SHKEM features, improved boundary localisation. The gain of \wdtnv over \wtnv and \dtv was largest for the smallest spheres (profile C in Figure~\ref{fig:90y_phantom_mean_profiles}), where PET counts and SPECT resolution were most limiting.
 
 At the selected operating point, \dtv and \wtnv had lower voxel-wise CoV than \wdtnv, suggesting stronger effective smoothing. The variational methods were more repeatable than SHKEM in background and high-count regions, while SHKEM was most stable in the cold lung insert. One possible explanation is that its kernel weights average nearby near-zero voxels, so positivity reinforces the cold region. This may improve stability there without improving repeatability elsewhere.
 
