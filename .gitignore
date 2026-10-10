@@ -37,6 +37,7 @@
 # *.ps
 # *.eps
 # *.pdf
+Main.pdf
 
 ## Bibliography auxiliary files (bibtex/biblatex/biber):
 *.bbl
@@ -80,6 +81,9 @@
 *.acr
 *.glg
 *.glo
+*.sym
+*.syi
+*.syg
 *.gls
 
 # hyperref
