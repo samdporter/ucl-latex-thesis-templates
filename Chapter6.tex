@@ -72,7 +72,7 @@ Because $\epsilon>0$, $\Omegaeps{\mathcal{G}}$ is well defined and \gls{spd} for
 \end{equation}
 obtained by applying the inverse square-root of an $M\times M$ \gls{spd} matrix to the columns of $\mathcal{G}$. For $M=2$ this inverse square-root has a closed form (Appendix~\ref{app:inv_sqrt_2x2}), so the gradient can be evaluated using only dot products and scalar square-roots per voxel, without an eigendecomposition\footnote{For the case where $M>d$, $d=3$, $G=\mathcal{G}\mathcal{G}^\top$ one can use Kopp's cubic eigenvalue decomposition and fallback algorithms defined in \cite{koppEfficientNumericalDiagonalization2008}.}.
 
-\section{Weighted Directional Total Nuclear Variation ($\wdtnv$)}
+\section{Weighted Directional Total Nuclear Variation (\texorpdfstring{$\wdtnv$}{w-dTNV})}
 \label{sec:wdtnv}
 
 This section extends vanilla TNV \cite{rigieJointReconstructionMultichannel2015, holtTotalNuclearVariation2014} in two ways:

@@ -192,11 +192,11 @@
 \setlength \textwidth{140mm}
 \setlength \textheight{232mm} % I think you need some extra vertical space for headers and page numbers
 \setlength \topmargin{20mm}
-\setlength \oddsidemargin {39mm} % Allow a mm for the bleed.
+\setlength \oddsidemargin {41mm} % 40 mm binding margin plus a mm for the bleed.
 \if@twoside
   \setlength \evensidemargin {20mm}
 \else
-  \setlength \evensidemargin {39mm}
+  \setlength \evensidemargin {41mm}
 \fi
 %    \end{macrocode}
 %  \begin{macro}{\ps@headings}
@@ -448,16 +448,16 @@
     \end{center}%
     \vfill%
     \begin{center}%
-    A dissertation submitted in partial fulfillment \\
+    A dissertation submitted in partial fulfilment \\
     of the requirements for the degree of \\
     \textbf{\@degree@string} \\
     of \\
-    \textbf{University College London}.
+    \textbf{UCL}.
     \end{center}%
     \vspace{2em}%
     \begin{center}%
     \@department \\
-    University College London\\
+    UCL\\
     \end{center}%
     \vspace{2em}%
     \begin{center}%

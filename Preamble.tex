@@ -7,14 +7,17 @@
 % \makeatother
 
 \title{Exploiting Structural Synergy in post-SIRT imaging: Anatomically Guided Joint Variational Reconstruction of Yttrium-90 PET/SPECT/CT}
-\author{Sam Porter}
-\department{The institute of Nuclear Medicine, Division of Medicine}
+\author{Sam David Porter}
+\date{2026}
+\department{The Institute of Nuclear Medicine, Division of Medicine}
 
 \maketitle
-\makedeclaration
+% The offset cancels the class's -1in \hoffset and \voffset, which would otherwise shift the inserted pages.
+\IfFileExists{declaration.pdf}{\includepdf[pages=-,offset=25.4mm -25.4mm]{declaration.pdf}}{\makedeclaration}
 
 \begin{abstract} % 300 word limit
-Selective Internal Radiotherapy (SIRT) uses Yttrium-90 ($^{90}Y$) microspheres to treat unresectable liver tumours. Accurate post-treatment imaging is required to verify microsphere distribution and perform dosimetric evaluations. However, imaging with $^{90}Y$ presents unique challenges. Bremsstrahlung SPECT offers high count statistics but suffers from poor spatial resolution and difficulties in correcting for scatter and other additive terms. $^{90}Y$ PET offers superior resolution, but suffers from high noise due to the extremely low internal pair branching ratio ($\sim 0.003\%$). Traditional reconstruction fails to exploit complementary information in these paired datasets.
+\phantomsection\addcontentsline{toc}{chapter}{Abstract}
+Selective Internal Radiotherapy (SIRT) uses Yttrium-90 (\isotope[90]{Y}) microspheres to treat unresectable liver tumours. Accurate post-treatment imaging is required to verify microsphere distribution and perform dosimetric evaluations. However, imaging with \isotope[90]{Y} presents unique challenges. Bremsstrahlung SPECT offers high count statistics but suffers from poor spatial resolution and difficulties in correcting for scatter and other additive terms. \isotope[90]{Y} PET offers superior resolution, but suffers from high noise due to the extremely low internal pair branching ratio ($\sim 0.003\%$). Traditional reconstruction fails to exploit complementary information in these paired datasets.
 
 This thesis proposes a synergistic framework that uses anatomically guided joint variational regularisation to exploit shared underlying structure. We introduce the weighted directional total nuclear variation prior (\wdtnv), which promotes edge alignment between PET and SPECT without enforcing intensity correlation, while incorporating CT edge-guidance and suppressing unwanted noise.
 
@@ -26,13 +29,16 @@ We evaluate \wdtnv{} against directional total variation, weighted total nuclear
 \end{abstract}
 
 \begin{impactstatement}
+\phantomsection\addcontentsline{toc}{chapter}{Impact Statement}
 Selective Internal Radiotherapy (SIRT) uses $^{90}$Y microspheres to treat liver tumours that cannot be removed surgically. Post-treatment imaging is used to verify where the microspheres were deposited and to estimate absorbed dose, but quantitative $^{90}$Y imaging is difficult. PET has good spatial resolution, but $^{90}$Y emits very few positrons, so the images are noisy. Bremsstrahlung SPECT has more counts but poor spatial resolution. When both scans are acquired, they are usually reconstructed separately. This thesis develops a method that reconstructs PET and SPECT images together, using structure shared between them and anatomical edges from CT.
 
 Within academia, the main contribution is the weighted directional total nuclear variation prior (\wdtnv). It encourages edges in the PET and SPECT images to align without forcing their intensities to match. The CT provides edge directions but is not treated as a third image. The approach could be adapted to other pairs of images that share anatomy, such as dual-radionuclide SPECT or planning and post-treatment scans.
 
 In the optimisation study, including the prior in the preconditioner kept the low-count PET reconstruction stable in tests where a data-only preconditioner diverged. This may also apply to other low-count problems. In the partial volume correction study, unregularised and kernel-based deconvolution depended on the starting image and on when the iterations were stopped. A directional total variation penalty gave the lowest error and matching recovery and noise from both starting images tested. This matters because the true image is unknown in clinical data.
 
-Parts of this work have been presented at the IEEE Nuclear Science Symposium and Medical Imaging Conference (2022, 2024 and 2025) and at the PET is Wonderful meeting (2025). The joint reconstruction study is available as a preprint. The SIMIND Python connector written for this thesis is openly available; it lets researchers run SIMIND Monte Carlo simulations from Python and use the results directly in STIR, SIRF and PyTomography. I have also contributed to the open-source STIR and CIL reconstruction libraries, and to collaborative studies on partial volume correction in carotid FDG PET, multi-radionuclide SPECT and $^{177}$Lu-DOTATATE dosimetry.
+Parts of this work have been presented at the IEEE Nuclear Science Symposium and Medical Imaging Conference (2024 and 2025) \cite{porterOptimisingSubsetSelection2024a,porterSynergisticPETSPECT2025,porterRegularisedRichardsonLucy2025} and at the PET is Wonderful meeting (2025) \cite{porterSimultaneousMultiBedMAP2025}. The joint reconstruction study is available as a preprint \cite{porterWeightedDirectionalTotal2026}. The \texttt{simind-python-connector} and \texttt{cil-krl} packages developed for this thesis are archived on Zenodo \cite{porterSimindPythonConnector2026,porterCilKrl2026}; they support SPECT simulation and PET deconvolution, respectively.
+
+I have also contributed to STIR \cite{efthimiouStirSoftware2024} and stochastic optimisation in CIL \cite{papoutsellisModularStochasticOptimisation2026}, and to collaborative studies on PET raw-data standardisation \cite{karakatsanisPetsirdHackathon2025}, partial volume correction in carotid FDG PET \cite{algodayanPartialVolumeCarotid2024}, multi-radionuclide SPECT \cite{strugariPreclinicalSpectralUnmixing2026} and $^{177}$Lu-DOTATATE dosimetry \cite{varzakisOpenSourceDosimetry2025}.
 
 Outside academia, the potential benefit is mainly clinical. Across 45 lesions in nine patients, \wdtnv{} gave significantly higher PET lesion contrast than the three comparison methods. In a phantom study, it improved recovery of the smallest spheres. These gains could support verification of microsphere delivery, lesion-level dosimetry and decisions about further treatment. Where both scans are already acquired, the method needs no extra scanning or radiation dose and could be introduced through reconstruction software alone. Because artefacts in the CT can propagate into the guided images, the thesis also recommends acquiring the CT with the patient's arms raised where possible.
 
@@ -40,9 +46,12 @@ Further validation is needed before clinical use. The patient study was retrospe
 \end{impactstatement}
 
 \begin{acknowledgements}
+\phantomsection\addcontentsline{toc}{chapter}{Acknowledgements}
 So, it turns out that a PhD is quite an undertaking. It's been a long old journey, but the end is in sight!
 
 I've had an extraordinary four years and would like to thank some extraordinary people. Firstly, I'd like to thank my supervisors, Kris, Daniel, and Simon, who have been a near-bottomless source of knowledge, inspiration and ideas. Secondly, my colleagues in the INM, especially my fellow students. This would have been a very difficult (and much lonelier) few years without you all. I'm so grateful for our conversations in and out of the workplace. I'd like to also thank all of my colleagues in the scientific and medical spheres, whom I've found to be endlessly generous with their time and patience.
+
+This work was supported in part by the National Physical Laboratory through the National Measurement System of the Department for Science, Innovation and Technology (NPL grant PO496581), and by the Engineering and Physical Sciences Research Council (EPSRC) through an Industrial CASE studentship (EPSRC grant EP/W522077/1) and Mediso Medical Imaging Systems. Software used in this project is maintained by CCP SyneRBI (UKRI support: EPSRC grant EP/T026693/1), CCPi (EPSRC grant EP/T026677/1) and the Science and Technology Facilities Council through the Digital Research Infrastructure programme.
 
 I'd like to thank my parents and my sister, Alice, for all your support over the past four years and the many years before. There's no way that any of this would have happened without you all. Thank you.
 
@@ -53,9 +62,16 @@ Most of all, I want to express my deep gratitude to my newly minted wife, Kate. 
 % Setting this higher means you get contents entries for
 %  more minor section headers.
 
+% Acronyms in headings and captions would otherwise be expanded in these lists,
+%  because this is where they are first typeset. They are still marked as used,
+%  so first-use expansion in the main text is unchanged.
+\begingroup
+\renewcommand*{\gls}[1]{\glsunset{#1}\glsentryshort{#1}}
+\renewcommand*{\glspl}[1]{\glsunset{#1}\glsentryshortpl{#1}}
 \tableofcontents
 \listoffigures
 \listoftables
+\endgroup
 
 \cleardoublepage
 

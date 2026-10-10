@@ -7,11 +7,17 @@
 \makeatletter
 \AtBeginDocument{
     \hypersetup{
-        pdfsubject={Thesis Subject},
-        pdfkeywords={Thesis Keywords},
-        pdfauthor={Author},
-        pdftitle={Title},
+        pdfsubject={Doctor of Philosophy thesis, UCL},
+        pdfkeywords={Yttrium-90, SIRT, PET, SPECT, joint reconstruction, synergistic reconstruction, anatomical priors, directional total nuclear variation, preconditioning, partial volume correction},
+        pdfauthor={Sam David Porter},
+        pdftitle={Exploiting Structural Synergy in post-SIRT imaging: Anatomically Guided Joint Variational Reconstruction of Yttrium-90 PET/SPECT/CT},
     }
 }
+
+% The class sets these headings with \chapter*, which gets neither a contents entry nor a PDF bookmark.
+\patchcmd{\tableofcontents}{\@starttoc{toc}}{\pdfbookmark[0]{\contentsname}{toc}\@starttoc{toc}}{}{}
+\patchcmd{\listoffigures}{\@starttoc{lof}}{\phantomsection\addcontentsline{toc}{chapter}{\listfigurename}\@starttoc{lof}}{}{}
+\patchcmd{\listoftables}{\@starttoc{lot}}{\phantomsection\addcontentsline{toc}{chapter}{\listtablename}\@starttoc{lot}}{}{}
+\AtEndPreamble{\pdfstringdefDisableCommands{\let\gls\glsentryshort\let\acrfull\glsentryshort}}
 \makeatother
     

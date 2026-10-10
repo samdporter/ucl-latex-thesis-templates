@@ -61,10 +61,20 @@
 \usepackage{xcolor}
 \usepackage[backend=biber,style=numeric,sorting=none]{biblatex}
 \usepackage{amsmath,amssymb}
-\usepackage[hidelinks]{hyperref}
+
+% Package configuration:
+%  LaTeX uses "packages" to add extra commands and features.
+%  There are quite a few useful ones, so we've put them in a
+%   separate file.
+% This has to come before hyperref: setspace redefines the footnote
+%  internals that hyperref patches, which breaks the footnote links.
+\input{MainPackages}
+
+\usepackage[hidelinks,psdextra,pdflang={en-GB}]{hyperref}
 \usepackage[nameinlink,noabbrev]{cleveref}
 \usepackage{mathtools}
 \usepackage{comment}
+\usepackage{xspace}
 
 \theoremstyle{plain} % italic body
 \newtheorem{theorem}{Theorem}[subsection]
@@ -79,17 +89,11 @@
 \theoremstyle{remark} % upright body, usually smaller
 \newtheorem{remark}[theorem]{Remark}
 \newcommand{\cmmnt}[1]{\ignorespaces}
-\newcommand{\wtnv}{\ensuremath{w\text{-}\mathrm{TNV}} }
-\newcommand{\wdtnv}{\ensuremath{w\text{-}\mathrm{dTNV}} }
-\newcommand{\dtv}{\ensuremath{\mathrm{dTV}} }
+\newcommand{\wtnv}{\ensuremath{w\text{-}\mathrm{TNV}}\xspace}
+\newcommand{\wdtnv}{\ensuremath{w\text{-}\mathrm{dTNV}}\xspace}
+\newcommand{\dtv}{\ensuremath{\mathrm{dTV}}\xspace}
 \newcommand{\TODO}[1]{\textcolor{red}{\textbf{TODO:} #1}}
 \newcommand{\SA}[1]{ {\leavevmode {\textcolor{magenta}{SA: #1}} }}
-
-% Package configuration:
-%  LaTeX uses "packages" to add extra commands and features.
-%  There are quite a few useful ones, so we've put them in a 
-%   separate file.
-\input{MainPackages}
 
 % Sets up links within your document, for e.g. contents page entries
 %  and references, and also PDF metadata.
@@ -161,14 +165,15 @@
 \include{Chapter7}
 \include{Chapter8}
 \include{Chapter9}
-\include{Appendices}
-% You could separate these out into different files if you have
-%  particularly large appendices.
 
-% Actually generates your bibliography. The fact that \include is 
+% Actually generates your bibliography. The fact that \include is
 % the last thing before this ensures that it is on a clear page.
 %\bibliography{example}
 \printbibliography[heading=bibintoc,title={References}]
+
+\include{Appendices}
+% You could separate these out into different files if you have
+%  particularly large appendices.
 
 % All done. \o/
 \end{document}

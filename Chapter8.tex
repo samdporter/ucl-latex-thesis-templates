@@ -1,5 +1,7 @@
-\chapter{Evaluation of weighted directional total nuclear variation on clinical data}
+\chapter{Evaluation of Weighted Directional Total Nuclear Variation on Clinical Data}
 \label{chapter:paper}
+
+The work presented in this chapter is also reported in the preprint by Porter \textit{et al.}\ \cite{porterWeightedDirectionalTotal2026}.
 
 This chapter applies the \acrfull{wdtnv} prior developed in Chapter~\ref{chapter:wdtnv} to the clinically relevant problem of post-treatment $^{90}$Y activity imaging after \glsentryshort{sirt}. We consider joint reconstruction of low-count $^{90}$Y \glsentryshort{pet} and bremsstrahlung \glsentryshort{spect}, using \acrfull{ctac} information directionally (via the \glsentryshort{ctac}-derived attenuation map $\mu$).
 
@@ -120,7 +122,7 @@ The corresponding \gls{pet} sensitivity image on the combined grid is
 \end{equation}
 Each bed contributes its own data term and sensitivity to a single combined image, while the image-domain prior is evaluated over the complete field of view. For the joint PET/SPECT objective~\eqref{eq:90y_joint_obj}, $\mathcal{D}_1$ is replaced by the summed multi-bed PET data term~\eqref{eq:multibed_data_term}; the SPECT data term and coupled prior retain their existing form. Likewise, the PET sensitivity used for preconditioning is the combined sensitivity~\eqref{eq:multibed_sensitivity}. This extends the single-bed optimisation framework tested in Chapter~\ref{chapter:optimisation} to the two-bed patient acquisitions evaluated here.
 
-\section{$w$-$d$TNV for $^{90}$Y PET/SPECT with CTAC guidance}
+\section{\texorpdfstring{$\wdtnv$}{w-dTNV} for $^{90}$Y PET/SPECT with CTAC guidance}
 \label{sec:90y_wdtnv}
 
 \subsection{Directional guidance from the CTAC-derived $\mu$-map}
