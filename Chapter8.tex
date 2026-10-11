@@ -323,8 +323,7 @@ p =
 \end{equation}
 with \acrfull{bh} adjustment across methods within each VOI\@. No thresholding was applied to exclude near-zero voxels, so CoV estimates in the cold lung insert should be interpreted as a noise-realisation stability measure rather than a conventional percentage variability around a substantial mean signal.
 
-We analyse log-transformed RC using a linear mixed-effects model with fixed effects for reconstruction method, sphere, and their interaction. A random intercept for each bootstrap replicate accounts for measurements obtained from the same resampled dataset. The interaction allows the method differences to vary with sphere size. The full model specification is given in Appendix~\ref{app:90y_statistical_models}.
-For each sphere size, many-to-one contrasts compare each method to the reference $c_0=\wdtnv$, with Benjamini--Hochberg adjustment across planned comparisons within that sphere. Since the model is fitted on the log scale, $\exp(\Delta_{c,v})<1$ indicates lower recovery than \wdtnv for sphere $v$.
+We compare RC between each method $c$ and the reference $c_0=\wdtnv$ separately for each sphere, using paired log-ratios of RC across bootstrap realisations. Pairing by realisation removes the noise that all methods share within a realisation, and analysing each sphere separately allows the variability of the paired differences to differ between spheres. Each contrast is tested with an exact paired sign-flip permutation test, with Benjamini--Hochberg adjustment across the planned comparisons within each sphere, and 95\% confidence intervals are exponentiated Student-$t$ intervals. The full specification is given in Appendix~\ref{app:90y_statistical_models}. Since the analysis is on the log scale, $\exp(\Delta_{c,v})<1$ indicates lower recovery than \wdtnv for sphere $v$.
 
 \subsection{Clinical evaluation}
 \label{subsec:90y_clinical_eval}
@@ -465,11 +464,11 @@ A representative reconstruction from a single bootstrapped PET realisation is sh
     \label{fig:90y_phantom_recon_comparison}
 \end{figure}
 
-Figure~\ref{fig:90y_rc_spheres_comparison} and Table~\ref{tab:90y_effect_ratio_rc} summarise sphere recovery. Quantitative analysis demonstrated that \wdtnv achieved significantly higher recovery than \dtv and \wtnv for all sphere sizes $\leq\SI{22}{\milli\metre}$. \wdtnv showed similar recovery to SHKEM in the larger spheres but significantly improved recovery for the two smallest spheres at the matched operating point.
+Figure~\ref{fig:90y_rc_spheres_comparison} and Table~\ref{tab:90y_effect_ratio_rc} summarise sphere recovery. Quantitative analysis demonstrated that \wdtnv achieved significantly higher recovery than \dtv and \wtnv at all sphere sizes, with RC ratios of 0.91 at \SI{37}{\milli\metre} decreasing to 0.77 and 0.74 at \SI{10}{\milli\metre}; \wdtnv had the higher RC in every realisation. Relative to SHKEM at the matched operating point, \wdtnv showed significantly higher recovery for all spheres except the largest. The difference was small in the 22 and \SI{28}{\milli\metre} spheres (ratios 0.96 and 0.97) and largest in the 13 and \SI{10}{\milli\metre} spheres (0.87 and 0.74).
 \begin{figure*}[htbp]
     \centering
     \includegraphics[width=\linewidth]{figures/Chapter6/phantoms/manc_nema/bootstrap_rc.png}
-    \caption{Recovery coefficient (RC) for NEMA phantom spheres for \wdtnv, \dtv, \wtnv and SHKEM (subiteration 27). Also shown are the equivalent RCs for the high-count, long-OSEM reconstruction of Figure~\ref{fig:90y_phantom_mean_profiles}. The dashed line indicates perfect recovery. Statistical significance is reported for paired comparisons versus \wdtnv (Benjamini--Hochberg adjusted): $^*$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$.}
+    \caption{Recovery coefficient (RC) for NEMA phantom spheres for \wdtnv, \dtv, \wtnv and SHKEM (subiteration 27). Also shown are the equivalent RCs for the high-count, long-OSEM reconstruction of Figure~\ref{fig:90y_phantom_mean_profiles}. The dashed line indicates perfect recovery. Statistical significance is reported for paired sign-flip permutation tests versus \wdtnv within each sphere (Benjamini--Hochberg adjusted): $^*$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$.}
     \label{fig:90y_rc_spheres_comparison}
 \end{figure*}
 
@@ -481,30 +480,30 @@ Figure~\ref{fig:90y_rc_spheres_comparison} and Table~\ref{tab:90y_effect_ratio_r
 \toprule
 Method & $v$ & $\exp(\Delta_{c,v})$ & 95\% CI & $p_{\mathrm{BH}}$ \\
 \midrule
-\dtv & 37\,mm & 0.9113 & [0.8001,\,1.0380] & 0.2472 \\
-     & 28\,mm & 0.8543 & [0.7500,\,0.9730] & 0.0267 \\
-     & 22\,mm & 0.8165 & [0.7168,\,0.9300] & 0.0034 \\
-     & 13\,mm & 0.7819 & [0.6865,\,0.8906] & 0.00043\\
-     & 10\,mm & 0.7706 & [0.6766,\,0.8777] & $<10^{-4}$ \\
+\dtv & 37\,mm & 0.9113 & [0.8944,\,0.9286] & $<10^{-4}$ \\
+     & 28\,mm & 0.8543 & [0.8368,\,0.8721] & $<10^{-4}$ \\
+     & 22\,mm & 0.8165 & [0.8011,\,0.8321] & $<10^{-4}$ \\
+     & 13\,mm & 0.7819 & [0.7582,\,0.8063] & $<10^{-4}$ \\
+     & 10\,mm & 0.7706 & [0.7260,\,0.8179] & $<10^{-4}$ \\
 \addlinespace
-\wtnv & 37\,mm & 0.9108 & [0.7997,\,1.0374] & 0.2472 \\
-      & 28\,mm & 0.8544 & [0.7502,\,0.9732] & 0.0267 \\
-      & 22\,mm & 0.8090 & [0.7103,\,0.9215] & 0.0034 \\
-      & 13\,mm & 0.7598 & [0.6671,\,0.8654] & 0.0001 \\
-      & 10\,mm & 0.7384 & [0.6483,\,0.8410] & $<10^{-4}$ \\
+\wtnv & 37\,mm & 0.9108 & [0.9076,\,0.9140] & $<10^{-4}$ \\
+      & 28\,mm & 0.8544 & [0.8489,\,0.8600] & $<10^{-4}$ \\
+      & 22\,mm & 0.8090 & [0.8006,\,0.8176] & $<10^{-4}$ \\
+      & 13\,mm & 0.7598 & [0.7418,\,0.7782] & $<10^{-4}$ \\
+      & 10\,mm & 0.7384 & [0.6993,\,0.7796] & $<10^{-4}$ \\
 \addlinespace
-SHKEM (27) & 37\,mm & 0.9931 & [0.8720,\,1.1312] & 0.9175 \\
-           & 28\,mm & 0.9739 & [0.8551,\,1.1093] & 0.6906 \\
-           & 22\,mm & 0.9616 & [0.8443,\,1.0953] & 0.5559 \\
-           & 13\,mm & 0.8723 & [0.7659,\,0.9936] & 0.0397 \\
-           & 10\,mm & 0.7381 & [0.6480,\,0.8407] & $<10^{-4}$ \\
+SHKEM (27) & 37\,mm & 0.9931 & [0.9760,\,1.0106] & 0.4159 \\
+           & 28\,mm & 0.9739 & [0.9560,\,0.9922] & 0.0090 \\
+           & 22\,mm & 0.9616 & [0.9347,\,0.9894] & 0.0082 \\
+           & 13\,mm & 0.8723 & [0.8211,\,0.9268] & 0.0002 \\
+           & 10\,mm & 0.7381 & [0.6827,\,0.7980] & $<10^{-4}$ \\
 \bottomrule
 \end{tabular}
-\caption{Effect ratios $\exp(\Delta_{c,v})$ (comparator vs.\ baseline \wdtnv) with 95\% confidence intervals and BH-adjusted $p$-values, reported by sphere diameter $v$. Values below one indicate lower recovery coefficient than \wdtnv.}
+\caption{Effect ratios $\exp(\Delta_{c,v})$ (comparator vs.\ baseline \wdtnv) with 95\% confidence intervals and BH-adjusted $p$-values from paired sign-flip permutation tests, reported by sphere diameter $v$. Values below one indicate lower recovery coefficient than \wdtnv.}
 \label{tab:90y_effect_ratio_rc}
 \end{table}
 
-Figure~\ref{fig:90y_phantom_mean_profiles} shows the mean over the 20 realisations for each method, together with the long-OSEM reference used for the RC comparison and profiles through all five analysed spheres. \dtv and \wtnv give rounded profiles with lower peaks in the 28 and \SI{22}{mm} spheres, consistent with their lower RC at these sizes, whereas \wdtnv keeps a plateau across the three larger spheres. The rings visible at the edges of the \wdtnv spheres are less pronounced in the profiles than in the images, but they are present: in the larger spheres the \wdtnv profiles rise at most 5\% above their level in the sphere interior, compared with 5--11\% for the long-OSEM reference, and show small shoulders on the sphere edges and a slight dip below the background just outside the \SI{37}{mm} sphere. SHKEM shows a few hot voxels in the larger spheres (Figure~\ref{fig:90y_phantom_recon_comparison}), and these persist in the mean image. In every realisation, its maximum in the 22, 28 and \SI{37}{mm} spheres exceeded that of \wdtnv, but its sphere means, and hence RC, were similar for these spheres and lower for the two smallest; background means differed by less than 1\%.
+Figure~\ref{fig:90y_phantom_mean_profiles} shows the mean over the 20 realisations for each method, together with the long-OSEM reference used for the RC comparison and profiles through all five analysed spheres. \dtv and \wtnv give rounded profiles with lower peaks in the 28 and \SI{22}{mm} spheres, consistent with their lower RC at these sizes, whereas \wdtnv keeps a plateau across the three larger spheres. The rings visible at the edges of the \wdtnv spheres are less pronounced in the profiles than in the images, but they are present: in the larger spheres the \wdtnv profiles rise at most 5\% above their level in the sphere interior, compared with 5--11\% for the long-OSEM reference, and show small shoulders on the sphere edges and a slight dip below the background just outside the \SI{37}{mm} sphere. SHKEM shows a few hot voxels in the larger spheres (Figure~\ref{fig:90y_phantom_recon_comparison}), and these persist in the mean image. In every realisation, its maximum in the 22, 28 and \SI{37}{mm} spheres exceeded that of \wdtnv, but its RC was only 1--4\% lower than that of \wdtnv for these spheres, compared with 13--26\% lower for the two smallest; background means differed by less than 1\%.
 
 In the 10 and \SI{13}{mm} spheres (profile C), all four methods peak below the long-OSEM reference. This is expected: the reference is reconstructed from 60 times as many counts, and averaging the low-count reconstructions removes their noise but not the loss of resolution from the regularisation needed at that count level. \wdtnv gives the highest peak of the four methods in the \SI{10}{mm} sphere. In the \SI{13}{mm} sphere, \wdtnv and SHKEM peak at similar levels, well above \dtv and \wtnv. SHKEM's RC for this sphere is nonetheless lower (Table~\ref{tab:90y_effect_ratio_rc}): RC averages over the whole sphere VOI, whereas a profile samples a single line through its centre.
 \begin{figure}[htbp]
@@ -598,11 +597,11 @@ SHKEM (27)  & 1.339 & [1.022,\,1.753] & 0.103 \\
 \section{Discussion}
 \label{sec:90y_discussion}
 
-At the matched operating point, \wtnv alone did not recover the smallest sphere boundaries. Adding anatomical guidance, explicitly in \wdtnv or implicitly through CT-informed SHKEM features, improved boundary localisation. The gain of \wdtnv over \wtnv and \dtv was largest for the smallest spheres (profile C in Figure~\ref{fig:90y_phantom_mean_profiles}), where PET counts and SPECT resolution were most limiting.
+At the matched operating point, adding directional anatomical guidance to \wtnv, as in \wdtnv, improved sphere recovery. The gain of \wdtnv over \wtnv and \dtv was largest for the smallest spheres (profile C in Figure~\ref{fig:90y_phantom_mean_profiles}), where PET counts and SPECT resolution were most limiting.
 
 At the selected operating point, \dtv and \wtnv had lower voxel-wise CoV than \wdtnv, suggesting stronger effective smoothing. The variational methods were more repeatable than SHKEM in background and high-count regions, while SHKEM was most stable in the cold lung insert. One possible explanation is that its kernel weights average nearby near-zero voxels, so positivity reinforces the cold region. This may improve stability there without improving repeatability elsewhere.
 
-\dtv and \wtnv produced broadly similar PET appearances in the phantom, despite \dtv including $\mu$-directional guidance and \wtnv including PET/SPECT coupling. In this experiment, then, neither CTAC-derived directional guidance alone nor isotropic PET/SPECT coupling alone was sufficient to recover the smallest structures. The improved recovery with \wdtnv points to a complementary mechanism: the higher-count SPECT image provides additional functional support for the location of activity transitions, while the $\mu$-derived directional field reduces penalisation of gradients aligned with anatomical boundaries.
+\dtv and \wtnv produced broadly similar PET appearances in the phantom, despite \dtv including $\mu$-directional guidance and \wtnv including PET/SPECT coupling. In this experiment, then, neither CTAC-derived directional guidance alone nor isotropic PET/SPECT coupling alone matched the recovery of the smallest structures obtained by combining them. The improved recovery with \wdtnv points to a complementary mechanism: the higher-count SPECT image provides additional functional support for the location of activity transitions, while the $\mu$-derived directional field reduces penalisation of gradients aligned with anatomical boundaries.
 
 The lesion results were not uniform. Lesions with clear anatomical correlates, such as calcification or liver-capsule boundaries visible in the $\mu$-map, tended to benefit more from directional guidance and PET/SPECT coupling. Lesions without a corresponding anatomical structure showed less improvement. This is consistent with the design of \wdtnv: CTAC guidance changes the preferred edge directions without directly prescribing emission intensities, but it can still bias reconstructed structure.
 
@@ -646,7 +645,7 @@ To preserve direct comparability with SHKEM, regularisation weights were selecte
 
 This chapter evaluated the $w$-$d$TNV prior of Chapter~\ref{chapter:wdtnv} in joint $^{90}$Y PET/SPECT reconstruction with CTAC-derived directional guidance. The single-bed optimisation framework of Chapter~\ref{chapter:optimisation} was extended to reconstruct the patient PET bed positions jointly, allowing the prior to act across the combined field of view. The key modelling choice is to use CTAC information directionally while preserving a two-modality Jacobian and avoiding unstable intensity coupling to CT.
 
-On a bootstrapped NEMA IEC phantom, \wdtnv improves small-object recovery relative to \wtnv, \dtv, and a sequential hybrid kernel baseline at a matched noise operating point, with significant gains over the isotropic and non-synergistic variational baselines. Repeatability is better than SHKEM in the background and high-count regions, although lower than for the more strongly smoothing variational baselines. In the post-SIRT cohort of 45 lesions across nine patients, \wdtnv yields significantly higher lesion TBR than the comparators at approximately matched background CoV.
+On a bootstrapped NEMA IEC phantom at a matched noise operating point, \wdtnv gives significantly higher recovery than \wtnv and \dtv for all spheres, and than a sequential hybrid kernel baseline for all but the largest, with the largest gains in the smallest spheres. Repeatability is better than SHKEM in the background and high-count regions, although lower than for the more strongly smoothing variational baselines. In the post-SIRT cohort of 45 lesions across nine patients, \wdtnv yields significantly higher lesion TBR than the comparators at approximately matched background CoV.
 
 The response is not uniform across lesions. Those with clear anatomical correlates benefit most from synergy and $\mu$-map-informed edge alignment, while lesions without corresponding anatomical structure show less improvement. These findings support CTAC-guided synergistic variational coupling as a way to improve post-SIRT $^{90}$Y activity imaging for personalised dosimetry, but clinical translation will depend on controlling CT artefacts and PET/SPECT/CT registration error.
 
